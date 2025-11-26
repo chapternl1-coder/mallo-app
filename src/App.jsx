@@ -345,12 +345,14 @@ const SECTORS = [
   {
     id: 'beauty',
     name: '뷰티/샵',
-    icon: <Scissors size={22} />,
-    color: 'from-pink-500 to-rose-500',
-    bg: 'bg-rose-50',
-    text: 'text-rose-600',
-    border: 'border-rose-200',
-    ring: 'ring-rose-500',
+    icon: <Scissors size={20} />,
+    color: 'from-rose-700 to-rose-800',
+    pastel: 'bg-gradient-to-br from-rose-50 to-pink-50',
+    bg: 'bg-gradient-to-br from-rose-50 to-pink-50',
+    iconBg: 'rose-700',
+    text: 'text-rose-700',
+    border: 'border-transparent',
+    ring: 'ring-rose-700',
     desc: '네일, 헤어, 왁싱, 에스테틱',
     defaultRole: '네일 & 왁싱샵 원장',
     sampleTranscript: "오늘 3시 예약하신 김민지 고객님, 신규 방문이시고요. 젤네일 제거하고 이달의 아트 3번으로 시술 들어갔어요. 손톱이 좀 얇아지셔서 강화제 서비스로 발라드렸고, 3주 뒤에 리터치 오시라고 안내했습니다. 아, 그리고 다음 주에 웨딩 촬영 있다고 하셔서 큐티클 오일 꼭 바르시라고 강조했어요.",
@@ -368,12 +370,14 @@ const SECTORS = [
   {
     id: 'pt',
     name: '헬스/PT',
-    icon: <Dumbbell size={22} />,
-    color: 'from-blue-500 to-indigo-500',
-    bg: 'bg-indigo-50',
-    text: 'text-indigo-600',
-    border: 'border-indigo-200',
-    ring: 'ring-indigo-500',
+    icon: <Dumbbell size={20} />,
+    color: 'from-sky-500 to-blue-600',
+    pastel: 'bg-gradient-to-br from-sky-50 to-blue-50',
+    bg: 'bg-gradient-to-br from-sky-50 to-blue-50',
+    iconBg: 'sky-500',
+    text: 'text-blue-600',
+    border: 'border-transparent',
+    ring: 'ring-blue-500',
     desc: '헬스, 필라테스, 요가, 재활',
     defaultRole: '퍼스널 트레이너',
     sampleTranscript: "오늘 저녁 7시 박철수 회원님 PT 진행했음. 하체 위주로 갔고 스쿼트 60키로 10회 3세트, 레그프레스 120키로 12회 4세트 함. 어제 야근하셔서 컨디션 좀 안 좋아 보이길래 쉬는 시간 좀 길게 가졌고, 무릎 통증은 없다고 하심. 숙제로 폼롤러 스트레칭 꼭 하고 주무시라고 함.",
@@ -391,12 +395,14 @@ const SECTORS = [
   {
     id: 'construction',
     name: '현장/건설',
-    icon: <HardHat size={22} />,
-    color: 'from-amber-500 to-orange-600',
-    bg: 'bg-orange-50',
-    text: 'text-orange-600',
-    border: 'border-orange-200',
-    ring: 'ring-orange-500',
+    icon: <HardHat size={20} />,
+    color: 'from-stone-500 to-stone-600',
+    pastel: 'bg-gradient-to-br from-stone-50 to-stone-100',
+    bg: 'bg-gradient-to-br from-stone-50 to-stone-100',
+    iconBg: 'stone-500',
+    text: 'text-stone-600',
+    border: 'border-transparent',
+    ring: 'ring-stone-500',
     desc: '현장 소장, 시공팀, 작업반장',
     defaultRole: '현장 소장',
     sampleTranscript: "11월 23일, A아파트 105동 주방 현장입니다. 오늘은 천장 도배 걷어내고, 전기 배선 정리까지 마무리했습니다. 콘센트 위치 두 군데 변경 요청 들어와서, 내일 오전에 전기기사 다시 들어와야 하고요. 퍼티가 많이 들어가서 자재가 부족해서, 내일 퍼티 두 박스 추가로 올려야 합니다. 내일은 전체 퍼티 1차 치고, 모서리 마감까지 보는 걸로 계획입니다.",
@@ -413,12 +419,14 @@ const SECTORS = [
   {
     id: 'sales',
     name: '영업/세일즈',
-    icon: <Briefcase size={22} />,
-    color: 'from-emerald-500 to-teal-600',
-    bg: 'bg-teal-50',
-    text: 'text-teal-600',
-    border: 'border-teal-200',
-    ring: 'ring-teal-500',
+    icon: <Briefcase size={20} />,
+    color: 'from-emerald-800 to-emerald-900',
+    pastel: 'bg-gradient-to-br from-emerald-50 to-teal-50',
+    bg: 'bg-gradient-to-br from-emerald-50 to-teal-50',
+    iconBg: 'emerald-800',
+    text: 'text-emerald-800',
+    border: 'border-transparent',
+    ring: 'ring-emerald-800',
     desc: 'B2B 영업, 보험, 부동산, 딜러',
     defaultRole: '영업 팀장',
     sampleTranscript: "오전에 성수동 위워크 들러서 최 대표님이랑 미팅했고요. 우리 SaaS 솔루션 도입 긍정적이신데, 가격이 조금 부담된다고 하셔서 3개월 무료 프로모션 조건 제안드렸습니다. 다음 주 월요일까지 내부 회의 거쳐서 연락 주시기로 했고, 경쟁사 A사 제품이랑 비교 중이신 것 같아요.",
@@ -436,12 +444,14 @@ const SECTORS = [
   {
     id: 'general',
     name: '일반 업무',
-    icon: <FileText size={22} />,
-    color: 'from-gray-600 to-slate-700',
-    bg: 'bg-slate-50',
-    text: 'text-slate-600',
-    border: 'border-slate-200',
-    ring: 'ring-slate-500',
+    icon: <FileText size={20} />,
+    color: 'from-violet-600 to-purple-700',
+    pastel: 'bg-gradient-to-br from-violet-50 to-purple-50',
+    bg: 'bg-gradient-to-br from-violet-50 to-purple-50',
+    iconBg: 'violet-600',
+    text: 'text-violet-700',
+    border: 'border-transparent',
+    ring: 'ring-violet-600',
     desc: '직장인, 프리랜서, 학생, 회의록',
     defaultRole: '기획자',
     sampleTranscript: "오늘 마케팅 팀이랑 주간 회의했는데, 다음 달 이벤트 배너 디자인 시안 3개 내일까지 픽스하기로 했어. 김 대리님이 카피라이팅 좀 더 수정해오기로 했고, 나는 개발팀이랑 일정 조율해서 금요일까지 공유해줘야 해. 아, 그리고 예산 200만 원 추가 승인난 거 확인했음.",
@@ -474,31 +484,61 @@ const WaveBars = () => (
   </div>
 );
 
-const SectorCard = ({ sector, isSelected, onClick }) => (
+const SectorCard = ({ sector, isSelected, onClick }) => {
+  // 아이콘 배경색 결정
+  const iconBgColor = sector.iconBg === 'rose-700' ? '#be123c' :
+                      sector.iconBg === 'slate-800' ? '#1e293b' :
+                      sector.iconBg === 'stone-500' ? '#78716c' :
+                      sector.iconBg === 'emerald-800' ? '#065f46' :
+                      sector.iconBg === 'gray-600' ? '#4b5563' :
+                      '#6b7280';
+
+  // 체크 아이콘 배경색
+  const checkBgColor = sector.text === 'text-rose-700' ? '#be123c' :
+                       sector.text === 'text-blue-600' ? '#2563eb' :
+                       sector.text === 'text-stone-600' ? '#78716c' :
+                       sector.text === 'text-emerald-800' ? '#065f46' :
+                       sector.text === 'text-violet-700' ? '#6d28d9' :
+                       '#6b7280';
+
+  return (
   <button
     onClick={onClick}
-    className={`relative w-full p-4 rounded-2xl border transition-all duration-300 text-left flex flex-col gap-3 h-32 group
-      ${isSelected 
-        ? `border-transparent ring-2 ring-offset-2 ${sector.ring} bg-white shadow-xl scale-[1.02]` 
-        : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50 hover:shadow-md'}`}
+    className={`relative w-full px-4 py-4 rounded-2xl border-0 transition-all duration-300 text-left flex items-center gap-4 group
+      ${isSelected ? `${sector.bg} shadow-2xl -translate-y-1` : 'bg-white shadow-xl hover:-translate-y-1 hover:shadow-2xl'}`}
   >
-    <div className={`p-2.5 rounded-xl w-fit ${sector.bg} ${sector.text} transition-transform duration-300 group-hover:scale-110`}>
-      {sector.icon}
+    {/* 아이콘 컨테이너 - 연한 회색 배경 */}
+    <div className="relative flex-shrink-0">
+      <div className="p-2.5 rounded-xl bg-gray-100 transition-all duration-200">
+        <div className={sector.text}>
+          {sector.icon}
+        </div>
+      </div>
     </div>
-    <div>
-      <h3 className="font-bold text-slate-800 tracking-tight">{sector.name}</h3>
-      <p className="text-xs text-slate-500 mt-1 line-clamp-1 font-medium">{sector.desc}</p>
+    
+    {/* 텍스트 영역 */}
+    <div className="flex-1 flex flex-col justify-center min-w-0">
+      <h3 className="font-black text-slate-800 tracking-tight text-base mb-0.5">{sector.name}</h3>
+      <p className="text-xs text-slate-500 line-clamp-1 font-light">{sector.desc}</p>
     </div>
+    
+    {/* 체크 아이콘 (선택된 경우) */}
     {isSelected && (
-      <div className={`absolute top-3 right-3 w-6 h-6 rounded-full ${sector.text.replace('text', 'bg')} flex items-center justify-center animate-in zoom-in duration-200`}>
-        <Check size={14} color="white" strokeWidth={3} />
+      <div className="flex-shrink-0">
+        <div 
+          className="w-6 h-6 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: checkBgColor }}
+        >
+          <Check size={14} color="white" strokeWidth={3} />
+        </div>
       </div>
     )}
   </button>
-);
+  );
+};
 
 const SkeletonLoader = () => (
-  <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-4 w-full animate-pulse">
+  <div className="bg-white rounded-2xl shadow-xl border-0 p-5 space-y-4 w-full animate-pulse">
     <div className="h-6 bg-slate-100 rounded w-3/4 mb-6"></div>
     {[...Array(3)].map((_, i) => (
       <div key={i} className="space-y-2">
@@ -734,14 +774,14 @@ export default function MalloApp() {
   // --- Screens ---
 
   const renderOnboarding = () => (
-    <div className="flex flex-col h-full bg-slate-50">
-      <div className="px-6 pt-10 pb-4 bg-white/50 backdrop-blur-md sticky top-0 z-10">
-        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">어떤 업무를 하시나요?</h1>
-        <p className="text-slate-500 mt-1 text-sm font-medium">직업에 딱 맞는 AI 비서를 세팅해 드려요.</p>
+    <div className="flex flex-col h-full bg-white">
+      <div className="px-6 pt-10 pb-4 bg-white sticky top-0 z-10">
+        <h1 className="text-3xl font-black text-slate-800 tracking-tight leading-tight">어떤 업무를 하시나요?</h1>
+        <p className="text-slate-500 mt-2 text-sm font-light">직업에 딱 맞는 AI 비서를 세팅해 드려요.</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-4 pb-32">
-        <div className="grid grid-cols-2 gap-3 mb-8">
+      <div className="flex-1 overflow-y-auto px-6 py-6 pb-32 bg-white">
+        <div className="flex flex-col gap-3 mb-8">
           {SECTORS.map(sector => (
             <SectorCard 
               key={sector.id} 
@@ -753,25 +793,25 @@ export default function MalloApp() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 w-full max-w-md bg-white/80 backdrop-blur-xl border-t border-slate-100 p-6 z-20 pb-8">
+      <div className="fixed bottom-0 w-full max-w-md bg-white border-t border-slate-100/50 p-6 z-20 pb-8 shadow-2xl">
         {userProfile.sectorId ? (
           <div className="animate-in slide-in-from-bottom-4 duration-300">
             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
               직업/역할 명칭
             </label>
-            <div className="flex items-center gap-3 bg-slate-100/50 border border-slate-200 rounded-2xl px-4 py-3 mb-4 focus-within:ring-2 focus-within:ring-slate-400 focus-within:bg-white transition-all">
+            <div className="flex items-center gap-3 bg-white border-0 rounded-2xl px-4 py-3 mb-4 focus-within:ring-2 focus-within:ring-slate-800 shadow-xl transition-all">
               <User size={18} className="text-slate-400" />
               <input 
                 type="text" 
                 value={userProfile.roleTitle}
                 onChange={(e) => setUserProfile({...userProfile, roleTitle: e.target.value})}
-                className="w-full bg-transparent outline-none text-slate-800 font-medium placeholder-slate-400"
+                className="w-full bg-transparent outline-none text-slate-800 font-light placeholder-slate-400"
                 placeholder="예: 헤어 디자이너"
               />
             </div>
             <button 
               onClick={startOnboarding}
-              className="w-full bg-slate-900 text-white font-bold text-lg py-4 rounded-2xl shadow-lg hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              className="w-full bg-slate-900 text-white font-black text-lg py-4 rounded-2xl shadow-2xl hover:bg-slate-800 hover:-translate-y-1 hover:shadow-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-2"
             >
               Mallo 시작하기
               <ChevronRight size={20} />
@@ -786,11 +826,11 @@ export default function MalloApp() {
 
   const renderHome = () => (
     <div className="flex flex-col h-full bg-white relative">
-      <header className="px-6 py-5 flex justify-between items-center bg-white/80 backdrop-blur-sm z-10">
+      <header className="px-6 py-5 flex justify-between items-center bg-white z-10">
         <div className="flex flex-col">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Mallo AI</span>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <h2 className="text-lg font-bold text-slate-900">{userProfile.roleTitle}</h2>
+            <h2 className="text-lg font-black text-slate-800">{userProfile.roleTitle}</h2>
             <div className={`w-2 h-2 rounded-full ${currentSector.text.replace('text', 'bg')}`}></div>
           </div>
         </div>
@@ -800,13 +840,9 @@ export default function MalloApp() {
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
-        {/* Decorative Background Blobs - Replaced custom animate-blob with standard animate-pulse */}
-        <div className={`absolute top-1/4 -right-10 w-64 h-64 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse ${currentSector.text.replace('text', 'bg')}`}></div>
-        <div className={`absolute bottom-1/4 -left-10 w-64 h-64 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse ${currentSector.text.replace('text', 'bg')}`} style={{ animationDelay: '1s' }}></div>
-
         <div className="z-10 mb-12 animate-in fade-in duration-700 slide-in-from-bottom-4">
-          <p className="text-slate-400 font-medium mb-2 tracking-wide text-sm">{getTodayDate()}</p>
-          <h1 className="text-4xl font-extrabold text-slate-900 leading-tight tracking-tight">
+          <p className="text-slate-400 font-light mb-2 tracking-wide text-sm">{getTodayDate()}</p>
+          <h1 className="text-4xl font-black text-slate-800 leading-tight tracking-tight">
             오늘의 업무,<br/>
             <span className={`bg-clip-text text-transparent bg-gradient-to-r ${currentSector.color}`}>말로 기록하세요.</span>
           </h1>
@@ -820,13 +856,10 @@ export default function MalloApp() {
           <div className={`absolute inset-0 rounded-full bg-gradient-to-br ${currentSector.color} blur-md opacity-40 group-hover:opacity-60 transition-opacity`}></div>
           <Mic size={52} color="white" className="relative z-10 drop-shadow-md" />
         </button>
-        <p className="mt-8 text-slate-500 font-medium text-sm animate-in fade-in duration-1000 delay-300">
+        <p className="mt-8 text-slate-500 font-light text-sm animate-in fade-in duration-1000 delay-300">
           버튼을 누르고 편하게 말씀해주세요
         </p>
       </main>
-      
-      {/* Bottom Bar Pattern */}
-      <div className={`h-1.5 w-full bg-gradient-to-r ${currentSector.color}`}></div>
     </div>
   );
 
@@ -869,11 +902,11 @@ export default function MalloApp() {
   const renderProcessing = () => (
     <div className="flex flex-col h-full bg-white px-6 pt-20 pb-10">
       <div className="text-center mb-10">
-        <div className="inline-block p-4 rounded-full bg-blue-50 text-blue-600 mb-6 animate-bounce">
-          <Briefcase size={32} />
+        <div className="inline-block p-4 rounded-full bg-gray-100 mb-6 animate-bounce">
+          <Briefcase size={32} className="text-slate-800" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">업무 로그 정리 중</h2>
-        <p className="text-slate-500">AI가 내용을 분석하고 서식을 적용하고 있습니다.</p>
+        <h2 className="text-2xl font-black text-slate-800 mb-2">업무 로그 정리 중</h2>
+        <p className="text-slate-500 font-light">AI가 내용을 분석하고 서식을 적용하고 있습니다.</p>
       </div>
       
       <div className="flex-1 w-full max-w-sm mx-auto space-y-4 opacity-50">
@@ -888,46 +921,44 @@ export default function MalloApp() {
   );
 
   const renderResult = () => (
-    <div className="flex flex-col h-full bg-slate-50">
+    <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md px-4 py-4 sticky top-0 z-20 flex items-center justify-between border-b border-slate-200/60">
+      <header className="bg-white px-4 py-4 sticky top-0 z-20 flex items-center justify-between border-b border-slate-100">
         <button onClick={resetFlow} className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors">
           <ArrowLeft size={24} />
         </button>
         <div className="text-center">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Result</span>
-          <h2 className="font-bold text-slate-800 text-sm">{getTodayDate()}</h2>
+          <h2 className="font-black text-slate-800 text-sm">{getTodayDate()}</h2>
         </div>
         <button className="p-2 text-slate-400 hover:text-slate-600">
           <MoreHorizontal size={24} />
         </button>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-32">
+      <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-32 bg-white">
         {/* Main Card */}
-        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100 animate-in slide-in-from-bottom-8 duration-500">
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border-0 animate-in slide-in-from-bottom-8 duration-500">
           <div className={`px-6 py-6 bg-gradient-to-br ${currentSector.color} relative overflow-hidden`}>
             <div className="relative z-10">
-              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold bg-black/20 text-white mb-3 backdrop-blur-md border border-white/10">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black text-white bg-white/20 backdrop-blur-sm mb-3 border border-white/20">
                 {currentSector.icon}
                 <span className="ml-1.5">{userProfile.roleTitle}</span>
               </span>
-              <h3 className="font-bold text-white text-xl leading-snug tracking-tight shadow-sm">{resultData.title}</h3>
+              <h3 className="font-black text-white text-xl leading-snug tracking-tight">{resultData.title}</h3>
             </div>
-            {/* Background Pattern */}
-            <div className="absolute top-[-50%] right-[-20%] w-48 h-48 bg-white opacity-10 rounded-full blur-2xl"></div>
           </div>
 
           <div className="p-6 space-y-6">
             {resultData.sections.map((section, idx) => (
               <div key={idx} className="animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 100}ms` }}>
-                <h4 className={`text-xs font-bold mb-3 uppercase tracking-wider ${currentSector.text} flex items-center gap-2`}>
+                <h4 className={`text-xs font-black mb-3 uppercase tracking-wider ${currentSector.text} flex items-center gap-2`}>
                   {section.title}
-                  <div className="h-px flex-1 bg-slate-100"></div>
+                  <div className="h-px flex-1 bg-slate-200"></div>
                 </h4>
                 <ul className="space-y-3">
                   {section.content.map((item, i) => (
-                    <li key={i} className="text-slate-700 text-[15px] leading-relaxed pl-3 border-l-2 border-slate-100 hover:border-slate-300 transition-colors">
+                    <li key={i} className="text-slate-800 text-[15px] leading-relaxed pl-3 border-l-2 border-slate-200 hover:border-slate-400 transition-colors font-light">
                       {item}
                     </li>
                   ))}
@@ -938,8 +969,8 @@ export default function MalloApp() {
         </div>
 
         {/* Transcript Toggle */}
-        <details className="group bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <summary className="font-bold text-slate-600 text-sm cursor-pointer p-4 flex justify-between items-center bg-slate-50/50 hover:bg-slate-50 transition-colors select-none">
+        <details className="group bg-white rounded-2xl border-0 shadow-xl overflow-hidden">
+          <summary className="font-black text-slate-800 text-sm cursor-pointer p-4 flex justify-between items-center bg-white hover:bg-slate-50 transition-colors select-none">
             <span>원본 녹음 내용 보기</span>
             <ChevronRight size={16} className="text-slate-400 group-open:rotate-90 transition-transform duration-200" />
           </summary>
@@ -975,13 +1006,13 @@ export default function MalloApp() {
 
       {/* Floating Action Bar */}
       <div className="absolute bottom-6 left-6 right-6 grid grid-cols-2 gap-3 z-30">
-        <button className="flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-white border border-slate-200 text-slate-700 font-bold shadow-lg hover:bg-slate-50 hover:scale-[1.02] active:scale-[0.98] transition-all">
+        <button className="flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-white border-0 text-slate-800 font-black shadow-xl hover:bg-slate-50 hover:-translate-y-1 hover:shadow-2xl active:scale-[0.98] transition-all">
           <Share2 size={18} />
           공유
         </button>
         <button 
           onClick={() => alert('클립보드에 복사되었습니다.')}
-          className={`flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-white bg-gradient-to-r ${currentSector.color} shadow-lg hover:brightness-110 hover:scale-[1.02] active:scale-[0.98] transition-all`}
+          className={`flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-white bg-gradient-to-r ${currentSector.color} shadow-xl hover:brightness-110 hover:-translate-y-1 hover:shadow-2xl active:scale-[0.98] transition-all`}
         >
           <Copy size={18} />
           복사
@@ -991,8 +1022,8 @@ export default function MalloApp() {
   );
 
   return (
-    <div className="h-screen w-full bg-slate-200 flex items-center justify-center font-sans">
-      <div className="w-full max-w-md h-full sm:h-[90vh] bg-white sm:rounded-[2rem] sm:shadow-2xl overflow-hidden relative border-[8px] border-slate-900/5 ring-1 ring-slate-900/5">
+    <div className="h-screen w-full bg-white flex items-center justify-center font-sans">
+      <div className="w-full max-w-md h-full sm:h-[90vh] bg-white sm:rounded-[2rem] sm:shadow-2xl overflow-hidden relative border-0">
         {step === 'onboarding' && renderOnboarding()}
         {step === 'home' && renderHome()}
         {step === 'recording' && renderRecording()}
