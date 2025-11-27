@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Copy, Share2, Scissors, ArrowLeft, MoreHorizontal, Mail, Lock, ChevronDown, ChevronUp, ChevronRight, Phone, Calendar, Edit } from 'lucide-react';
+import { Mic, Square, Copy, Share2, Scissors, ArrowLeft, MoreHorizontal, Mail, Lock, ChevronDown, ChevronUp, ChevronRight, Phone, Calendar, Edit, Search } from 'lucide-react';
 
 /**
  * MALLO Service Prototype v2.1 (Fix: Tailwind ReferenceError)
@@ -764,7 +764,7 @@ TRANSCRIPT에 뷰티샵 시술/고객 문맥이 있으면 아래 구조를 사�
 
 // 뷰티샵 전용 테마 (우아하고 따뜻한 뷰티샵)
 const BEAUTY_THEME = {
-  id: 'beauty',
+    id: 'beauty',
   name: '뷰티샵',
   icon: <Scissors size={20} />,
   color: '#C9A27A', // 포인트 컬러 (우아한 골드 브라운)
@@ -784,6 +784,7 @@ const BEAUTY_THEME = {
 
 // Mock 데이터
 const MOCK_CUSTOMERS = [
+  // 김씨 4명
   {
     id: 1,
     name: '김민지',
@@ -795,39 +796,183 @@ const MOCK_CUSTOMERS = [
   },
   {
     id: 2,
-    name: '이수진',
+    name: '김민지',
+    phone: '010-6789-0123',
+    visitCount: 7,
+    lastVisit: '2025-01-16',
+    avatar: '👩',
+    tags: ['#웨딩준비', '#이달의아트']
+  },
+  {
+    id: 3,
+    name: '김수진',
     phone: '010-2345-6789',
+    visitCount: 12,
+    lastVisit: '2025-01-10',
+    avatar: '👱‍♀️',
+    tags: ['#단골', '#수다쟁이', '#이달의아트']
+  },
+  {
+    id: 4,
+    name: '김지은',
+    phone: '010-3456-7890',
+    visitCount: 18,
+    lastVisit: '2025-01-18',
+    avatar: '👩‍🦰',
+    tags: ['#단골', '#조용한거선호', '#리터치']
+  },
+  // 이씨 5명
+  {
+    id: 5,
+    name: '이수진',
+    phone: '010-4567-8901',
     visitCount: 3,
     lastVisit: '2025-01-14',
     avatar: '👱‍♀️',
     tags: ['#단골', '#리터치']
   },
   {
-    id: 3,
+    id: 6,
+    name: '이수진',
+    phone: '010-5678-9012',
+    visitCount: 9,
+    lastVisit: '2025-01-12',
+    avatar: '👩',
+    tags: ['#웨딩준비', '#인그로운']
+  },
+  {
+    id: 7,
+    name: '이지은',
+    phone: '010-7890-1234',
+    visitCount: 15,
+    lastVisit: '2025-01-11',
+    avatar: '👩‍🦰',
+    tags: ['#단골', '#수다쟁이', '#이달의아트']
+  },
+  {
+    id: 8,
+    name: '이민지',
+    phone: '010-8901-2345',
+    visitCount: 4,
+    lastVisit: '2025-01-09',
+    avatar: '👩‍🦱',
+    tags: ['#신규', '#왁싱']
+  },
+  {
+    id: 9,
+    name: '이서연',
+    phone: '010-9012-3456',
+    visitCount: 11,
+    lastVisit: '2025-01-08',
+    avatar: '👱‍♀️',
+    tags: ['#단골', '#속눈썹연장', '#조용한거선호']
+  },
+  // 박씨
+  {
+    id: 10,
     name: '박지은',
-    phone: '010-3456-7890',
+    phone: '010-0123-4567',
     visitCount: 8,
     lastVisit: '2025-01-13',
     avatar: '👩‍🦰',
     tags: ['#신규', '#염색']
   },
   {
-    id: 4,
+    id: 11,
+    name: '박서준',
+    phone: '010-1357-2468',
+    visitCount: 6,
+    lastVisit: '2025-01-07',
+    avatar: '👩',
+    tags: ['#리터치', '#인그로운']
+  },
+  // 최씨
+  {
+    id: 12,
     name: '최혜진',
-    phone: '010-4567-8901',
+    phone: '010-2468-1357',
     visitCount: 2,
     lastVisit: '2025-01-12',
     avatar: '👩‍🦱',
     tags: ['#왁싱']
   },
   {
-    id: 5,
+    id: 13,
+    name: '최수진',
+    phone: '010-3579-2468',
+    visitCount: 20,
+    lastVisit: '2025-01-17',
+    avatar: '👩',
+    tags: ['#단골', '#수다쟁이', '#이달의아트', '#웨딩준비']
+  },
+  // 정씨
+  {
+    id: 14,
+    name: '정수빈',
+    phone: '010-4680-3579',
+    visitCount: 1,
+    lastVisit: '2024-12-15',
+    avatar: '👱‍♀️',
+    tags: ['#신규', '#왁싱']
+  },
+  {
+    id: 15,
     name: '정유나',
-    phone: '010-5678-9012',
+    phone: '010-5791-4680',
     visitCount: 12,
     lastVisit: '2025-01-11',
     avatar: '👱',
     tags: ['#단골', '#네일']
+  },
+  // 강씨
+  {
+    id: 16,
+    name: '강나영',
+    phone: '010-6802-5791',
+    visitCount: 4,
+    lastVisit: '2024-11-20',
+    avatar: '👱‍♀️',
+    tags: ['#쿨톤', '#짧은손톱']
+  },
+  // 조씨
+  {
+    id: 17,
+    name: '조은지',
+    phone: '010-7913-6802',
+    visitCount: 9,
+    lastVisit: '2024-10-05',
+    avatar: '👩‍🦰',
+    tags: ['#속눈썹연장', '#단골']
+  },
+  // 윤씨
+  {
+    id: 18,
+    name: '윤서연',
+    phone: '010-8024-7913',
+    visitCount: 6,
+    lastVisit: '2024-09-18',
+    avatar: '👩‍🦱',
+    tags: ['#리터치', '#인그로운']
+  },
+  // 한씨
+  {
+    id: 19,
+    name: '한지민',
+    phone: '010-9135-8024',
+    visitCount: 15,
+    lastVisit: '2025-01-17',
+    avatar: '👩',
+    tags: ['#단골', '#웨딩준비', '#이달의아트']
+  },
+  // 오씨
+  {
+    id: 20,
+    name: '오수아',
+    phone: '010-0246-9135',
+    visitCount: 3,
+    lastVisit: '2024-08-22',
+    avatar: '👱‍♀️',
+    tags: ['#신규', '#왁싱']
   }
 ];
 
@@ -840,22 +985,22 @@ const MOCK_VISITS = {
       title: '젤네일(이달의 아트) 및 웨딩 관리 안내',
       summary: '기존 젤 제거, 이달의 아트 3번 시술, 강화제 서비스',
       detail: {
-        sections: [
+      sections: [
           { title: '시술 내용', content: ['기존 젤 제거 진행', '이달의 아트 3번 시술', '손상모 우려로 강화제 서비스 도포'] },
           { title: '고객 특징 (TMI)', content: ['신규 고객', '다음 주 웨딩 촬영 예정'] },
           { title: '결제 금액', content: ['70,000원 (카드)'] },
           { title: '다음 예약 추천', content: ['3주 후 리터치 권장', '큐티클 오일 도포 강조'] }
-        ]
-      }
-    },
-    {
+      ]
+    }
+  },
+  {
       id: 2,
       date: '2024-12-28',
       time: '14:30',
       title: '젤네일 리터치',
       summary: '리터치 진행, 손톱 상태 양호',
       detail: {
-        sections: [
+      sections: [
           { title: '시술 내용', content: ['리터치 진행'] },
           { title: '결제 금액', content: ['50,000원 (현금)'] }
         ]
@@ -870,7 +1015,7 @@ const MOCK_VISITS = {
       title: '왁싱 + 피부관리',
       summary: '브라질리언 왁싱, LED 피부관리',
       detail: {
-        sections: [
+      sections: [
           { title: '시술 내용', content: ['브라질리언 왁싱', 'LED 피부관리'] },
           { title: '결제 금액', content: ['120,000원 (카드)'] }
         ]
@@ -885,7 +1030,7 @@ const MOCK_VISITS = {
       title: '헤어 컷트 + 염색',
       summary: '컷트, 옴브레 염색 (5호 → 7호)',
       detail: {
-        sections: [
+      sections: [
           { title: '시술 내용', content: ['컷트', '옴브레 염색 (5호 → 7호)'] },
           { title: '결제 금액', content: ['150,000원 (카드)'] }
         ]
@@ -900,7 +1045,7 @@ const MOCK_VISITS = {
       title: '젤네일 신규',
       summary: '신규 젤네일, 아트 추가',
       detail: {
-        sections: [
+      sections: [
           { title: '시술 내용', content: ['신규 젤네일', '아트 추가'] },
           { title: '결제 금액', content: ['80,000원 (카드)'] }
         ]
@@ -1251,7 +1396,7 @@ export default function MalloApp() {
             </div>
             <h1 className="text-3xl font-bold mb-3" style={{ color: '#232323' }}>Mallo</h1>
             <p className="font-light" style={{ color: '#232323' }}>오늘 시술, 말로만 기록하세요.</p>
-          </div>
+      </div>
 
           {/* 로그인 폼 */}
           <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-200 space-y-6">
@@ -1269,14 +1414,14 @@ export default function MalloApp() {
                     style={{ color: '#232323' }}
                     onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
                   />
-                </div>
-              </div>
+        </div>
+      </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium" style={{ color: '#232323' }}>비밀번호</label>
                 <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 border border-gray-200 focus-within:border-[#C9A27A] focus-within:ring-1 focus-within:ring-[#C9A27A] transition-all">
                   <Lock size={18} style={{ color: '#C9A27A' }} />
-                  <input 
+              <input 
                     type="password" 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -1284,8 +1429,8 @@ export default function MalloApp() {
                     className="w-full bg-transparent outline-none font-light placeholder-gray-400"
                     style={{ color: '#232323' }}
                     onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-                  />
-                </div>
+              />
+            </div>
               </div>
             </div>
 
@@ -1297,9 +1442,9 @@ export default function MalloApp() {
               로그인
             </button>
           </div>
-        </div>
       </div>
-    );
+    </div>
+  );
   };
 
   const renderHome = () => {
@@ -1317,13 +1462,17 @@ export default function MalloApp() {
     return (
       <div className="flex flex-col h-full relative" style={{ backgroundColor: '#F2F0E6' }}>
         <header className="px-8 py-6 flex justify-between items-center bg-white z-10 border-b border-gray-200 shadow-sm">
-          <div className="flex flex-col">
+        <div className="flex flex-col">
             <h2 className="text-xl font-bold" style={{ color: '#232323' }}>원장님, 안녕하세요!</h2>
             <span className="text-sm font-light mt-1" style={{ color: '#232323', opacity: 0.6 }}>{todayStr}</span>
           </div>
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-md" style={{ backgroundColor: '#C9A27A' }}>
+          <button 
+            onClick={() => setCurrentScreen('History')}
+            className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-md hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: '#C9A27A' }}
+          >
             <Scissors size={20} className="text-white" />
-          </div>
+          </button>
         </header>
 
         <main className="flex-1 overflow-y-auto flex flex-col items-center justify-center p-8 space-y-12">
@@ -1360,7 +1509,7 @@ export default function MalloApp() {
                         <div className="flex-1">
                           <h4 className="font-bold text-base mb-1" style={{ color: '#232323' }}>{customer.name}</h4>
                           <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.7 }}>{customer.phone}</p>
-                        </div>
+        </div>
                         <ChevronRight size={18} style={{ color: '#C9A27A' }} />
                       </div>
                     </div>
@@ -1379,7 +1528,7 @@ export default function MalloApp() {
 
           {/* 신규 고객 바로 녹음 버튼 - 큰 원형 카드 형태 (항상 표시) */}
           <div className="w-full max-w-md">
-            <button 
+        <button 
               onClick={() => {
                 setSelectedCustomerForRecord(null);
                 startRecording();
@@ -1394,11 +1543,11 @@ export default function MalloApp() {
                 <h3 className="text-2xl font-bold mb-2" style={{ color: '#232323' }}>신규 고객 바로 녹음</h3>
                 <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.6 }}>시술 내용을 말로만 기록하세요</p>
               </div>
-            </button>
+        </button>
           </div>
-        </main>
-      </div>
-    );
+      </main>
+    </div>
+  );
   };
 
   const renderRecording = () => (
@@ -1502,19 +1651,19 @@ export default function MalloApp() {
 
     return (
       <div className="flex flex-col h-full relative" style={{ backgroundColor: '#F2F0E6' }}>
-        {/* Header */}
+      {/* Header */}
         <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
           <button onClick={resetFlow} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
-            <ArrowLeft size={24} />
-          </button>
-          <div className="text-center">
+          <ArrowLeft size={24} />
+        </button>
+        <div className="text-center">
             <span className="text-xs font-medium" style={{ color: '#232323', opacity: 0.7 }}>시술 기록</span>
             <h2 className="font-bold text-base mt-1" style={{ color: '#232323' }}>{getTodayDate()}</h2>
-          </div>
+        </div>
           <button className="p-2" style={{ color: '#232323', opacity: 0.5 }}>
-            <MoreHorizontal size={24} />
-          </button>
-        </header>
+          <MoreHorizontal size={24} />
+        </button>
+      </header>
 
         <main className="flex-1 overflow-y-auto p-8 space-y-5 pb-32" style={{ backgroundColor: '#F2F0E6' }}>
           {/* 고객 정보 표시 - selectedCustomerForRecord가 있으면 카드, 없으면 입력창 */}
@@ -1575,48 +1724,48 @@ export default function MalloApp() {
             </div>
           )}
 
-          {/* Main Card */}
+        {/* Main Card */}
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-200">
             <div className="px-8 py-6 relative overflow-hidden" style={{ backgroundColor: '#C9A27A' }}>
-              <div className="relative z-10">
+            <div className="relative z-10">
                 <span className="inline-flex items-center px-3 py-1.5 rounded-2xl text-xs font-medium text-white mb-3 shadow-sm" style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }}>
-                  {currentSector.icon}
+                {currentSector.icon}
                   <span className="ml-2">{userProfile.roleTitle}</span>
-                </span>
+              </span>
                 <h3 className="font-bold text-white text-lg mb-2">📝 오늘의 시술 요약</h3>
                 <p className="text-base font-medium text-white/90 leading-relaxed">{resultData.title}</p>
-              </div>
-            </div>
-
-            <div className="p-8 space-y-7">
-              {resultData.sections.map((section, idx) => (
-                <div key={idx} className="animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 100}ms` }}>
-                  <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
-                    {section.title}
-                  </h4>
-                  <ul className="space-y-3">
-                    {section.content.map((item, i) => (
-                      <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
             </div>
           </div>
 
-          {/* Transcript Toggle */}
+            <div className="p-8 space-y-7">
+            {resultData.sections.map((section, idx) => (
+              <div key={idx} className="animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 100}ms` }}>
+                  <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
+                  {section.title}
+                </h4>
+                <ul className="space-y-3">
+                  {section.content.map((item, i) => (
+                      <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Transcript Toggle */}
           <details className="group bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <summary className="font-medium text-base cursor-pointer p-5 flex justify-between items-center hover:bg-gray-50 transition-colors select-none" style={{ color: '#232323' }}>
-              <span>원본 녹음 내용 보기</span>
+            <span>원본 녹음 내용 보기</span>
               <ChevronRight size={18} style={{ color: '#C9A27A' }} className="group-open:rotate-90 transition-transform duration-200" />
-            </summary>
+          </summary>
             <div className="p-5 pt-0 text-base leading-relaxed border-t border-gray-200 bg-gray-50" style={{ color: '#232323', opacity: 0.8 }}>
-              <div className="pt-4">"{transcript}"</div>
-            </div>
-          </details>
-
+            <div className="pt-4">"{transcript}"</div>
+          </div>
+        </details>
+        
           {/* 녹음 일시 표시 */}
           {recordingDate && (
             <p className="text-center text-xs mt-4 font-medium" style={{ color: 'rgba(35, 35, 35, 0.4)' }}>
@@ -1648,7 +1797,7 @@ export default function MalloApp() {
         <div className="absolute bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 px-8 py-4 shadow-lg" style={{ backgroundColor: '#F2F0E6' }}>
           <div className="flex gap-3">
             {/* 내용 다듬기 버튼 */}
-            <button 
+             <button 
               onClick={() => {
                 // 내용 다듬기 로직 (실제로는 편집 모드로 전환)
                 alert('내용 다듬기 기능은 준비 중입니다.');
@@ -1716,8 +1865,8 @@ export default function MalloApp() {
               style={{ backgroundColor: '#C9A27A' }}
             >
               저장하기
-            </button>
-          </div>
+             </button>
+        </div>
         </div>
       </div>
     );
@@ -1731,7 +1880,7 @@ export default function MalloApp() {
       return (
         <div className="flex flex-col h-full items-center justify-center" style={{ backgroundColor: '#F2F0E6' }}>
           <p style={{ color: '#232323' }}>고객 정보를 찾을 수 없습니다.</p>
-          <button onClick={() => setCurrentScreen('Home')} className="mt-4 font-medium" style={{ color: '#232323' }}>홈으로 돌아가기</button>
+          <button onClick={() => setCurrentScreen('History')} className="mt-4 font-medium" style={{ color: '#232323' }}>히스토리로 돌아가기</button>
         </div>
       );
     }
@@ -1740,7 +1889,7 @@ export default function MalloApp() {
       <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
         {/* Header */}
         <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
-          <button onClick={() => setCurrentScreen('Home')} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
+          <button onClick={() => setCurrentScreen('History')} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
             <ArrowLeft size={24} />
           </button>
           <div className="text-center">
@@ -1777,8 +1926,8 @@ export default function MalloApp() {
                         {tag}
                       </span>
                     ))}
-                  </div>
-                )}
+            </div>
+        )}
               </div>
             </div>
           </div>
@@ -1834,7 +1983,7 @@ export default function MalloApp() {
               ))
             )}
           </div>
-        </main>
+      </main>
 
         {/* 하단 고정 버튼: 새 기록 남기기 */}
         <div className="absolute bottom-8 left-8 right-8 z-30">
@@ -1848,8 +1997,229 @@ export default function MalloApp() {
           >
             <Mic size={20} />
             <span>이 고객에 대해 새 기록 남기기</span>
-          </button>
+        </button>
         </div>
+      </div>
+    );
+  };
+
+  // 히스토리 화면용 검색어 상태
+  const [historySearchQuery, setHistorySearchQuery] = useState('');
+  const [expandedHistoryIds, setExpandedHistoryIds] = useState(new Set()); // 여러 개의 기록을 펼칠 수 있도록 Set 사용
+  
+  // 오늘 날짜 구하기
+  const getTodayDateString = () => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  };
+  
+  const [selectedDate, setSelectedDate] = useState(getTodayDateString()); // 날짜 필터 (기본값: 오늘 날짜)
+
+  // History 화면 진입 시 오늘 날짜로 리셋 및 오늘 기록 자동 펼치기
+  useEffect(() => {
+    if (currentScreen === 'History') {
+      const todayStr = getTodayDateString();
+      
+      // 히스토리 화면 진입 시 항상 오늘 날짜로 리셋
+      setSelectedDate(todayStr);
+      
+      const todayRecordIds = new Set();
+      
+      // 모든 기록에서 오늘 날짜의 기록 ID 수집
+      Object.keys(MOCK_VISITS).forEach(customerId => {
+        const visits = MOCK_VISITS[customerId];
+        visits.forEach(visit => {
+          if (visit.date === todayStr) {
+            todayRecordIds.add(visit.id);
+          }
+        });
+      });
+      
+      // 오늘 기록이 있으면 자동으로 펼치기
+      if (todayRecordIds.size > 0) {
+        setExpandedHistoryIds(todayRecordIds);
+      }
+    }
+  }, [currentScreen]);
+
+  const renderHistory = () => {
+    // 전체 시술 기록 수집 (모든 고객의 방문 기록)
+    const allRecords = [];
+    Object.keys(MOCK_VISITS).forEach(customerId => {
+      const visits = MOCK_VISITS[customerId];
+      visits.forEach(visit => {
+        const customer = MOCK_CUSTOMERS.find(c => c.id === parseInt(customerId));
+        allRecords.push({
+          ...visit,
+          customerName: customer?.name || '알 수 없음',
+          customerId: parseInt(customerId)
+        });
+      });
+    });
+
+    // 오늘 날짜 구하기
+    const todayStr = getTodayDateString();
+
+    // 날짜 필터링
+    const filteredRecords = selectedDate 
+      ? allRecords.filter(record => record.date === selectedDate)
+      : allRecords;
+
+    // 날짜와 시간순 정렬 (오늘 날짜가 항상 맨 위, 그 다음 최신순)
+    filteredRecords.sort((a, b) => {
+      const isAToday = a.date === todayStr;
+      const isBToday = b.date === todayStr;
+      
+      // 오늘 날짜가 항상 맨 위
+      if (isAToday && !isBToday) return -1;
+      if (!isAToday && isBToday) return 1;
+      
+      // 날짜 비교
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateB.getTime() - dateA.getTime(); // 최신 날짜가 먼저
+      }
+      // 같은 날짜면 시간 비교
+      const timeA = a.time.split(':').map(Number);
+      const timeB = b.time.split(':').map(Number);
+      if (timeA[0] !== timeB[0]) return timeB[0] - timeA[0];
+      return timeB[1] - timeA[1];
+    });
+
+    // 날짜 포맷팅 함수 (YYYY-MM-DD -> YYYY년 MM월 DD일)
+    const formatDate = (dateStr) => {
+      if (!dateStr) return '';
+      const [year, month, day] = dateStr.split('-');
+      return `${year}년 ${parseInt(month)}월 ${parseInt(day)}일`;
+    };
+
+    return (
+      <div className="flex flex-col h-full relative" style={{ backgroundColor: '#F2F0E6' }}>
+        {/* Header */}
+        <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
+          <button 
+            onClick={() => setCurrentScreen('Home')}
+            className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
+            style={{ color: '#232323' }}
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <div className="text-center">
+            <h2 className="text-xl font-bold" style={{ color: '#232323' }}>전체 기록</h2>
+            {selectedDate && (
+              <p className="text-xs font-light mt-1" style={{ color: '#232323', opacity: 0.6 }}>
+                {formatDate(selectedDate)} 기록
+              </p>
+            )}
+          </div>
+          <div className="w-10"></div> {/* 공간 맞추기용 */}
+        </header>
+
+        <main className="flex-1 overflow-y-auto p-8 space-y-4 pb-8" style={{ backgroundColor: '#F2F0E6' }}>
+          {/* 날짜 필터 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center gap-3">
+              <Calendar size={20} style={{ color: '#C9A27A' }} />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="flex-1 px-4 py-2 rounded-xl border border-gray-200 focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A] outline-none transition-all text-sm"
+                style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
+              />
+              {selectedDate && (
+                <button
+                  onClick={() => {
+                    setSelectedDate(getTodayDateString()); // 전체가 아닌 오늘 날짜로 초기화
+                  }}
+                  className="px-3 py-2 text-xs font-medium rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
+                  style={{ color: '#232323' }}
+                >
+                  오늘
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 전체 시술 기록 */}
+          <div className="space-y-4">
+            <h3 className="text-base font-bold flex items-center gap-2" style={{ color: '#232323' }}>
+              <span>📅</span>
+              <span>{selectedDate ? formatDate(selectedDate) + ' 기록' : '전체 시술 기록'}</span>
+            </h3>
+            
+            {filteredRecords.length === 0 ? (
+              <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
+                <p className="font-light text-base" style={{ color: '#232323', opacity: 0.6 }}>
+                  {selectedDate ? '해당 날짜의 시술 기록이 없습니다' : '시술 기록이 없습니다'}
+                </p>
+              </div>
+            ) : (
+              filteredRecords.map((record) => (
+                <div key={record.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  <button
+                    onClick={() => {
+                      const newExpanded = new Set(expandedHistoryIds);
+                      if (newExpanded.has(record.id)) {
+                        newExpanded.delete(record.id);
+                      } else {
+                        newExpanded.add(record.id);
+                      }
+                      setExpandedHistoryIds(newExpanded);
+                    }}
+                    className="w-full p-5 flex items-center gap-4 hover:bg-gray-50 transition-colors"
+                  >
+                    {/* 왼쪽: 날짜 + 시간 */}
+                    <div className="text-left" style={{ minWidth: '100px' }}>
+                      <div className="text-xs font-light mb-1" style={{ color: '#232323', opacity: 0.6 }}>
+                        {record.date}
+                      </div>
+                      <div className="text-sm font-medium" style={{ color: '#C9A27A' }}>
+                        {record.time}
+                      </div>
+                    </div>
+                    
+                    {/* 중앙: 고객 이름 + 시술명 */}
+                    <div className="flex-1 text-left">
+                      <h4 className="font-bold text-base mb-1" style={{ color: '#232323' }}>
+                        {record.customerName} · {record.title}
+                      </h4>
+                      <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.7 }}>{record.summary}</p>
+                    </div>
+                    
+                    {/* 오른쪽: 화살표 */}
+                    {expandedHistoryIds.has(record.id) ? (
+                      <ChevronUp size={20} style={{ color: '#C9A27A' }} />
+                    ) : (
+                      <ChevronRight size={20} style={{ color: '#C9A27A' }} />
+                    )}
+                  </button>
+                  
+                  {/* Accordion 상세 내용 */}
+                  {expandedHistoryIds.has(record.id) && record.detail && (
+                    <div className="px-5 pb-5 space-y-5 border-t border-gray-200 pt-5 bg-gray-50">
+                      {record.detail.sections.map((section, idx) => (
+                        <div key={idx}>
+                          <h5 className="text-base font-bold mb-3" style={{ color: '#232323' }}>
+                            {section.title}
+                          </h5>
+                          <ul className="space-y-2">
+                            {section.content.map((item, i) => (
+                              <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </main>
       </div>
     );
   };
@@ -1910,6 +2280,8 @@ export default function MalloApp() {
       }
     } else if (currentScreen === 'CustomerDetail') {
       content = renderCustomerDetail();
+    } else if (currentScreen === 'History') {
+      content = renderHistory();
     } else {
       content = <div className="p-8 text-center text-red-600">알 수 없는 화면: {String(currentScreen)}</div>;
     }
