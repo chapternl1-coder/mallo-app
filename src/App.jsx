@@ -1077,8 +1077,10 @@ const WaveBars = () => (
     {[...Array(5)].map((_, i) => (
       <div 
         key={i} 
-        className="w-1.5 bg-white rounded-full animate-pulse"
+        className="w-1.5 rounded-full animate-pulse"
         style={{ 
+          backgroundColor: '#C9A27A',
+          opacity: 0.6,
           animationDelay: `${i * 0.15}s`, 
           animationDuration: '0.6s' 
         }}
@@ -1210,6 +1212,37 @@ export default function MalloApp() {
       alert(`마이크 권한이 필요합니다. 브라우저 설정에서 마이크 권한을 허용해주세요.\n\n오류: ${error.message}`);
       setCurrentScreen('Home');
     }
+  };
+
+  // 녹음 취소 함수
+  const cancelRecording = () => {
+    // 타이머 정리
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    // 녹음 중지
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    
+    // 스트림 정리
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    
+    // 상태 초기화
+    setRecordingTime(0);
+    setRecordState('idle');
+    setResultData(null);
+    setTranscript('');
+    setRecordingDate(null);
+    audioChunksRef.current = [];
+    
+    // 홈 화면으로 이동
+    setCurrentScreen('Home');
   };
 
   const stopRecording = async () => {
@@ -1651,25 +1684,23 @@ export default function MalloApp() {
   };
 
   const renderRecording = () => (
-    <div className="flex flex-col h-full bg-slate-900 text-white relative items-center justify-center overflow-hidden">
-      {/* Aurora Background - 오로라 효과 */}
+    <div className="flex flex-col h-full bg-white relative items-center justify-center overflow-hidden">
+      {/* 배경 효과 - 따뜻한 크림색 파동 */}
       <div className="absolute inset-0 pointer-events-none">
-        {/* Violet 오로라 */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-violet-500/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }}></div>
-        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-violet-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }}></div>
-        {/* Blue 오로라 */}
-        <div className="absolute top-1/2 right-1/3 w-88 h-88 bg-blue-500/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '0.5s' }}></div>
-        <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4.5s', animationDelay: '2s' }}></div>
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse opacity-20" style={{ backgroundColor: '#C9A27A', animationDuration: '4s' }}></div>
+        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl animate-pulse opacity-15" style={{ backgroundColor: '#C9A27A', animationDuration: '5s', animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 right-1/3 w-88 h-88 rounded-full blur-3xl animate-pulse opacity-20" style={{ backgroundColor: '#F2F0E6', animationDuration: '6s', animationDelay: '0.5s' }}></div>
+        <div className="absolute bottom-1/4 left-1/3 w-72 h-72 rounded-full blur-3xl animate-pulse opacity-15" style={{ backgroundColor: '#F2F0E6', animationDuration: '4.5s', animationDelay: '2s' }}></div>
       </div>
 
       {/* 타이머 영역 */}
       <div className="z-10 text-center mb-10">
-        <h2 className="text-rose-200 text-sm font-medium tracking-widest uppercase mb-4">Recording</h2>
+        <h2 className="text-sm font-medium tracking-widest uppercase mb-4" style={{ color: '#C9A27A', opacity: 0.8 }}>Recording</h2>
         <p 
-          className="text-7xl font-mono font-black tracking-tighter tabular-nums"
+          className="text-7xl font-mono font-light tracking-tighter tabular-nums"
           style={{
-            textShadow: '0 0 20px rgba(251, 146, 60, 0.5), 0 0 40px rgba(244, 63, 94, 0.3), 0 0 60px rgba(251, 146, 60, 0.2)',
-            color: '#f8fafc'
+            color: '#232323',
+            textShadow: '0 2px 10px rgba(201, 162, 122, 0.2)'
           }}
         >
           {formatTime(recordingTime)}
@@ -1683,16 +1714,18 @@ export default function MalloApp() {
         {/* 정지 버튼 - 물결(Ripple) 애니메이션 */}
         <button 
           onClick={stopRecording}
-          className="group relative w-20 h-20 flex items-center justify-center"
+          className="group relative flex items-center justify-center"
+          style={{ width: '136px', height: '136px' }}
         >
-          {/* 물결 효과 - 여러 겹의 원 */}
+          {/* 물결 효과 - 여러 겹의 원 (골드 브라운 톤) */}
           {[...Array(5)].map((_, i) => (
             <div
               key={i}
-              className="absolute rounded-full border-2 border-red-400/50"
+              className="absolute rounded-full border-2"
               style={{
-                width: '80px',
-                height: '80px',
+                width: '136px',
+                height: '136px',
+                borderColor: 'rgba(201, 162, 122, 0.3)',
                 animation: `ping ${2.5 + i * 0.4}s cubic-bezier(0, 0, 0.2, 1) infinite`,
                 animationDelay: `${i * 0.25}s`,
                 left: '50%',
@@ -1703,15 +1736,45 @@ export default function MalloApp() {
           ))}
           
           {/* 버튼 본체 */}
-          <div className="absolute inset-0 bg-red-500/20 rounded-full blur-xl group-hover:bg-red-500/30 transition-colors"></div>
-          <div className="relative w-20 h-20 rounded-full bg-red-600 flex items-center justify-center shadow-2xl shadow-red-500/50 group-hover:scale-105 group-active:scale-95 transition-all duration-200 z-10">
-            <Square size={24} fill="white" className="ml-0.5" />
+          <div className="absolute inset-0 rounded-full blur-xl transition-colors" style={{ backgroundColor: 'rgba(201, 162, 122, 0.15)' }}></div>
+          <div 
+            className="relative rounded-full flex items-center justify-center group-hover:scale-105 group-active:scale-95 transition-all duration-200 z-10"
+            style={{ 
+              width: '136px',
+              height: '136px',
+              backgroundColor: '#C9A27A',
+              boxShadow: '0 10px 40px rgba(201, 162, 122, 0.4), 0 0 20px rgba(201, 162, 122, 0.2)'
+            }}
+          >
+            <Square size={32} fill="white" stroke="white" className="ml-0.5" />
           </div>
         </button>
       </div>
 
-      <div className="absolute bottom-12 w-full px-8 text-center z-10">
-        <p className="text-rose-200 text-sm leading-relaxed font-light bg-stone-900/40 py-3 px-4 rounded-xl border border-rose-300/20 backdrop-blur-md">
+      {/* 취소 버튼 */}
+      <div className="absolute bottom-16 w-full px-8 flex justify-center z-10">
+        <button
+          onClick={cancelRecording}
+          className="px-6 py-2 text-sm font-medium rounded-full transition-all duration-200 hover:opacity-70"
+          style={{ 
+            color: '#232323',
+            backgroundColor: 'rgba(35, 35, 35, 0.05)',
+            border: '1px solid rgba(35, 35, 35, 0.1)'
+          }}
+        >
+          취소하기
+        </button>
+      </div>
+
+      <div className="absolute bottom-32 w-full px-8 text-center z-10">
+        <p 
+          className="text-sm leading-relaxed font-light bg-white/80 py-3 px-4 rounded-xl border backdrop-blur-sm"
+          style={{ 
+            color: '#232323', 
+            opacity: 0.7,
+            borderColor: 'rgba(201, 162, 122, 0.2)'
+          }}
+        >
           💡 Tip: 고객 이름, 시술 종류, 결제 금액을<br/>구체적으로 말하면 더 정확해요.
         </p>
       </div>
