@@ -85,3 +85,23 @@ export function formatVisitReservationTime(value?: string | number | Date): stri
   return `${yyyy}.${mm}.${dd} ${hh}:${mi} 방문 예약`;
 }
 
+/**
+ * 방문/예약 시간 라벨을 생성하는 함수
+ * 형식: "2025-12-27 17:30 방문/예약"
+ */
+export function formatServiceDateTimeLabel(value?: string | number | Date): string {
+  if (!value) return '';
+
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+
+  // 형식: "2025-12-27 17:30 방문/예약"
+  return `${yyyy}-${mm}-${dd} ${hh}:${mi} 방문/예약`;
+}
+
