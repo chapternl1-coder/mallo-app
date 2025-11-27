@@ -1218,7 +1218,7 @@ export default function MalloApp() {
   const cancelRecording = () => {
     // 타이머 정리
     if (timerRef.current) {
-      clearInterval(timerRef.current);
+    clearInterval(timerRef.current);
       timerRef.current = null;
     }
     
@@ -2128,6 +2128,31 @@ export default function MalloApp() {
       );
     }
 
+    // "미기재"와 "null"을 실제 고객 정보로 치환하는 helper 함수
+    const overrideCustomerInfoLine = (line, customerInfo) => {
+      if (!line) return line;
+      
+      let updated = line;
+
+      // 이름이 미기재나 null로 되어있으면 실제 이름으로 교체
+      if (customerInfo?.name) {
+        updated = updated.replace(/이름:\s*미기재/g, `이름: ${customerInfo.name}`);
+        updated = updated.replace(/이름\s*:\s*미기재/g, `이름: ${customerInfo.name}`);
+        updated = updated.replace(/이름:\s*null/gi, `이름: ${customerInfo.name}`);
+        updated = updated.replace(/이름\s*:\s*null/gi, `이름: ${customerInfo.name}`);
+      }
+
+      // 전화번호가 미기재나 null로 되어있으면 실제 전화번호로 교체
+      if (customerInfo?.phone) {
+        updated = updated.replace(/전화번호:\s*미기재/g, `전화번호: ${customerInfo.phone}`);
+        updated = updated.replace(/전화번호\s*:\s*미기재/g, `전화번호: ${customerInfo.phone}`);
+        updated = updated.replace(/전화번호:\s*null/gi, `전화번호: ${customerInfo.phone}`);
+        updated = updated.replace(/전화번호\s*:\s*null/gi, `전화번호: ${customerInfo.phone}`);
+      }
+
+      return updated;
+    };
+
     return (
       <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
         {/* Header */}
@@ -2214,7 +2239,7 @@ export default function MalloApp() {
                           <ul className="space-y-2">
                             {section.content.map((item, i) => (
                               <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
-                                {item}
+                                {overrideCustomerInfoLine(item, customer)}
                               </li>
                             ))}
                           </ul>
@@ -2314,7 +2339,7 @@ export default function MalloApp() {
       <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
         {/* Header */}
         <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
-          <button 
+        <button 
             onClick={() => {
               setTempResultData(null);
               setCurrentScreen('Record');
@@ -2323,7 +2348,7 @@ export default function MalloApp() {
             style={{ color: '#232323' }}
           >
             <ArrowLeft size={24} />
-          </button>
+        </button>
           <h2 className="font-bold text-lg" style={{ color: '#232323' }}>내용 다듬기</h2>
           <button 
             onClick={handleComplete}
@@ -2346,7 +2371,7 @@ export default function MalloApp() {
               style={{ color: '#232323', minHeight: '60px' }}
               rows={2}
             />
-          </div>
+      </div>
 
           {/* 섹션 편집 */}
           {tempResultData.sections.map((section, sectionIndex) => (
@@ -2387,8 +2412,8 @@ export default function MalloApp() {
             </div>
           ))}
         </main>
-      </div>
-    );
+    </div>
+  );
   };
 
   // 히스토리 화면용 검색어 상태
@@ -2417,6 +2442,31 @@ export default function MalloApp() {
   }, [currentScreen]);
 
   const renderHistory = () => {
+    // "미기재"와 "null"을 실제 고객 정보로 치환하는 helper 함수
+    const overrideCustomerInfoLine = (line, customerInfo) => {
+      if (!line) return line;
+      
+      let updated = line;
+
+      // 이름이 미기재나 null로 되어있으면 실제 이름으로 교체
+      if (customerInfo?.name) {
+        updated = updated.replace(/이름:\s*미기재/g, `이름: ${customerInfo.name}`);
+        updated = updated.replace(/이름\s*:\s*미기재/g, `이름: ${customerInfo.name}`);
+        updated = updated.replace(/이름:\s*null/gi, `이름: ${customerInfo.name}`);
+        updated = updated.replace(/이름\s*:\s*null/gi, `이름: ${customerInfo.name}`);
+      }
+
+      // 전화번호가 미기재나 null로 되어있으면 실제 전화번호로 교체
+      if (customerInfo?.phone) {
+        updated = updated.replace(/전화번호:\s*미기재/g, `전화번호: ${customerInfo.phone}`);
+        updated = updated.replace(/전화번호\s*:\s*미기재/g, `전화번호: ${customerInfo.phone}`);
+        updated = updated.replace(/전화번호:\s*null/gi, `전화번호: ${customerInfo.phone}`);
+        updated = updated.replace(/전화번호\s*:\s*null/gi, `전화번호: ${customerInfo.phone}`);
+      }
+
+      return updated;
+    };
+
     // 전체 시술 기록 수집 (모든 고객의 방문 기록)
     const allRecords = [];
     Object.keys(visits).forEach(customerId => {
@@ -2426,7 +2476,8 @@ export default function MalloApp() {
         allRecords.push({
           ...visit,
           customerName: customer?.name || '알 수 없음',
-          customerId: parseInt(customerId)
+          customerId: parseInt(customerId),
+          customer: customer // 고객 정보 전체를 포함
         });
       });
     });
@@ -2468,7 +2519,7 @@ export default function MalloApp() {
       return `${year}년 ${parseInt(month)}월 ${parseInt(day)}일`;
     };
 
-    return (
+  return (
       <div className="flex flex-col h-full relative" style={{ backgroundColor: '#F2F0E6' }}>
         {/* Header */}
         <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
@@ -2530,67 +2581,217 @@ export default function MalloApp() {
                 </p>
               </div>
             ) : (
-              filteredRecords.map((record) => (
-                <div key={record.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                  <button
-                    onClick={() => {
-                      const newExpanded = new Set(expandedHistoryIds);
-                      if (newExpanded.has(record.id)) {
-                        newExpanded.delete(record.id);
-                      } else {
-                        newExpanded.add(record.id);
-                      }
-                      setExpandedHistoryIds(newExpanded);
-                    }}
-                    className="w-full p-5 flex items-center gap-4 hover:bg-gray-50 transition-colors"
-                  >
-                    {/* 왼쪽: 날짜 + 시간 */}
-                    <div className="text-left" style={{ minWidth: '100px' }}>
-                      <div className="text-xs font-light mb-1" style={{ color: '#232323', opacity: 0.6 }}>
-                        {record.date}
+              filteredRecords.map((record) => {
+                // summary 텍스트에서 고객 정보 추출하는 helper 함수
+                const extractCustomerInfoFromSummary = (summary) => {
+                  if (!summary) return { name: undefined, phone: undefined };
+
+                  let name;
+                  let phone;
+
+                  // "이름: ○○○" 패턴 찾기 (뒤에 "/" 또는 줄끝까지)
+                  const nameMatch = summary.match(/이름:\s*([^\/\n]+?)(?:\s*\/|$|\n)/);
+                  if (nameMatch && nameMatch[1]) {
+                    name = nameMatch[1].trim();
+                    // "미기재", "null" 제거
+                    if (name === '미기재' || name === 'null' || name.toLowerCase() === 'null' || !name) {
+                      name = undefined;
+                    }
+                  }
+
+                  // "전화번호: 010-0000-0000" 또는 "전화번호: null" 패턴 찾기
+                  // 더 유연한 패턴: 전화번호 뒤에 "/", 줄바꿈, 또는 다른 필드가 올 수 있음
+                  const phoneMatch = summary.match(/전화번호:\s*([^\n\/]+?)(?:\s*\/|\s*$|\s*\n|\s*구분)/);
+                  if (phoneMatch && phoneMatch[1]) {
+                    const phoneValue = phoneMatch[1].trim();
+                    // "미기재", "null"이 아니고 숫자가 포함된 경우만 사용
+                    if (phoneValue && 
+                        phoneValue !== '미기재' && 
+                        phoneValue !== 'null' && 
+                        phoneValue.toLowerCase() !== 'null' &&
+                        /[0-9]/.test(phoneValue)) {
+                      phone = phoneValue;
+                    }
+                  }
+
+                  return { name, phone };
+                };
+
+                // 고객 정보 찾기
+                const customer = customers.find(c => c.id === record.customerId);
+                const visitCount = customer?.visitCount || 0;
+                
+                // 신규/기존 구분 (방문 횟수가 1이면 신규, 아니면 기존)
+                const status = visitCount === 1 ? '신규' : null;
+                
+                // summary 텍스트 수집 (record.detail.sections에서 "고객 기본 정보" 섹션 찾기)
+                let summaryText = '';
+                if (record.detail && record.detail.sections) {
+                  const customerInfoSection = record.detail.sections.find(
+                    section => section.title === '고객 기본 정보' || section.title?.includes('고객 기본')
+                  );
+                  if (customerInfoSection && customerInfoSection.content) {
+                    // content 배열의 각 항목을 하나의 문자열로 합치기
+                    summaryText = customerInfoSection.content.join(' ');
+                  }
+                }
+                // fallback: record.summary나 record.title 사용
+                if (!summaryText) {
+                  summaryText = record.summary || record.title || '';
+                }
+
+                // summary에서 고객 정보 추출
+                const { name: extractedName, phone: extractedPhone } = 
+                  extractCustomerInfoFromSummary(summaryText);
+
+                // displayName 계산 (우선순위: record.customerName > customer.name > extractedName > '이름 미기재')
+                const displayName = 
+                  record.customerName || 
+                  customer?.name || 
+                  extractedName || 
+                  '이름 미기재';
+
+                // displayPhone 계산 (우선순위: customer.phone > extractedPhone > '전화번호 미기재')
+                let displayPhone = '전화번호 미기재';
+                if (customer?.phone && customer.phone !== 'null' && customer.phone.toLowerCase() !== 'null') {
+                  displayPhone = customer.phone;
+                } else if (extractedPhone && extractedPhone !== 'null' && extractedPhone.toLowerCase() !== 'null') {
+                  displayPhone = extractedPhone;
+                }
+
+                // 날짜 포맷팅 (YYYY-MM-DD -> YYYY.MM.DD)
+                const formatDateShort = (dateStr) => {
+                  if (!dateStr) return '';
+                  const [year, month, day] = dateStr.split('-');
+                  return `${year}.${month}.${day}`;
+                };
+                
+                // 시간 포맷팅 (HH:mm -> 오전/오후 HH:mm)
+                const formatTimeDisplay = (timeStr) => {
+                  if (!timeStr) return '';
+                  const [hour, minute] = timeStr.split(':');
+                  const hourNum = parseInt(hour);
+                  const period = hourNum >= 12 ? '오후' : '오전';
+                  const displayHour = hourNum > 12 ? hourNum - 12 : (hourNum === 0 ? 12 : hourNum);
+                  return `${period} ${displayHour}:${minute}`;
+                };
+
+                // 날짜/시간 통합 포맷팅
+                const formatDateTime = (dateStr, timeStr) => {
+                  const date = formatDateShort(dateStr);
+                  const time = formatTimeDisplay(timeStr);
+                  return `${date} · ${time}`;
+                };
+
+                const displayDateTime = formatDateTime(record.date, record.time);
+                
+                // 고객 상세 페이지로 이동 핸들러
+                const handleCustomerClick = (record) => {
+                  if (!record || !record.customerId) return;
+                  setSelectedCustomerId(record.customerId);
+                  setCurrentScreen('CustomerDetail');
+                };
+
+                // 기록 상세 펼치기/접기 핸들러
+                const handleRecordClick = (record) => {
+                  const newExpanded = new Set(expandedHistoryIds);
+                  if (newExpanded.has(record.id)) {
+                    newExpanded.delete(record.id);
+                  } else {
+                    newExpanded.add(record.id);
+                  }
+                  setExpandedHistoryIds(newExpanded);
+                };
+
+                return (
+                <div key={record.id} className="record-card">
+                  <div className="record-card-main">
+                    {/* 상단 날짜/시간 */}
+                    <div className="record-card-date-row">
+                      <span className="record-card-date">
+                        {displayDateTime}
+                      </span>
+                    </div>
+
+                    <div className="record-card-content">
+                      {/* 왼쪽: 고객 정보 */}
+                      <div className="record-card-left">
+                        <div className="record-card-name-row">
+                          <button
+                            type="button"
+                            className="record-card-name-button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCustomerClick(record);
+                            }}
+                          >
+                            <span className="record-card-name">{displayName}</span>
+                          </button>
+                          {status && (
+                            <span className={`record-card-tag record-card-tag-${status === '신규' ? 'new' : 'existing'}`}>
+                              {status}
+                            </span>
+                          )}
+                        </div>
+                        <div className="record-card-phone">{displayPhone}</div>
                       </div>
-                      <div className="text-sm font-medium" style={{ color: '#C9A27A' }}>
-                        {record.time}
+
+                      {/* 오른쪽: 요약 + 화살표 */}
+                      <div 
+                        className="record-card-right" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRecordClick(record);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <div className="record-card-summary">
+                          {record.title}
+                        </div>
+                        <button 
+                          className="record-card-chevron" 
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRecordClick(record);
+                          }}
+                        >
+                          {expandedHistoryIds.has(record.id) ? '‹' : '›'}
+                        </button>
                       </div>
                     </div>
-                    
-                    {/* 중앙: 고객 이름 + 시술명 */}
-                    <div className="flex-1 text-left">
-                      <h4 className="font-bold text-base mb-1" style={{ color: '#232323' }}>
-                        {record.customerName} · {record.title}
-                      </h4>
-                      <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.7 }}>{record.summary}</p>
-                    </div>
-                    
-                    {/* 오른쪽: 화살표 */}
-                    {expandedHistoryIds.has(record.id) ? (
-                      <ChevronUp size={20} style={{ color: '#C9A27A' }} />
-                    ) : (
-                      <ChevronRight size={20} style={{ color: '#C9A27A' }} />
-                    )}
-                  </button>
+                  </div>
                   
                   {/* Accordion 상세 내용 */}
                   {expandedHistoryIds.has(record.id) && record.detail && (
-                    <div className="px-5 pb-5 space-y-5 border-t border-gray-200 pt-5 bg-gray-50">
-                      {record.detail.sections.map((section, idx) => (
-                        <div key={idx}>
-                          <h5 className="text-base font-bold mb-3" style={{ color: '#232323' }}>
-                            {section.title}
-                          </h5>
-                          <ul className="space-y-2">
-                            {section.content.map((item, i) => (
-                              <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
-                                {item}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
+                    <div className="px-5 pb-5 space-y-5 border-t border-gray-200 pt-5 bg-gray-50" style={{ marginTop: '16px' }}>
+                      {record.detail.sections.map((section, idx) => {
+                        // 고객 정보 준비 (record.customer 또는 customer 객체 사용)
+                        const customerInfoForOverride = record.customer || customer || {
+                          name: displayName !== '이름 미기재' ? displayName : undefined,
+                          phone: displayPhone !== '전화번호 미기재' ? displayPhone : undefined
+                        };
+                        
+                        return (
+                          <div key={idx}>
+                            <h5 className="text-base font-bold mb-3" style={{ color: '#232323' }}>
+                              {section.title}
+                            </h5>
+                            <ul className="space-y-2">
+                              {section.content.map((item, i) => (
+                                <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
+                                  {overrideCustomerInfoLine(item, customerInfoForOverride)}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </main>

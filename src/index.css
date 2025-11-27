@@ -132,3 +132,131 @@ body {
   color: #999999;
   font-family: monospace;
 }
+
+/* 히스토리 기록 카드 스타일 */
+.record-card {
+  background-color: #FFFFFF;
+  border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+  margin-bottom: 16px;
+}
+
+.record-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.record-card-date-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.record-card-date {
+  font-size: 12px;
+  color: #B0B0B0;
+}
+
+.record-card-content {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.record-card-left {
+  flex: 0 0 auto;
+  min-width: 120px;
+}
+
+.record-card-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.record-card-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.record-card-name-button {
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.record-card-name-button:hover .record-card-name {
+  text-decoration: underline;
+}
+
+.record-card-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: #F5F1EB;
+  color: #7A6A4A;
+}
+
+.record-card-tag-new {
+  background-color: #FCEFE5;
+  color: #C2763D;
+}
+
+.record-card-tag-existing {
+  background-color: #E8F2EB;
+  color: #3B7C4E;
+}
+
+.record-card-phone {
+  font-size: 12px;
+  color: #999999;
+}
+
+.record-card-date {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #B0B0B0;
+}
+
+.record-card-right {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.record-card-summary {
+  flex: 1;
+  font-size: 13px;
+  color: #555555;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.record-card-chevron {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid #E0D8C8;
+  background-color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #B39A78;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.record-card-chevron:hover {
+  background-color: #F5F1EB;
+}
