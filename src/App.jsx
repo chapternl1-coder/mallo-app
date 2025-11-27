@@ -738,21 +738,24 @@ TRANSCRIPT에 뷰티샵 시술/고객 문맥이 있으면 아래 구조를 사�
 
 // --- 1. Constants & Data Models ---
 
-// 뷰티샵 전용 테마 (로즈 골드 & 핑크 & 보라)
+// 뷰티샵 전용 테마 (우아하고 따뜻한 뷰티샵)
 const BEAUTY_THEME = {
   id: 'beauty',
   name: '뷰티샵',
   icon: <Scissors size={20} />,
-  color: 'from-rose-400 via-pink-300 to-purple-400', // 로즈 골드 & 핑크 & 보라 그라데이션
-  pastel: 'bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50', // 연한 파스텔 톤
-  bg: 'bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50',
-  iconBg: 'rose-400',
-  text: 'text-rose-600',
-  border: 'border-transparent',
-  ring: 'ring-rose-400',
-  warmGray: 'stone-500',
-  warmGrayText: 'text-stone-600',
-  warmGrayBg: 'bg-stone-100'
+  color: '#C9A27A', // 포인트 컬러 (우아한 골드 브라운)
+  pastel: '#F5F1EB', // 앱 전체 바탕
+  bg: '#F5F1EB', // 전체 배경 색상
+  bgSurface: '#E7DFD4', // 메인 화면 컨테이너
+  bgCard: '#FFFFFF', // 카드 배경
+  iconBg: '#C9A27A',
+  text: '#232323', // 기본 텍스트
+  textSecondary: '#232323', // 보조 텍스트
+  border: 'border-gray-200', // 연한 회색 테두리
+  ring: '#C9A27A',
+  accent: '#C9A27A',
+  accentText: '#C9A27A',
+  accentBg: '#FFFFFF'
 };
 
 // Mock 데이터
@@ -900,7 +903,7 @@ const WaveBars = () => (
     {[...Array(5)].map((_, i) => (
       <div 
         key={i} 
-        className="w-1.5 bg-white/80 rounded-full animate-pulse"
+        className="w-1.5 bg-white rounded-full animate-pulse"
         style={{ 
           animationDelay: `${i * 0.15}s`, 
           animationDuration: '0.6s' 
@@ -912,13 +915,13 @@ const WaveBars = () => (
 
 
 const SkeletonLoader = () => (
-  <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-rose-100/50 p-5 space-y-4 w-full animate-pulse">
-    <div className="h-6 bg-stone-100 rounded w-3/4 mb-6"></div>
+  <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-5 w-full animate-pulse">
+    <div className="h-6 bg-gray-200 rounded-2xl w-3/4 mb-6"></div>
     {[...Array(3)].map((_, i) => (
-      <div key={i} className="space-y-2">
-        <div className="h-4 bg-stone-100 rounded w-1/3"></div>
-        <div className="h-3 bg-stone-50 rounded w-full"></div>
-        <div className="h-3 bg-stone-50 rounded w-5/6"></div>
+      <div key={i} className="space-y-3">
+        <div className="h-4 bg-gray-200 rounded-2xl w-1/3"></div>
+        <div className="h-3 bg-gray-100 rounded-2xl w-full"></div>
+        <div className="h-3 bg-gray-100 rounded-2xl w-5/6"></div>
       </div>
     ))}
   </div>
@@ -1191,45 +1194,47 @@ export default function MalloApp() {
     };
 
     return (
-      <div className="flex flex-col h-full bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 items-center justify-center p-6">
-        <div className="w-full max-w-sm space-y-8">
+      <div className="flex flex-col h-full items-center justify-center p-8" style={{ backgroundColor: '#F5F1EB' }}>
+        <div className="w-full max-w-sm space-y-10">
           {/* 로고 */}
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-rose-400 via-pink-300 to-purple-400 shadow-2xl mb-4">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl shadow-md mb-6" style={{ backgroundColor: '#C9A27A' }}>
               <Scissors size={40} className="text-white" />
             </div>
-            <h1 className="text-3xl font-black text-stone-700 mb-2">뷰티샵 원장님</h1>
-            <p className="text-stone-500 font-light">고객 기록 관리 시스템</p>
+            <h1 className="text-3xl font-bold mb-3" style={{ color: '#232323' }}>뷰티샵 원장님</h1>
+            <p className="font-light" style={{ color: '#232323' }}>고객 기록 관리 시스템</p>
           </div>
 
           {/* 로그인 폼 */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-8 border border-rose-100/50 space-y-6">
-            <div className="space-y-4">
+          <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-200 space-y-6">
+            <div className="space-y-5">
               <div className="space-y-2">
-                <label className="text-xs font-black text-stone-600 uppercase tracking-wider">이메일</label>
-                <div className="flex items-center gap-3 bg-white/60 backdrop-blur-sm rounded-2xl px-4 py-3 border border-rose-100/50 focus-within:ring-2 focus-within:ring-rose-400 focus-within:bg-white transition-all">
-                  <Mail size={18} className="text-rose-400" />
+                <label className="text-sm font-medium" style={{ color: '#232323' }}>이메일</label>
+                <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 border border-gray-200 focus-within:border-[#C9A27A] focus-within:ring-1 focus-within:ring-[#C9A27A] transition-all">
+                  <Mail size={18} style={{ color: '#C9A27A' }} />
                   <input 
                     type="email" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="example@beauty.com"
-                    className="w-full bg-transparent outline-none text-stone-700 font-light placeholder-stone-400"
+                    className="w-full bg-transparent outline-none font-light placeholder-gray-400"
+                    style={{ color: '#232323' }}
                     onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-black text-stone-600 uppercase tracking-wider">비밀번호</label>
-                <div className="flex items-center gap-3 bg-white/60 backdrop-blur-sm rounded-2xl px-4 py-3 border border-rose-100/50 focus-within:ring-2 focus-within:ring-rose-400 focus-within:bg-white transition-all">
-                  <Lock size={18} className="text-rose-400" />
+                <label className="text-sm font-medium" style={{ color: '#232323' }}>비밀번호</label>
+                <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 border border-gray-200 focus-within:border-[#C9A27A] focus-within:ring-1 focus-within:ring-[#C9A27A] transition-all">
+                  <Lock size={18} style={{ color: '#C9A27A' }} />
                   <input 
                     type="password" 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full bg-transparent outline-none text-stone-700 font-light placeholder-stone-400"
+                    className="w-full bg-transparent outline-none font-light placeholder-gray-400"
+                    style={{ color: '#232323' }}
                     onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
                   />
                 </div>
@@ -1238,7 +1243,8 @@ export default function MalloApp() {
 
             <button 
               onClick={handleLogin}
-              className={`w-full py-4 rounded-2xl font-black text-lg text-white bg-gradient-to-r ${currentSector.color} shadow-xl hover:brightness-110 hover:-translate-y-1 hover:shadow-2xl active:scale-[0.98] transition-all`}
+              className="w-full py-4 rounded-2xl font-medium text-lg text-white shadow-md hover:shadow-lg hover:opacity-90 active:scale-[0.98] transition-all"
+              style={{ backgroundColor: '#C9A27A' }}
             >
               로그인
             </button>
@@ -1257,36 +1263,36 @@ export default function MalloApp() {
     ];
 
     return (
-      <div className="flex flex-col h-full bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 relative">
-        <header className="px-6 py-5 flex justify-between items-center bg-white/60 backdrop-blur-sm z-10 border-b border-rose-100/50">
+      <div className="flex flex-col h-full relative" style={{ backgroundColor: '#F5F1EB' }}>
+        <header className="px-8 py-6 flex justify-between items-center bg-white z-10 border-b border-gray-200 shadow-sm">
           <div className="flex flex-col">
-            <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">뷰티샵 원장님</span>
-            <h2 className="text-lg font-black text-rose-600 mt-0.5">홈</h2>
+            <span className="text-xs font-medium" style={{ color: '#232323', opacity: 0.7 }}>뷰티샵 원장님</span>
+            <h2 className="text-lg font-bold mt-1" style={{ color: '#232323' }}>홈</h2>
           </div>
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 via-pink-300 to-purple-400 flex items-center justify-center shadow-lg">
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-md" style={{ backgroundColor: '#C9A27A' }}>
             <Scissors size={20} className="text-white" />
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6 space-y-6 pb-24">
+        <main className="flex-1 overflow-y-auto p-8 space-y-6 pb-28">
           {/* 오늘의 시술 3건 요약 카드 */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-rose-100/50 p-6">
-            <h3 className="text-sm font-black text-stone-700 uppercase tracking-wider mb-4">오늘의 시술 3건</h3>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-base font-bold mb-5" style={{ color: '#232323' }}>오늘의 시술 3건</h3>
             <div className="space-y-3">
               {todaySummary.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between p-3 bg-gradient-to-r from-rose-50/50 to-pink-50/50 rounded-2xl border border-rose-100/30">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 to-pink-300 flex items-center justify-center text-white font-black text-sm">
+                <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-200">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-sm shadow-md" style={{ backgroundColor: '#C9A27A' }}>
                       {item.name[0]}
                     </div>
                     <div>
-                      <p className="font-black text-stone-700 text-sm">{item.name}</p>
-                      <p className="text-xs text-stone-500 font-light">{item.service}</p>
+                      <p className="font-bold text-base" style={{ color: '#232323' }}>{item.name}</p>
+                      <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.7 }}>{item.service}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-black text-rose-600 text-sm">{item.amount}</p>
-                    <p className="text-xs text-stone-400 font-light">{item.time}</p>
+                    <p className="font-bold text-base" style={{ color: '#232323' }}>{item.amount}</p>
+                    <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.6 }}>{item.time}</p>
                   </div>
                 </div>
               ))}
@@ -1296,16 +1302,16 @@ export default function MalloApp() {
           {/* 새 시술 기록하기 버튼 */}
           <button 
             onClick={startRecording}
-            className={`group relative w-full py-6 rounded-3xl flex items-center justify-center gap-3 transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-2xl z-10 bg-gradient-to-r ${currentSector.color} text-white`}
+            className="w-full py-5 rounded-2xl flex items-center justify-center gap-3 transition-all duration-200 hover:opacity-90 active:scale-[0.98] shadow-md hover:shadow-lg text-white"
+            style={{ backgroundColor: '#C9A27A' }}
           >
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-rose-400 via-pink-300 to-purple-400 opacity-90 group-hover:opacity-100 transition-opacity blur-sm"></div>
-            <Mic size={28} className="relative z-10 drop-shadow-md" />
-            <span className="relative z-10 font-black text-xl">🎤 새 시술 기록하기</span>
+            <Mic size={24} />
+            <span className="font-medium text-lg">새 시술 기록하기</span>
           </button>
 
           {/* 최근 고객 리스트 */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-black text-stone-600 uppercase tracking-wider">최근 고객</h3>
+          <div className="space-y-4">
+            <h3 className="text-base font-bold" style={{ color: '#232323' }}>최근 고객</h3>
             {MOCK_CUSTOMERS.map((customer) => (
               <div 
                 key={customer.id}
@@ -1313,24 +1319,24 @@ export default function MalloApp() {
                   setSelectedCustomerId(customer.id);
                   setStep('customerDetail');
                 }}
-                className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-xl border border-rose-100/50 hover:shadow-2xl hover:-translate-y-1 transition-all cursor-pointer"
+                className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all cursor-pointer"
               >
-                <div className="flex items-center gap-4">
-                  <div className="text-4xl">{customer.avatar}</div>
+                <div className="flex items-center gap-5">
+                  <div className="text-5xl">{customer.avatar}</div>
                   <div className="flex-1">
-                    <h4 className="font-black text-stone-700 text-base mb-1">{customer.name}</h4>
-                    <div className="flex items-center gap-4 text-xs text-stone-500 font-light">
-                      <span className="flex items-center gap-1">
-                        <Phone size={12} />
+                    <h4 className="font-bold text-base mb-2" style={{ color: '#232323' }}>{customer.name}</h4>
+                    <div className="flex items-center gap-5 text-sm font-light" style={{ color: '#232323', opacity: 0.7 }}>
+                      <span className="flex items-center gap-2">
+                        <Phone size={14} style={{ color: '#C9A27A' }} />
                         {customer.phone}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar size={12} />
+                      <span className="flex items-center gap-2">
+                        <Calendar size={14} style={{ color: '#C9A27A' }} />
                         방문 {customer.visitCount}회
                       </span>
                     </div>
                   </div>
-                  <ChevronRight size={20} className="text-stone-400" />
+                  <ChevronRight size={20} style={{ color: '#C9A27A' }} />
                 </div>
               </div>
             ))}
@@ -1409,20 +1415,20 @@ export default function MalloApp() {
   );
 
   const renderProcessing = () => (
-    <div className="flex flex-col h-full bg-gradient-to-br from-rose-50 via-amber-50 to-stone-50 px-6 pt-20 pb-10">
-      <div className="text-center mb-10">
-        <div className="inline-block p-4 rounded-full bg-gradient-to-br from-rose-100 to-amber-100 mb-6 animate-bounce">
-          <Scissors size={32} className="text-rose-600" />
+    <div className="flex flex-col h-full px-8 pt-24 pb-12" style={{ backgroundColor: '#F5F1EB' }}>
+      <div className="text-center mb-12">
+        <div className="inline-block p-5 rounded-2xl bg-white shadow-md border border-gray-200 mb-6 animate-bounce" style={{ backgroundColor: '#FFFFFF' }}>
+          <Scissors size={32} style={{ color: '#C9A27A' }} />
         </div>
-        <h2 className="text-2xl font-black text-stone-700 mb-2">시술 기록 정리 중</h2>
-        <p className="text-stone-500 font-light">AI가 내용을 분석하고 서식을 적용하고 있습니다.</p>
+        <h2 className="text-2xl font-bold mb-3" style={{ color: '#232323' }}>시술 기록 정리 중</h2>
+        <p className="font-light" style={{ color: '#232323' }}>AI가 내용을 분석하고 서식을 적용하고 있습니다.</p>
       </div>
       
-      <div className="flex-1 w-full max-w-sm mx-auto space-y-4 opacity-50">
+      <div className="flex-1 w-full max-w-sm mx-auto space-y-5 opacity-50">
         <SkeletonLoader />
       </div>
 
-      <div className="text-xs text-center text-stone-400 font-mono mt-auto">
+      <div className="text-sm text-center font-light mt-auto" style={{ color: '#232323', opacity: 0.6 }}>
         Processing transcript...<br/>
         Applying beauty salon template...
       </div>
@@ -1432,52 +1438,51 @@ export default function MalloApp() {
   const renderResult = () => {
     if (!resultData) {
       return (
-        <div className="flex flex-col h-full bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 items-center justify-center">
-          <p className="text-stone-500">결과 데이터가 없습니다.</p>
-          <button onClick={resetFlow} className="mt-4 text-rose-600 font-black">홈으로 돌아가기</button>
+        <div className="flex flex-col h-full items-center justify-center" style={{ backgroundColor: '#F5F1EB' }}>
+          <p style={{ color: '#232323' }}>결과 데이터가 없습니다.</p>
+          <button onClick={resetFlow} className="mt-4 font-medium" style={{ color: '#232323' }}>홈으로 돌아가기</button>
         </div>
       );
     }
 
     return (
-      <div className="flex flex-col h-full bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 relative">
+      <div className="flex flex-col h-full relative" style={{ backgroundColor: '#F5F1EB' }}>
         {/* Header */}
-        <header className="bg-white/80 backdrop-blur-sm px-4 py-4 sticky top-0 z-20 flex items-center justify-between border-b border-rose-100/50">
-          <button onClick={resetFlow} className="p-2 text-stone-600 hover:bg-rose-100/50 rounded-full transition-colors">
+        <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
+          <button onClick={resetFlow} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
             <ArrowLeft size={24} />
           </button>
           <div className="text-center">
-            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">시술 기록</span>
-            <h2 className="font-black text-stone-700 text-sm">{getTodayDate()}</h2>
+            <span className="text-xs font-medium" style={{ color: '#232323', opacity: 0.7 }}>시술 기록</span>
+            <h2 className="font-bold text-base mt-1" style={{ color: '#232323' }}>{getTodayDate()}</h2>
           </div>
-          <button className="p-2 text-stone-400 hover:text-stone-600">
+          <button className="p-2" style={{ color: '#232323', opacity: 0.5 }}>
             <MoreHorizontal size={24} />
           </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 space-y-4 pb-32 bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50">
+        <main className="flex-1 overflow-y-auto p-8 space-y-5 pb-36" style={{ backgroundColor: '#F5F1EB' }}>
           {/* Main Card */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden border border-rose-100/50 animate-in slide-in-from-bottom-8 duration-500">
-            <div className={`px-6 py-6 bg-gradient-to-br ${currentSector.color} relative overflow-hidden`}>
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-200">
+            <div className="px-8 py-6 relative overflow-hidden" style={{ backgroundColor: '#C9A27A' }}>
               <div className="relative z-10">
-                <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black text-white bg-white/20 backdrop-blur-sm mb-3 border border-white/20">
+                <span className="inline-flex items-center px-3 py-1.5 rounded-2xl text-xs font-medium text-white mb-4 shadow-sm" style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }}>
                   {currentSector.icon}
-                  <span className="ml-1.5">{userProfile.roleTitle}</span>
+                  <span className="ml-2">{userProfile.roleTitle}</span>
                 </span>
-                <h3 className="font-black text-white text-xl leading-snug tracking-tight">{resultData.title}</h3>
+                <h3 className="font-bold text-white text-2xl leading-snug">{resultData.title}</h3>
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-8 space-y-7">
               {resultData.sections.map((section, idx) => (
                 <div key={idx} className="animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 100}ms` }}>
-                  <h4 className={`text-xs font-black mb-3 uppercase tracking-wider ${currentSector.text} flex items-center gap-2`}>
+                  <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
                     {section.title}
-                    <div className="h-px flex-1 bg-stone-200"></div>
                   </h4>
                   <ul className="space-y-3">
                     {section.content.map((item, i) => (
-                      <li key={i} className="text-stone-700 text-[15px] leading-relaxed pl-3 border-l-2 border-rose-200 hover:border-rose-400 transition-colors font-light">
+                      <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
                         {item}
                       </li>
                     ))}
@@ -1488,12 +1493,12 @@ export default function MalloApp() {
           </div>
 
           {/* Transcript Toggle */}
-          <details className="group bg-white/80 backdrop-blur-sm rounded-2xl border border-rose-100/50 shadow-xl overflow-hidden">
-            <summary className="font-black text-stone-700 text-sm cursor-pointer p-4 flex justify-between items-center bg-white/60 hover:bg-white/80 transition-colors select-none">
+          <details className="group bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <summary className="font-medium text-base cursor-pointer p-5 flex justify-between items-center hover:bg-gray-50 transition-colors select-none" style={{ color: '#232323' }}>
               <span>원본 녹음 내용 보기</span>
-              <ChevronRight size={16} className="text-stone-400 group-open:rotate-90 transition-transform duration-200" />
+              <ChevronRight size={18} style={{ color: '#C9A27A' }} className="group-open:rotate-90 transition-transform duration-200" />
             </summary>
-            <div className="p-4 pt-0 text-sm text-stone-500 leading-relaxed border-t border-rose-100/50 bg-stone-50/30">
+            <div className="p-5 pt-0 text-base leading-relaxed border-t border-gray-200 bg-gray-50" style={{ color: '#232323', opacity: 0.8 }}>
               <div className="pt-4">"{transcript}"</div>
             </div>
           </details>
@@ -1501,22 +1506,23 @@ export default function MalloApp() {
 
         {/* 녹음 일시 표시 */}
         {recordingDate && (
-          <div className="absolute bottom-24 left-6 right-6 text-center z-20">
-            <p className="text-xs text-slate-400">
+          <div className="absolute bottom-32 left-8 right-8 text-center z-20">
+            <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.6 }}>
               {formatRecordingDate(recordingDate)}
             </p>
           </div>
         )}
 
         {/* Floating Action Bar */}
-        <div className="absolute bottom-6 left-6 right-6 grid grid-cols-2 gap-3 z-30">
-          <button className="flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-white/90 backdrop-blur-sm border border-rose-100/50 text-stone-700 font-black shadow-xl hover:bg-white hover:-translate-y-1 hover:shadow-2xl active:scale-[0.98] transition-all">
-            <Share2 size={18} />
+        <div className="absolute bottom-8 left-8 right-8 grid grid-cols-2 gap-4 z-30">
+          <button className="flex items-center justify-center gap-3 py-4 rounded-2xl bg-white border border-gray-200 font-medium shadow-sm hover:shadow-md hover:border-gray-300 transition-all" style={{ color: '#232323' }}>
+            <Share2 size={18} style={{ color: '#C9A27A' }} />
             공유
           </button>
           <button 
             onClick={() => alert('클립보드에 복사되었습니다.')}
-            className={`flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-white bg-gradient-to-r ${currentSector.color} shadow-xl hover:brightness-110 hover:-translate-y-1 hover:shadow-2xl active:scale-[0.98] transition-all`}
+            className="flex items-center justify-center gap-3 py-4 rounded-2xl font-medium text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all"
+            style={{ backgroundColor: '#C9A27A' }}
           >
             <Copy size={18} />
             복사
@@ -1532,44 +1538,44 @@ export default function MalloApp() {
 
     if (!customer) {
       return (
-        <div className="flex flex-col h-full bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 items-center justify-center">
-          <p className="text-stone-500">고객 정보를 찾을 수 없습니다.</p>
-          <button onClick={() => setStep('home')} className="mt-4 text-rose-600 font-black">홈으로 돌아가기</button>
+        <div className="flex flex-col h-full items-center justify-center" style={{ backgroundColor: '#F5F1EB' }}>
+          <p style={{ color: '#232323' }}>고객 정보를 찾을 수 없습니다.</p>
+          <button onClick={() => setStep('home')} className="mt-4 font-medium" style={{ color: '#232323' }}>홈으로 돌아가기</button>
         </div>
       );
     }
 
     return (
-      <div className="flex flex-col h-full bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50">
+      <div className="flex flex-col h-full" style={{ backgroundColor: '#F5F1EB' }}>
         {/* Header */}
-        <header className="bg-white/80 backdrop-blur-sm px-4 py-4 sticky top-0 z-20 flex items-center justify-between border-b border-rose-100/50">
-          <button onClick={() => setStep('home')} className="p-2 text-stone-600 hover:bg-rose-100/50 rounded-full transition-colors">
+        <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
+          <button onClick={() => setStep('home')} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
             <ArrowLeft size={24} />
           </button>
           <div className="text-center">
-            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">고객 상세</span>
-            <h2 className="font-black text-stone-700 text-sm">{customer.name}</h2>
+            <span className="text-xs font-medium" style={{ color: '#232323', opacity: 0.7 }}>고객 상세</span>
+            <h2 className="font-bold text-base mt-1" style={{ color: '#232323' }}>{customer.name}</h2>
           </div>
-          <button className="p-2 text-stone-400 hover:text-stone-600">
+          <button className="p-2" style={{ color: '#232323', opacity: 0.5 }}>
             <MoreHorizontal size={24} />
           </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6 space-y-6 pb-24">
+        <main className="flex-1 overflow-y-auto p-8 space-y-6 pb-24">
           {/* 고객 정보 카드 */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-rose-100/50 p-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="text-6xl">{customer.avatar}</div>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center gap-6 mb-6">
+              <div className="text-7xl">{customer.avatar}</div>
               <div className="flex-1">
-                <h3 className="font-black text-stone-700 text-2xl mb-2">{customer.name}</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-stone-600">
-                    <Phone size={16} />
-                    <span className="font-light">{customer.phone}</span>
+                <h3 className="font-bold text-2xl mb-4" style={{ color: '#232323' }}>{customer.name}</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 font-light" style={{ color: '#232323' }}>
+                    <Phone size={18} style={{ color: '#C9A27A' }} />
+                    <span>{customer.phone}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-stone-600">
-                    <Calendar size={16} />
-                    <span className="font-light">방문 {customer.visitCount}회</span>
+                  <div className="flex items-center gap-3 font-light" style={{ color: '#232323' }}>
+                    <Calendar size={18} style={{ color: '#C9A27A' }} />
+                    <span>방문 {customer.visitCount}회</span>
                   </div>
                 </div>
               </div>
@@ -1577,44 +1583,44 @@ export default function MalloApp() {
           </div>
 
           {/* 방문 히스토리 */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-black text-stone-600 uppercase tracking-wider">방문 히스토리</h3>
+          <div className="space-y-4">
+            <h3 className="text-base font-bold" style={{ color: '#232323' }}>방문 히스토리</h3>
             {visits.length === 0 ? (
-              <div className="text-center py-12 bg-white/60 rounded-2xl border border-rose-100/50">
-                <p className="text-stone-400 font-light text-sm">방문 기록이 없습니다</p>
+              <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 shadow-sm">
+                <p className="font-light text-base" style={{ color: '#232323', opacity: 0.6 }}>방문 기록이 없습니다</p>
               </div>
             ) : (
               visits.map((visit) => (
-                <div key={visit.id} className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-rose-100/50 overflow-hidden">
+                <div key={visit.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                   <button
                     onClick={() => setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id)}
-                    className="w-full p-4 flex items-center justify-between hover:bg-rose-50/30 transition-colors"
+                    className="w-full p-5 flex items-center justify-between hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex-1 text-left">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-xs text-stone-400 font-light">{visit.date}</span>
-                        <span className="text-xs text-stone-400 font-light">{visit.time}</span>
+                      <div className="flex items-center gap-4 mb-3">
+                        <span className="text-sm font-light" style={{ color: '#232323', opacity: 0.6 }}>{visit.date}</span>
+                        <span className="text-sm font-light" style={{ color: '#232323', opacity: 0.6 }}>{visit.time}</span>
                       </div>
-                      <h4 className="font-black text-stone-700 text-base mb-1">{visit.title}</h4>
-                      <p className="text-xs text-stone-500 font-light">{visit.summary}</p>
+                      <h4 className="font-bold text-base mb-2" style={{ color: '#232323' }}>{visit.title}</h4>
+                      <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.7 }}>{visit.summary}</p>
                     </div>
                     {expandedVisitId === visit.id ? (
-                      <ChevronUp size={20} className="text-stone-400" />
+                      <ChevronUp size={20} style={{ color: '#C9A27A' }} />
                     ) : (
-                      <ChevronDown size={20} className="text-stone-400" />
+                      <ChevronDown size={20} style={{ color: '#C9A27A' }} />
                     )}
                   </button>
                   
                   {expandedVisitId === visit.id && visit.detail && (
-                    <div className="px-4 pb-4 space-y-4 border-t border-rose-100/50 pt-4">
+                    <div className="px-5 pb-5 space-y-5 border-t border-gray-200 pt-5 bg-gray-50">
                       {visit.detail.sections.map((section, idx) => (
                         <div key={idx}>
-                          <h5 className={`text-xs font-black mb-2 uppercase tracking-wider ${currentSector.text}`}>
+                          <h5 className="text-base font-bold mb-3" style={{ color: '#232323' }}>
                             {section.title}
                           </h5>
                           <ul className="space-y-2">
                             {section.content.map((item, i) => (
-                              <li key={i} className="text-stone-600 text-sm leading-relaxed pl-3 border-l-2 border-rose-200 font-light">
+                              <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
                                 {item}
                               </li>
                             ))}
@@ -1667,8 +1673,8 @@ export default function MalloApp() {
   }
 
   return (
-    <div className="h-screen w-full bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 flex items-center justify-center font-sans">
-      <div className="w-full max-w-md h-full sm:h-[90vh] bg-white sm:rounded-[2rem] sm:shadow-2xl overflow-hidden relative border-0">
+    <div className="h-screen w-full flex items-center justify-center font-sans" style={{ backgroundColor: '#F5F1EB' }}>
+      <div className="w-full max-w-md h-full sm:h-[90vh] sm:rounded-[2rem] sm:shadow-md overflow-hidden relative border-0" style={{ backgroundColor: '#E7DFD4' }}>
         {content}
       </div>
     </div>

@@ -1,3 +1,18 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --bg-app: #F5F1EB;       /* 앱 전체 바탕 (연한 크림) */
+  --bg-surface: #E7DFD4;   /* 메인 화면 컨테이너 (연한 브라운/그레이지) */
+  --bg-card: #FFFFFF;      /* 카드/박스 배경 (화이트) */
+  --text-primary: #232323; /* 기본 텍스트 (진한 차콜) */
+  --accent: #C9A27A;       /* 포인트 컬러 (우아한 골드 브라운) */
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, sans-serif;
+}
