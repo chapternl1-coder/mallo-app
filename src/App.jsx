@@ -1123,6 +1123,50 @@ export default function MalloApp() {
   const [tempPhone, setTempPhone] = useState(''); // 신규 고객 전화번호 (AI 자동 추출 또는 수동 입력)
   const nameInputRef = useRef(null); // 이름 입력창 참조 (포커스용)
   const phoneInputRef = useRef(null); // 전화번호 입력창 참조 (포커스용)
+  
+  // localStorage에서 데이터 불러오기 함수
+  const loadFromLocalStorage = (key, defaultValue) => {
+    try {
+      const item = localStorage.getItem(key);
+      if (item) {
+        return JSON.parse(item);
+      }
+    } catch (error) {
+      console.error(`localStorage에서 ${key} 불러오기 실패:`, error);
+    }
+    return defaultValue;
+  };
+
+  // localStorage에 데이터 저장하기 함수
+  const saveToLocalStorage = (key, data) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+      console.error(`localStorage에 ${key} 저장 실패:`, error);
+    }
+  };
+
+  // MOCK_CUSTOMERS와 MOCK_VISITS를 상태로 관리 (실제 저장 기능을 위해)
+  // 초기값은 localStorage에서 불러오거나, 없으면 MOCK 데이터 사용
+  const [customers, setCustomers] = useState(() => 
+    loadFromLocalStorage('mallo_customers', MOCK_CUSTOMERS)
+  );
+  const [visits, setVisits] = useState(() => 
+    loadFromLocalStorage('mallo_visits', MOCK_VISITS)
+  );
+  
+  // 편집 화면용 임시 데이터
+  const [tempResultData, setTempResultData] = useState(null);
+  
+  // customers 상태 변경 시 localStorage에 자동 저장
+  useEffect(() => {
+    saveToLocalStorage('mallo_customers', customers);
+  }, [customers]);
+  
+  // visits 상태 변경 시 localStorage에 자동 저장
+  useEffect(() => {
+    saveToLocalStorage('mallo_visits', visits);
+  }, [visits]);
 
   // 에러 바운더리: 개발 중 오류 확인
   useEffect(() => {
@@ -1170,6 +1214,10 @@ export default function MalloApp() {
 
   const stopRecording = async () => {
     clearInterval(timerRef.current);
+    
+    // 처리 중 상태로 변경
+    setIsProcessing(true);
+    setRecordState('processing');
 
     try {
       // 녹음 중지
@@ -1302,15 +1350,8 @@ export default function MalloApp() {
           }
         }
         
-        // 오늘의 기록에 추가
-        const newRecord = {
-          id: Date.now(),
-          title: parsedResult.title,
-          time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-          data: parsedResult
-        };
-        setTodayRecords(prev => [newRecord, ...prev]);
         // resultData가 설정되면 Record 화면에서 result 상태로 표시됨
+        setRecordState('result');
       } else {
         throw new Error('API 응답 형식이 올바르지 않습니다.');
       }
@@ -1319,6 +1360,10 @@ export default function MalloApp() {
       alert(`오류가 발생했습니다: ${error.message}\n\n개발자 도구 콘솔을 확인해주세요.`);
       // 오류 발생 시 홈으로 돌아가기
       setCurrentScreen('Home');
+      setRecordState('idle');
+    } finally {
+      // 처리 완료 후 상태 초기화
+      setIsProcessing(false);
     }
   };
 
@@ -1356,6 +1401,47 @@ export default function MalloApp() {
   const getTodayDate = () => {
     const today = new Date();
     return `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일 (${['일','월','화','수','목','금','토'][today.getDay()]})`;
+  };
+
+  // 전화번호 자동 포맷팅 함수
+  const formatPhoneNumber = (value) => {
+    // 숫자가 아닌 문자 모두 제거
+    const numbers = value.replace(/[^0-9]/g, '');
+    
+    // 길이에 따라 포맷팅
+    if (numbers.length <= 3) {
+      return numbers;
+    } else if (numbers.length <= 7) {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    } else if (numbers.length <= 11) {
+      // 010-XXXX-XXXX 형식
+      if (numbers.startsWith('010') || numbers.startsWith('011') || numbers.startsWith('016') || numbers.startsWith('017') || numbers.startsWith('018') || numbers.startsWith('019')) {
+        return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
+      } else {
+        // 지역번호 (02, 031, 032 등)
+        if (numbers.startsWith('02')) {
+          return `${numbers.slice(0, 2)}-${numbers.slice(2, 6)}-${numbers.slice(6)}`;
+        } else {
+          return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
+        }
+      }
+    } else {
+      // 11자리 초과 시 앞 11자리만 사용
+      const limited = numbers.slice(0, 11);
+      if (limited.startsWith('010') || limited.startsWith('011') || limited.startsWith('016') || limited.startsWith('017') || limited.startsWith('018') || limited.startsWith('019')) {
+        return `${limited.slice(0, 3)}-${limited.slice(3, 7)}-${limited.slice(7)}`;
+      } else if (limited.startsWith('02')) {
+        return `${limited.slice(0, 2)}-${limited.slice(2, 6)}-${limited.slice(6)}`;
+      } else {
+        return `${limited.slice(0, 3)}-${limited.slice(3, 7)}-${limited.slice(7)}`;
+      }
+    }
+  };
+
+  // 전화번호 입력 핸들러
+  const handlePhoneChange = (e) => {
+    const formatted = formatPhoneNumber(e.target.value);
+    setTempPhone(formatted);
   };
 
   const formatRecordingDate = (date) => {
@@ -1448,11 +1534,25 @@ export default function MalloApp() {
   };
 
   const renderHome = () => {
+    // 전화번호에서 하이픈과 공백 제거하는 헬퍼 함수
+    const normalizePhone = (phone) => {
+      return phone.replace(/[-\s]/g, '');
+    };
+
     // 검색 필터링된 고객 리스트
-    const filteredCustomers = MOCK_CUSTOMERS.filter(customer => {
+    const filteredCustomers = customers.filter(customer => {
       if (!searchQuery.trim()) return true;
       const query = searchQuery.toLowerCase();
-      return customer.name.toLowerCase().includes(query) || customer.phone.includes(query);
+      const normalizedQuery = normalizePhone(query);
+      
+      // 이름 검색 (기존 로직 유지)
+      const nameMatch = customer.name.toLowerCase().includes(query);
+      
+      // 전화번호 검색 (하이픈과 공백 제거 후 비교)
+      const normalizedCustomerPhone = normalizePhone(customer.phone);
+      const phoneMatch = normalizedCustomerPhone.includes(normalizedQuery);
+      
+      return nameMatch || phoneMatch;
     });
 
     // 오늘 날짜 표시
@@ -1472,20 +1572,20 @@ export default function MalloApp() {
             style={{ backgroundColor: '#C9A27A' }}
           >
             <Scissors size={20} className="text-white" />
-          </button>
-        </header>
+        </button>
+      </header>
 
         <main className="flex-1 overflow-y-auto flex flex-col items-center justify-center p-8 space-y-12">
           {/* 검색창 - 화면 중앙에 크게 배치 */}
           <div className="w-full max-w-md relative">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-4 bg-gray-50 rounded-2xl px-6 py-4 border border-gray-200 focus-within:border-[#C9A27A] focus-within:ring-2 focus-within:ring-[#C9A27A] transition-all">
+            <div className="bg-white rounded-2xl shadow-md border border-[#EFECE1] p-6">
+              <div className="flex items-center gap-4 bg-white rounded-2xl px-4 h-14 border border-[#EFECE1] focus-within:border-[#C9A27A] focus-within:ring-2 focus-within:ring-[#C9A27A] transition-all">
                 <input 
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="고객 이름이나 전화번호 검색"
-                  className="w-full bg-transparent outline-none font-light placeholder-gray-400 text-lg"
+                  className="w-full bg-transparent outline-none font-light placeholder-gray-400 text-lg leading-normal"
                   style={{ color: '#232323' }}
                 />
               </div>
@@ -1582,7 +1682,7 @@ export default function MalloApp() {
         
         {/* 정지 버튼 - 물결(Ripple) 애니메이션 */}
         <button 
-          onClick={stopRecordingWithState}
+          onClick={stopRecording}
           className="group relative w-20 h-20 flex items-center justify-center"
         >
           {/* 물결 효과 - 여러 겹의 원 */}
@@ -1710,8 +1810,8 @@ export default function MalloApp() {
                   ref={phoneInputRef}
                   type="tel"
                   value={tempPhone}
-                  onChange={(e) => setTempPhone(e.target.value)}
-                  placeholder="전화번호 입력"
+                  onChange={handlePhoneChange}
+                  placeholder="010-1234-5678"
                   className={`w-full px-4 py-3 rounded-2xl border focus:ring-1 outline-none transition-all ${
                     !tempPhone ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#C9A27A] focus:ring-[#C9A27A]'
                   }`}
@@ -1799,8 +1899,11 @@ export default function MalloApp() {
             {/* 내용 다듬기 버튼 */}
              <button 
               onClick={() => {
-                // 내용 다듬기 로직 (실제로는 편집 모드로 전환)
-                alert('내용 다듬기 기능은 준비 중입니다.');
+                // 편집 화면으로 이동 (임시 데이터 초기화)
+                if (resultData) {
+                  setTempResultData(JSON.parse(JSON.stringify(resultData))); // deep copy
+                  setCurrentScreen('Edit');
+                }
               }}
               className="flex items-center justify-center gap-2 py-4 rounded-2xl font-medium bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
               style={{ color: '#232323', width: '35%' }}
@@ -1814,8 +1917,40 @@ export default function MalloApp() {
               onClick={() => {
                 // 저장 전 검증
                 if (selectedCustomerForRecord) {
-                  // 기존 고객 선택 시
-                  setSelectedCustomerId(selectedCustomerForRecord.id);
+                  // 기존 고객 선택 시 - 기록 저장
+                  const customerId = selectedCustomerForRecord.id;
+                  const today = new Date();
+                  const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                  const timeStr = today.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+                  
+                  // 새로운 방문 기록 생성
+                  const newVisitId = Date.now();
+                  const newVisit = {
+                    id: newVisitId,
+                    date: dateStr,
+                    time: timeStr,
+                    title: resultData.title,
+                    summary: resultData.sections[0]?.content[0] || resultData.title,
+                    detail: {
+                      sections: resultData.sections
+                    }
+                  };
+                  
+                  // visits 상태 업데이트
+                  setVisits(prev => ({
+                    ...prev,
+                    [customerId]: [newVisit, ...(prev[customerId] || [])]
+                  }));
+                  
+                  // 고객의 방문 횟수 업데이트
+                  setCustomers(prev => prev.map(c => 
+                    c.id === customerId 
+                      ? { ...c, visitCount: c.visitCount + 1, lastVisit: dateStr }
+                      : c
+                  ));
+                  
+                  // CustomerDetail로 이동
+                  setSelectedCustomerId(customerId);
                   setCurrentScreen('CustomerDetail');
                 } else {
                   // 신규 고객인 경우 이름 필수 검증
@@ -1854,12 +1989,57 @@ export default function MalloApp() {
                     return;
                   }
                   
-                  // 저장 로직 (실제로는 API 호출하여 신규 고객 생성)
-                  // 여기서는 임시로 alert만 표시
-                  alert(`신규 고객 정보가 저장되었습니다.\n이름: ${tempName || '미입력'}\n전화번호: ${tempPhone}`);
-                  // 실제로는 여기서 API 호출 후 CustomerDetail로 이동
-                  // setCurrentScreen('CustomerDetail');
+                  // 신규 고객 생성 및 기록 저장
+                  const today = new Date();
+                  const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                  const timeStr = today.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+                  
+                  // 새로운 고객 ID 생성 (기존 최대 ID + 1)
+                  const newCustomerId = Math.max(...customers.map(c => c.id), 0) + 1;
+                  
+                  // 새로운 고객 생성
+                  const newCustomer = {
+                    id: newCustomerId,
+                    name: tempName.trim(),
+                    phone: tempPhone.trim(),
+                    visitCount: 1,
+                    lastVisit: dateStr,
+                    avatar: '👤',
+                    tags: ['#신규']
+                  };
+                  
+                  // 새로운 방문 기록 생성
+                  const newVisitId = Date.now();
+                  const newVisit = {
+                    id: newVisitId,
+                    date: dateStr,
+                    time: timeStr,
+                    title: resultData.title,
+                    summary: resultData.sections[0]?.content[0] || resultData.title,
+                    detail: {
+                      sections: resultData.sections
+                    }
+                  };
+                  
+                  // customers와 visits 상태 업데이트
+                  setCustomers(prev => [...prev, newCustomer]);
+                  setVisits(prev => ({
+                    ...prev,
+                    [newCustomerId]: [newVisit]
+                  }));
+                  
+                  // CustomerDetail로 이동
+                  setSelectedCustomerId(newCustomerId);
+                  setCurrentScreen('CustomerDetail');
                 }
+                
+                // 저장 후 상태 초기화
+                setResultData(null);
+                setTranscript('');
+                setRecordingDate(null);
+                setSelectedCustomerForRecord(null);
+                setTempName('');
+                setTempPhone('');
               }}
               className="flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-medium text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all"
               style={{ backgroundColor: '#C9A27A' }}
@@ -1873,8 +2053,8 @@ export default function MalloApp() {
   };
 
   const renderCustomerDetail = () => {
-    const customer = MOCK_CUSTOMERS.find(c => c.id === selectedCustomerId);
-    const visits = MOCK_VISITS[selectedCustomerId] || [];
+    const customer = customers.find(c => c.id === selectedCustomerId);
+    const customerVisits = visits[selectedCustomerId] || [];
 
     if (!customer) {
       return (
@@ -1935,12 +2115,12 @@ export default function MalloApp() {
           {/* 방문 히스토리 */}
           <div className="space-y-4">
             <h3 className="text-base font-bold" style={{ color: '#232323' }}>방문 히스토리</h3>
-            {visits.length === 0 ? (
+            {customerVisits.length === 0 ? (
               <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 shadow-sm">
                 <p className="font-light text-base" style={{ color: '#232323', opacity: 0.6 }}>방문 기록이 없습니다</p>
               </div>
             ) : (
-              visits.map((visit) => (
+              customerVisits.map((visit) => (
                 <div key={visit.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                   <button
                     onClick={() => setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id)}
@@ -2003,6 +2183,151 @@ export default function MalloApp() {
     );
   };
 
+  const renderEdit = () => {
+    if (!tempResultData) {
+      return (
+        <div className="flex flex-col h-full items-center justify-center" style={{ backgroundColor: '#F2F0E6' }}>
+          <p style={{ color: '#232323' }}>편집할 데이터가 없습니다.</p>
+          <button onClick={() => setCurrentScreen('Record')} className="mt-4 font-medium" style={{ color: '#232323' }}>결과 화면으로 돌아가기</button>
+        </div>
+      );
+    }
+
+    // 섹션 내용 업데이트 함수
+    const updateSectionContent = (sectionIndex, contentIndex, newValue) => {
+      setTempResultData(prev => {
+        const updated = JSON.parse(JSON.stringify(prev));
+        updated.sections[sectionIndex].content[contentIndex] = newValue;
+        return updated;
+      });
+    };
+
+    // 섹션에 새 항목 추가 함수
+    const addSectionItem = (sectionIndex) => {
+      setTempResultData(prev => {
+        const updated = JSON.parse(JSON.stringify(prev));
+        updated.sections[sectionIndex].content.push('');
+        return updated;
+      });
+    };
+
+    // 섹션 항목 삭제 함수
+    const removeSectionItem = (sectionIndex, contentIndex) => {
+      setTempResultData(prev => {
+        const updated = JSON.parse(JSON.stringify(prev));
+        updated.sections[sectionIndex].content.splice(contentIndex, 1);
+        return updated;
+      });
+    };
+
+    // 제목 업데이트 함수
+    const updateTitle = (newTitle) => {
+      setTempResultData(prev => ({
+        ...prev,
+        title: newTitle
+      }));
+    };
+
+    // 완료 버튼 클릭 핸들러
+    const handleComplete = () => {
+      // 빈 항목 제거
+      const cleanedData = {
+        ...tempResultData,
+        sections: tempResultData.sections.map(section => ({
+          ...section,
+          content: section.content.filter(item => item.trim() !== '')
+        }))
+      };
+      
+      // resultData 업데이트
+      setResultData(cleanedData);
+      setTempResultData(null);
+      
+      // 결과 화면으로 복귀 (Record 화면의 result 상태)
+      setCurrentScreen('Record');
+    };
+
+    return (
+      <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
+        {/* Header */}
+        <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
+          <button 
+            onClick={() => {
+              setTempResultData(null);
+              setCurrentScreen('Record');
+            }} 
+            className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
+            style={{ color: '#232323' }}
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <h2 className="font-bold text-lg" style={{ color: '#232323' }}>내용 다듬기</h2>
+          <button 
+            onClick={handleComplete}
+            className="px-4 py-2 rounded-2xl font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all"
+            style={{ backgroundColor: '#C9A27A' }}
+          >
+            완료
+          </button>
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-8 space-y-5">
+          {/* 제목 편집 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <label className="block text-sm font-bold mb-3" style={{ color: '#232323' }}>제목</label>
+            <textarea
+              value={tempResultData.title}
+              onChange={(e) => updateTitle(e.target.value)}
+              className="w-full px-4 py-3 rounded-2xl border-none resize-none focus:bg-gray-50 outline-none transition-colors"
+              style={{ color: '#232323', minHeight: '60px' }}
+              rows={2}
+            />
+          </div>
+
+          {/* 섹션 편집 */}
+          {tempResultData.sections.map((section, sectionIndex) => (
+            <div key={sectionIndex} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+              <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
+                {section.title}
+              </h4>
+              <div className="space-y-3">
+                {section.content.map((item, contentIndex) => (
+                  <div key={contentIndex} className="flex gap-2">
+                    <textarea
+                      value={item}
+                      onChange={(e) => updateSectionContent(sectionIndex, contentIndex, e.target.value)}
+                      className="flex-1 px-4 py-3 rounded-2xl border-none resize-none focus:bg-gray-50 outline-none transition-colors"
+                      style={{ color: '#232323', minHeight: '60px' }}
+                      rows={Math.max(2, Math.ceil(item.length / 40))}
+                      placeholder="내용을 입력하세요..."
+                    />
+                    {section.content.length > 1 && (
+                      <button
+                        onClick={() => removeSectionItem(sectionIndex, contentIndex)}
+                        className="px-3 py-2 rounded-2xl text-sm font-medium text-white hover:opacity-90 transition-opacity"
+                        style={{ backgroundColor: '#EF4444', minWidth: '60px' }}
+                      >
+                        삭제
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  onClick={() => addSectionItem(sectionIndex)}
+                  className="w-full py-3 rounded-2xl text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors"
+                  style={{ color: '#232323' }}
+                >
+                  + 항목 추가
+                </button>
+              </div>
+            </div>
+          ))}
+        </main>
+      </div>
+    );
+  };
+
   // 히스토리 화면용 검색어 상태
   const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [expandedHistoryIds, setExpandedHistoryIds] = useState(new Set()); // 여러 개의 기록을 펼칠 수 있도록 Set 사용
@@ -2015,7 +2340,7 @@ export default function MalloApp() {
   
   const [selectedDate, setSelectedDate] = useState(getTodayDateString()); // 날짜 필터 (기본값: 오늘 날짜)
 
-  // History 화면 진입 시 오늘 날짜로 리셋 및 오늘 기록 자동 펼치기
+  // History 화면 진입 시 오늘 날짜로 리셋 (자동 펼치기 제거)
   useEffect(() => {
     if (currentScreen === 'History') {
       const todayStr = getTodayDateString();
@@ -2023,32 +2348,18 @@ export default function MalloApp() {
       // 히스토리 화면 진입 시 항상 오늘 날짜로 리셋
       setSelectedDate(todayStr);
       
-      const todayRecordIds = new Set();
-      
-      // 모든 기록에서 오늘 날짜의 기록 ID 수집
-      Object.keys(MOCK_VISITS).forEach(customerId => {
-        const visits = MOCK_VISITS[customerId];
-        visits.forEach(visit => {
-          if (visit.date === todayStr) {
-            todayRecordIds.add(visit.id);
-          }
-        });
-      });
-      
-      // 오늘 기록이 있으면 자동으로 펼치기
-      if (todayRecordIds.size > 0) {
-        setExpandedHistoryIds(todayRecordIds);
-      }
+      // 모든 항목을 접힌 상태로 초기화
+      setExpandedHistoryIds(new Set());
     }
   }, [currentScreen]);
 
   const renderHistory = () => {
     // 전체 시술 기록 수집 (모든 고객의 방문 기록)
     const allRecords = [];
-    Object.keys(MOCK_VISITS).forEach(customerId => {
-      const visits = MOCK_VISITS[customerId];
-      visits.forEach(visit => {
-        const customer = MOCK_CUSTOMERS.find(c => c.id === parseInt(customerId));
+    Object.keys(visits).forEach(customerId => {
+      const customerVisits = visits[customerId];
+      customerVisits.forEach(visit => {
+        const customer = customers.find(c => c.id === parseInt(customerId));
         allRecords.push({
           ...visit,
           customerName: customer?.name || '알 수 없음',
@@ -2098,13 +2409,13 @@ export default function MalloApp() {
       <div className="flex flex-col h-full relative" style={{ backgroundColor: '#F2F0E6' }}>
         {/* Header */}
         <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
-          <button 
+        <button 
             onClick={() => setCurrentScreen('Home')}
             className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
             style={{ color: '#232323' }}
-          >
+        >
             <ArrowLeft size={24} />
-          </button>
+        </button>
           <div className="text-center">
             <h2 className="text-xl font-bold" style={{ color: '#232323' }}>전체 기록</h2>
             {selectedDate && (
@@ -2112,7 +2423,7 @@ export default function MalloApp() {
                 {formatDate(selectedDate)} 기록
               </p>
             )}
-          </div>
+      </div>
           <div className="w-10"></div> {/* 공간 맞추기용 */}
         </header>
 
@@ -2220,8 +2531,8 @@ export default function MalloApp() {
             )}
           </div>
         </main>
-      </div>
-    );
+    </div>
+  );
   };
 
   // 디버깅: 현재 화면 확인
@@ -2232,14 +2543,6 @@ export default function MalloApp() {
   // Record 화면 내부 상태 관리 (recording, processing, result)
   const [recordState, setRecordState] = useState('idle'); // 'idle', 'recording', 'processing', 'result'
   const [isProcessing, setIsProcessing] = useState(false);
-
-  // stopRecording에서 processing 상태 표시
-  const stopRecordingWithState = async () => {
-    setIsProcessing(true);
-    setRecordState('processing');
-    await stopRecording();
-    setIsProcessing(false);
-  };
 
   // Record 화면 상태 업데이트
   useEffect(() => {
@@ -2280,6 +2583,8 @@ export default function MalloApp() {
       }
     } else if (currentScreen === 'CustomerDetail') {
       content = renderCustomerDetail();
+    } else if (currentScreen === 'Edit') {
+      content = renderEdit();
     } else if (currentScreen === 'History') {
       content = renderHistory();
     } else {
