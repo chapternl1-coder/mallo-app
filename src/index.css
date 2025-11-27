@@ -140,6 +140,10 @@ body {
   padding: 16px 18px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
   margin-bottom: 16px;
+  min-height: 64px;          /* 카드 최소 높이 통일 */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .record-card-main {
@@ -259,4 +263,51 @@ body {
 
 .record-card-chevron:hover {
   background-color: #F5F1EB;
+}
+
+/* 예약 시간 표시 스타일 */
+.record-card-reserve-time {
+  font-size: 12px;
+  color: #B0B0B0;
+  margin-bottom: 4px;
+}
+
+/* 방문 히스토리 카드 요약 영역 스타일 */
+.visit-summary-card {
+  min-height: 64px;          /* 카드 최소 높이 통일 */
+  padding: 10px 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.visit-summary-meta {
+  font-size: 12px;
+  color: #A0A0A0;            /* 회색 글자 */
+  margin-bottom: 2px;
+  margin-top: 0;
+}
+
+.visit-summary-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #232323;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;     /* 두 줄까지만 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+/* 방문 상세 카드 하단 기록 일시 스타일 */
+.visit-detail-footer {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  font-size: 11px;
+  color: #b0b0b0;
+  text-align: right;
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, Square, Copy, Share2, Scissors, ArrowLeft, MoreHorizontal, Mail, Lock, ChevronDown, ChevronUp, ChevronRight, Phone, Calendar, Edit, Search } from 'lucide-react';
+import { formatRecordDateTime, formatVisitReservation, formatVisitReservationFull, formatVisitReservationTime } from './utils/date';
 
 /**
  * MALLO Service Prototype v2.1 (Fix: Tailwind ReferenceError)
@@ -1116,10 +1117,75 @@ export default function MalloApp() {
   const [todayRecords, setTodayRecords] = useState([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [expandedVisitId, setExpandedVisitId] = useState(null);
+  const [editingVisit, setEditingVisit] = useState(null); // 편집 중인 visit 기록
+  const [editingCustomer, setEditingCustomer] = useState(null); // 편집 중인 customer 정보
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [recordingDate, setRecordingDate] = useState(null);
   const [searchQuery, setSearchQuery] = useState(''); // 고객 검색어
+
+  // 요약 텍스트에서 방문·예약 날짜를 파싱하는 helper 함수
+  const extractServiceDateFromSummary = (resultData) => {
+    if (!resultData || !resultData.sections) {
+      console.log('[extractServiceDateFromSummary] resultData 또는 sections 없음');
+      return undefined;
+    }
+
+    // "방문·예약 정보" 섹션 찾기
+    const visitSection = resultData.sections.find(
+      section => section.title && section.title.includes('방문·예약 정보')
+    );
+
+    if (!visitSection) {
+      console.log('[extractServiceDateFromSummary] 방문·예약 정보 섹션 없음');
+      return undefined;
+    }
+
+    if (!visitSection.content || !Array.isArray(visitSection.content)) {
+      console.log('[extractServiceDateFromSummary] content가 배열이 아님');
+      return undefined;
+    }
+
+    console.log('[extractServiceDateFromSummary] 방문·예약 정보 섹션 찾음:', visitSection);
+
+    // 섹션의 content 배열에서 날짜 패턴 찾기
+    // 여러 날짜가 있을 수 있으므로, 가장 최근 날짜(가장 나중 날짜)를 사용
+    let foundDates = [];
+    
+    for (const line of visitSection.content) {
+      if (!line || typeof line !== 'string') continue;
+
+      console.log('[extractServiceDateFromSummary] 검사 중인 줄:', line);
+
+      // "2025년 12월 27일" 패턴 찾기 (앞에 "- " 또는 다른 문자가 있어도 매칭)
+      // 예: "- 2025년 12월 27일 (금) 17:30 예약 후 제시간 방문"
+      const match = line.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+      if (match) {
+        const [, year, month, day] = match;
+        const mm = String(month).padStart(2, '0');
+        const dd = String(day).padStart(2, '0');
+        
+        const serviceDate = `${year}-${mm}-${dd}`;
+        const dateObj = new Date(`${year}-${mm}-${dd}`);
+        foundDates.push({ date: serviceDate, dateObj: dateObj, line: line });
+        console.log('[extractServiceDateFromSummary] 날짜 발견:', serviceDate, '줄:', line);
+      }
+    }
+
+    // 날짜가 여러 개 있으면, 가장 최근 날짜(가장 나중 날짜)를 사용
+    if (foundDates.length > 0) {
+      // 날짜 객체 기준으로 정렬 (최신 날짜가 마지막)
+      foundDates.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+      
+      // 가장 최근 날짜 선택
+      const latestDate = foundDates[foundDates.length - 1];
+      console.log('[extractServiceDateFromSummary] 가장 최근 날짜 선택:', latestDate.date, '전체 발견된 날짜:', foundDates.map(d => d.date));
+      return latestDate.date;
+    }
+
+    console.log('[extractServiceDateFromSummary] 날짜 패턴을 찾지 못함');
+    return undefined;
+  };
   const [selectedCustomerForRecord, setSelectedCustomerForRecord] = useState(null); // Record 화면에서 선택된 고객
   const [tempName, setTempName] = useState(''); // 신규 고객 이름 (AI 자동 추출 또는 수동 입력)
   const [tempPhone, setTempPhone] = useState(''); // 신규 고객 전화번호 (AI 자동 추출 또는 수동 입력)
@@ -1169,6 +1235,23 @@ export default function MalloApp() {
   useEffect(() => {
     saveToLocalStorage('mallo_visits', visits);
   }, [visits]);
+
+  // resultData 변경 시 customerInfo 동기화 (AI 추출 정보를 tempName, tempPhone에 반영)
+  useEffect(() => {
+    if (resultData && resultData.customerInfo && !selectedCustomerForRecord) {
+      // 신규 고객일 때만 AI 추출 정보를 반영
+      const extractedName = resultData.customerInfo.name;
+      const extractedPhone = resultData.customerInfo.phone;
+      
+      // null이 아니고 빈 문자열이 아니며, 현재 값이 비어있을 때만 설정
+      if (extractedName && extractedName !== 'null' && extractedName.trim() !== '' && !tempName) {
+        setTempName(extractedName.trim());
+      }
+      if (extractedPhone && extractedPhone !== 'null' && extractedPhone.trim() !== '' && !tempPhone) {
+        setTempPhone(extractedPhone.trim());
+      }
+    }
+  }, [resultData, selectedCustomerForRecord]);
 
   // 에러 바운더리: 개발 중 오류 확인
   useEffect(() => {
@@ -1373,13 +1456,17 @@ export default function MalloApp() {
       if (parsedResult.title && parsedResult.sections && Array.isArray(parsedResult.sections)) {
         setResultData(parsedResult);
         
-        // AI가 추출한 고객 정보가 있으면 자동으로 채우기
+        // AI가 추출한 고객 정보가 있으면 자동으로 채우기 (null 값 방어)
         if (parsedResult.customerInfo) {
-          if (parsedResult.customerInfo.name) {
-            setTempName(parsedResult.customerInfo.name);
+          const extractedName = parsedResult.customerInfo.name;
+          const extractedPhone = parsedResult.customerInfo.phone;
+          
+          // null이 아니고 빈 문자열이 아닐 때만 설정
+          if (extractedName && extractedName !== 'null' && extractedName.trim() !== '') {
+            setTempName(extractedName.trim());
           }
-          if (parsedResult.customerInfo.phone) {
-            setTempPhone(parsedResult.customerInfo.phone);
+          if (extractedPhone && extractedPhone !== 'null' && extractedPhone.trim() !== '') {
+            setTempPhone(extractedPhone.trim());
           }
         }
         
@@ -1853,9 +1940,9 @@ export default function MalloApp() {
                 <input
                   ref={nameInputRef}
                   type="text"
-                  value={tempName}
+                  value={tempName || ''}
                   onChange={(e) => setTempName(e.target.value)}
-                  placeholder="이름 입력"
+                  placeholder={!tempName ? "이름 입력" : ""}
                   className={`w-full px-4 py-3 rounded-2xl border focus:ring-1 outline-none transition-all ${
                     !tempName ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#C9A27A] focus:ring-[#C9A27A]'
                   }`}
@@ -1872,9 +1959,9 @@ export default function MalloApp() {
                 <input
                   ref={phoneInputRef}
                   type="tel"
-                  value={tempPhone}
+                  value={tempPhone || ''}
                   onChange={handlePhoneChange}
-                  placeholder="010-1234-5678"
+                  placeholder={!tempPhone ? "010-1234-5678" : ""}
                   className={`w-full px-4 py-3 rounded-2xl border focus:ring-1 outline-none transition-all ${
                     !tempPhone ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#C9A27A] focus:ring-[#C9A27A]'
                   }`}
@@ -1983,21 +2070,39 @@ export default function MalloApp() {
                   // 기존 고객 선택 시 - 기록 저장
                   const customerId = selectedCustomerForRecord.id;
                   const today = new Date();
+                  // 녹음 기록을 년도, 달, 시간, 분으로 저장
                   const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                  const timeStr = today.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+                  const timeStr = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
+                  const recordedAt = today.toISOString(); // 녹음한 시각을 ISO 문자열로 저장 (년도, 달, 시간, 분, 초 포함)
+                  
+                  // serviceDate 추출 시도 (AI 결과에서 시술 날짜 파싱)
+                  const parsedServiceDate = extractServiceDateFromSummary(resultData);
+                  const serviceDate = parsedServiceDate || dateStr; // 파싱된 날짜가 있으면 사용, 없으면 녹음한 날짜
+                  
+                  console.log('[기존 고객 저장] 파싱된 serviceDate:', parsedServiceDate);
+                  console.log('[기존 고객 저장] 최종 serviceDate:', serviceDate);
+                  console.log('[기존 고객 저장] 녹음한 날짜 (date):', dateStr);
+                  console.log('[기존 고객 저장] 녹음한 시간 (time):', timeStr);
+                  console.log('[기존 고객 저장] 녹음한 시각 (recordedAt):', recordedAt);
                   
                   // 새로운 방문 기록 생성
                   const newVisitId = Date.now();
                   const newVisit = {
                     id: newVisitId,
-                    date: dateStr,
-                    time: timeStr,
+                    date: dateStr, // 녹음한 날짜 (YYYY-MM-DD)
+                    time: timeStr, // 녹음한 시간 (HH:mm)
+                    recordedAt: recordedAt, // 녹음한 시각 (ISO 문자열: 년도, 달, 시간, 분, 초 포함)
+                    serviceDate: serviceDate, // 시술/매출 날짜 (AI 파싱 또는 녹음한 날짜)
                     title: resultData.title,
                     summary: resultData.sections[0]?.content[0] || resultData.title,
                     detail: {
                       sections: resultData.sections
                     }
                   };
+                  
+                  console.log('[기존 고객 저장] 저장되는 newVisit 객체:', JSON.stringify(newVisit, null, 2));
+                  console.log('[기존 고객 저장] newVisit.date:', newVisit.date);
+                  console.log('[기존 고객 저장] newVisit.time:', newVisit.time);
                   
                   // visits 상태 업데이트
                   setVisits(prev => ({
@@ -2054,8 +2159,20 @@ export default function MalloApp() {
                   
                   // 신규 고객 생성 및 기록 저장
                   const today = new Date();
+                  // 녹음 기록을 년도, 달, 시간, 분으로 저장
                   const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                  const timeStr = today.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+                  const timeStr = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
+                  const recordedAt = today.toISOString(); // 녹음한 시각을 ISO 문자열로 저장 (년도, 달, 시간, 분, 초 포함)
+                  
+                  // serviceDate 추출 시도 (AI 결과에서 시술 날짜 파싱)
+                  const parsedServiceDate = extractServiceDateFromSummary(resultData);
+                  const serviceDate = parsedServiceDate || dateStr; // 파싱된 날짜가 있으면 사용, 없으면 녹음한 날짜
+                  
+                  console.log('[신규 고객 저장] 파싱된 serviceDate:', parsedServiceDate);
+                  console.log('[신규 고객 저장] 최종 serviceDate:', serviceDate);
+                  console.log('[신규 고객 저장] 녹음한 날짜 (date):', dateStr);
+                  console.log('[신규 고객 저장] 녹음한 시간 (time):', timeStr);
+                  console.log('[신규 고객 저장] 녹음한 시각 (recordedAt):', recordedAt);
                   
                   // 새로운 고객 ID 생성 (기존 최대 ID + 1)
                   const newCustomerId = Math.max(...customers.map(c => c.id), 0) + 1;
@@ -2075,14 +2192,20 @@ export default function MalloApp() {
                   const newVisitId = Date.now();
                   const newVisit = {
                     id: newVisitId,
-                    date: dateStr,
-                    time: timeStr,
+                    date: dateStr, // 녹음한 날짜 (YYYY-MM-DD)
+                    time: timeStr, // 녹음한 시간 (HH:mm)
+                    recordedAt: recordedAt, // 녹음한 시각 (ISO 문자열: 년도, 달, 시간, 분, 초 포함)
+                    serviceDate: serviceDate, // 시술/매출 날짜 (AI 파싱 또는 녹음한 날짜)
                     title: resultData.title,
                     summary: resultData.sections[0]?.content[0] || resultData.title,
                     detail: {
                       sections: resultData.sections
                     }
                   };
+                  
+                  console.log('[신규 고객 저장] 저장되는 newVisit 객체:', JSON.stringify(newVisit, null, 2));
+                  console.log('[신규 고객 저장] newVisit.date:', newVisit.date);
+                  console.log('[신규 고객 저장] newVisit.time:', newVisit.time);
                   
                   // customers와 visits 상태 업데이트
                   setCustomers(prev => [...prev, newCustomer]);
@@ -2113,6 +2236,30 @@ export default function MalloApp() {
         </div>
       </div>
     );
+  };
+
+  // record + customer를 합쳐서 사용하는 helper 함수
+  const normalizeRecordWithCustomer = (record, customer) => {
+    const filled = { ...record };
+
+    const isEmpty = (v) =>
+      v === null ||
+      v === undefined ||
+      v === '' ||
+      v === 'null' ||
+      v === '미기재' ||
+      (typeof v === 'string' && v.toLowerCase() === 'null');
+
+    if (customer) {
+      if (isEmpty(filled.customerName)) {
+        filled.customerName = customer.name || filled.customerName;
+      }
+      if (isEmpty(filled.customerPhone)) {
+        filled.customerPhone = customer.phone || filled.customerPhone;
+      }
+    }
+
+    return filled;
   };
 
   const renderCustomerDetail = () => {
@@ -2208,47 +2355,171 @@ export default function MalloApp() {
                 <p className="font-light text-base" style={{ color: '#232323', opacity: 0.6 }}>방문 기록이 없습니다</p>
               </div>
             ) : (
-              customerVisits.map((visit) => (
-                <div key={visit.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                  <button
-                    onClick={() => setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id)}
-                    className="w-full p-5 flex items-center justify-between hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex-1 text-left">
-                      <div className="flex items-center gap-4 mb-3">
-                        <span className="text-sm font-light" style={{ color: '#232323', opacity: 0.6 }}>{visit.date}</span>
-                        <span className="text-sm font-light" style={{ color: '#232323', opacity: 0.6 }}>{visit.time}</span>
+              customerVisits.map((visit) => {
+                // record + customer를 합쳐서 사용 (customerName, customerPhone 보정)
+                const normalizedVisit = normalizeRecordWithCustomer(visit, customer);
+                const safeName = normalizedVisit.customerName || '미기재';
+                const safePhone = normalizedVisit.customerPhone || '미기재';
+
+                // 시간 포맷팅 (HH:mm -> 오전/오후 HH:mm)
+                const formatTimeDisplay = (timeStr) => {
+                  if (!timeStr) return '';
+                  // HH:mm:ss 또는 HH:mm 형식 모두 처리
+                  const parts = timeStr.split(':');
+                  const hour = parts[0];
+                  const minute = parts[1] || '00';
+                  const second = parts[2] || '00'; // 초 포함
+                  const hourNum = parseInt(hour);
+                  const period = hourNum >= 12 ? '오후' : '오전';
+                  const displayHour = hourNum > 12 ? hourNum - 12 : (hourNum === 0 ? 12 : hourNum);
+                  // HH:mm:ss 형식이면 초도 표시, 아니면 HH:mm만 표시
+                  if (parts.length >= 3 && second !== '00') {
+                    return `${period} ${displayHour}:${minute.padStart(2, '0')}:${second.padStart(2, '0')}`;
+                  }
+                  return `${period} ${displayHour}:${minute.padStart(2, '0')}`;
+                };
+
+                // VisitSummaryCard 컴포넌트
+                const VisitSummaryCard = ({ record, onClick }) => {
+                  // 방문 예약 시간 (실제 필드명에 맞게 수정)
+                  const reservedAt =
+                    record?.serviceDate ||
+                    record?.reservedAt ||
+                    record?.reservationDateTime;
+
+                  const reservationText = reservedAt
+                    ? formatVisitReservationTime(reservedAt)
+                    : '';
+
+                  // 시술/관리 핵심 요약 (제목 느낌)
+                  const title =
+                    record?.title ||
+                    record?.subject ||
+                    record?.summary ||
+                    '';
+
+                  return (
+                    <div className="visit-summary-card" onClick={onClick}>
+                      {/* 1줄: 방문 예약 정보 (회색) */}
+                      {reservationText && (
+                        <p className="visit-summary-meta">
+                          {reservationText}
+                        </p>
+                      )}
+
+                      {/* 2줄: 시술/관리 요약 */}
+                      {title && (
+                        <p className="visit-summary-title">
+                          {title}
+                        </p>
+                      )}
+                    </div>
+                  );
+                };
+
+                return (
+                  <div key={visit.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative">
+                    {/* 편집 버튼 (우측 상단) */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // 편집 화면으로 이동 (visit과 customer 함께 전달)
+                        // "고객 기본 정보" 섹션의 첫 번째 줄을 보정된 값으로 업데이트
+                        const sections = normalizedVisit.detail?.sections || [];
+                        const basicInfoSectionIndex = sections.findIndex(
+                          section => section.title && section.title.includes('고객 기본 정보')
+                        );
+                        
+                        if (basicInfoSectionIndex !== -1 && sections[basicInfoSectionIndex].content.length > 0) {
+                          const firstLine = `이름: ${safeName} / 전화번호: ${safePhone}`;
+                          sections[basicInfoSectionIndex] = {
+                            ...sections[basicInfoSectionIndex],
+                            content: [
+                              firstLine,
+                              ...sections[basicInfoSectionIndex].content.slice(1)
+                            ]
+                          };
+                        }
+                        
+                        const editData = {
+                          title: normalizedVisit.title,
+                          sections: sections
+                        };
+                        setTempResultData(editData);
+                        setEditingVisit(normalizedVisit);
+                        setEditingCustomer(customer);
+                        setCurrentScreen('Edit');
+                      }}
+                      className="absolute top-4 right-4 z-10 p-2 rounded-full hover:bg-gray-100 transition-colors"
+                      style={{ color: '#C9A27A' }}
+                      title="편집"
+                    >
+                      <Edit size={18} />
+                    </button>
+
+                    {/* VisitSummaryCard */}
+                    <button
+                      onClick={() => setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id)}
+                      className="w-full flex items-center justify-between hover:bg-gray-50 transition-colors"
+                      style={{ paddingRight: '48px' }}
+                    >
+                      <div className="flex-1">
+                        <VisitSummaryCard record={visit} />
                       </div>
-                      <h4 className="font-bold text-base mb-2" style={{ color: '#232323' }}>{visit.title}</h4>
-                      <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.7 }}>{visit.summary}</p>
-                    </div>
-                    {expandedVisitId === visit.id ? (
-                      <ChevronUp size={20} style={{ color: '#C9A27A' }} />
-                    ) : (
-                      <ChevronDown size={20} style={{ color: '#C9A27A' }} />
+                      <div style={{ marginLeft: '12px', flexShrink: 0 }}>
+                        {expandedVisitId === visit.id ? (
+                          <ChevronUp size={20} style={{ color: '#C9A27A' }} />
+                        ) : (
+                          <ChevronDown size={20} style={{ color: '#C9A27A' }} />
+                        )}
+                      </div>
+                    </button>
+                    
+                    {expandedVisitId === visit.id && normalizedVisit.detail && (
+                      <div className="px-5 pb-5 space-y-5 border-t border-gray-200 pt-5 bg-gray-50">
+                        {normalizedVisit.detail.sections.map((section, idx) => {
+                          // "고객 기본 정보" 섹션의 첫 번째 줄을 보정된 값으로 표시
+                          let displayContent = section.content;
+                          if (section.title && section.title.includes('고객 기본 정보') && section.content.length > 0) {
+                            const firstLine = section.content[0];
+                            if (firstLine && firstLine.includes('이름:')) {
+                              displayContent = [
+                                `이름: ${safeName} / 전화번호: ${safePhone}`,
+                                ...section.content.slice(1)
+                              ];
+                            }
+                          }
+                          
+                          return (
+                            <div key={idx}>
+                              <h5 className="text-base font-bold mb-3" style={{ color: '#232323' }}>
+                                {section.title}
+                              </h5>
+                              <ul className="space-y-2">
+                                {displayContent.map((item, i) => (
+                                  <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
+                                    {overrideCustomerInfoLine(item, customer)}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          );
+                        })}
+                        
+                        {/* 기록 일시 (카드 하단) */}
+                        {(() => {
+                          const recordedAt = visit.recordedAt || (visit.date && visit.time ? `${visit.date}T${visit.time}:00` : null);
+                          return recordedAt ? (
+                            <div className="visit-detail-footer">
+                              기록 일시: {formatRecordDateTime(recordedAt)}
+                            </div>
+                          ) : null;
+                        })()}
+                      </div>
                     )}
-                  </button>
-                  
-                  {expandedVisitId === visit.id && visit.detail && (
-                    <div className="px-5 pb-5 space-y-5 border-t border-gray-200 pt-5 bg-gray-50">
-                      {visit.detail.sections.map((section, idx) => (
-                        <div key={idx}>
-                          <h5 className="text-base font-bold mb-3" style={{ color: '#232323' }}>
-                            {section.title}
-                          </h5>
-                          <ul className="space-y-2">
-                            {section.content.map((item, i) => (
-                              <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
-                                {overrideCustomerInfoLine(item, customer)}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))
+                  </div>
+                );
+              })
             )}
           </div>
       </main>
@@ -2280,6 +2551,11 @@ export default function MalloApp() {
         </div>
       );
     }
+
+    // 편집 중인 visit과 customer 정보로 정규화
+    const normalizedVisit = editingVisit && editingCustomer 
+      ? normalizeRecordWithCustomer(editingVisit, editingCustomer)
+      : null;
 
     // 섹션 내용 업데이트 함수
     const updateSectionContent = (sectionIndex, contentIndex, newValue) => {
@@ -2329,10 +2605,45 @@ export default function MalloApp() {
       
       // resultData 업데이트
       setResultData(cleanedData);
+      
+      // 편집 중인 visit이 있으면 업데이트 (customerName, customerPhone 저장)
+      const currentNormalizedVisit = editingVisit && editingCustomer 
+        ? normalizeRecordWithCustomer(editingVisit, editingCustomer)
+        : null;
+      
+      if (editingVisit && editingCustomer && currentNormalizedVisit) {
+        const customerId = editingCustomer.id;
+        setVisits(prev => {
+          const updated = { ...prev };
+          if (updated[customerId]) {
+            updated[customerId] = updated[customerId].map(v => 
+              v.id === editingVisit.id 
+                ? { 
+                    ...v, 
+                    customerName: currentNormalizedVisit.customerName,
+                    customerPhone: currentNormalizedVisit.customerPhone,
+                    detail: {
+                      sections: cleanedData.sections
+                    }
+                  }
+                : v
+            );
+          }
+          return updated;
+        });
+      }
+      
       setTempResultData(null);
+      setEditingVisit(null);
+      setEditingCustomer(null);
       
       // 결과 화면으로 복귀 (Record 화면의 result 상태)
-      setCurrentScreen('Record');
+      // 편집 화면에서 온 경우 CustomerDetail로 돌아가기
+      if (editingVisit) {
+        setCurrentScreen('CustomerDetail');
+      } else {
+        setCurrentScreen('Record');
+      }
     };
 
     return (
@@ -2342,7 +2653,14 @@ export default function MalloApp() {
         <button 
             onClick={() => {
               setTempResultData(null);
-              setCurrentScreen('Record');
+              setEditingVisit(null);
+              setEditingCustomer(null);
+              // 편집 화면에서 온 경우 CustomerDetail로 돌아가기
+              if (editingVisit) {
+                setCurrentScreen('CustomerDetail');
+              } else {
+                setCurrentScreen('Record');
+              }
             }} 
             className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
             style={{ color: '#232323' }}
@@ -2375,21 +2693,21 @@ export default function MalloApp() {
 
           {/* 섹션 편집 */}
           {tempResultData.sections.map((section, sectionIndex) => (
-            <div key={sectionIndex} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
-                {section.title}
-              </h4>
-              <div className="space-y-3">
-                {section.content.map((item, contentIndex) => (
-                  <div key={contentIndex} className="flex gap-2">
-                    <textarea
-                      value={item}
-                      onChange={(e) => updateSectionContent(sectionIndex, contentIndex, e.target.value)}
-                      className="flex-1 px-4 py-3 rounded-2xl border-none resize-none focus:bg-gray-50 outline-none transition-colors"
-                      style={{ color: '#232323', minHeight: '60px' }}
-                      rows={Math.max(2, Math.ceil(item.length / 40))}
-                      placeholder="내용을 입력하세요..."
-                    />
+              <div key={sectionIndex} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
+                  {section.title}
+                </h4>
+                <div className="space-y-3">
+                  {section.content.map((item, contentIndex) => (
+                    <div key={contentIndex} className="flex gap-2">
+                      <textarea
+                        value={item}
+                        onChange={(e) => updateSectionContent(sectionIndex, contentIndex, e.target.value)}
+                        className="flex-1 px-4 py-3 rounded-2xl border-none resize-none focus:bg-gray-50 outline-none transition-colors"
+                        style={{ color: '#232323', minHeight: '60px' }}
+                        rows={Math.max(2, Math.ceil(item.length / 40))}
+                        placeholder="내용을 입력하세요..."
+                      />
                     {section.content.length > 1 && (
                       <button
                         onClick={() => removeSectionItem(sectionIndex, contentIndex)}
@@ -2473,8 +2791,19 @@ export default function MalloApp() {
       const customerVisits = visits[customerId];
       customerVisits.forEach(visit => {
         const customer = customers.find(c => c.id === parseInt(customerId));
+        
+        // serviceDate가 없으면 detail.sections에서 파싱 시도
+        let finalServiceDate = visit.serviceDate;
+        if (!finalServiceDate && visit.detail && visit.detail.sections) {
+          const visitData = {
+            sections: visit.detail.sections
+          };
+          finalServiceDate = extractServiceDateFromSummary(visitData);
+        }
+        
         allRecords.push({
           ...visit,
+          serviceDate: finalServiceDate || visit.serviceDate || visit.date, // 파싱된 날짜 또는 기존 serviceDate 또는 date
           customerName: customer?.name || '알 수 없음',
           customerId: parseInt(customerId),
           customer: customer // 고객 정보 전체를 포함
@@ -2485,23 +2814,45 @@ export default function MalloApp() {
     // 오늘 날짜 구하기
     const todayStr = getTodayDateString();
 
-    // 날짜 필터링
+    // 날짜 필터링 (serviceDate 우선, 없으면 detail.sections에서 파싱, 그래도 없으면 date 사용)
     const filteredRecords = selectedDate 
-      ? allRecords.filter(record => record.date === selectedDate)
+      ? allRecords.filter(record => {
+          let baseDate = record.serviceDate;
+          if (!baseDate && record.detail && record.detail.sections) {
+            const visitData = { sections: record.detail.sections };
+            baseDate = extractServiceDateFromSummary(visitData);
+          }
+          baseDate = baseDate || record.date;
+          return baseDate === selectedDate;
+        })
       : allRecords;
 
-    // 날짜와 시간순 정렬 (오늘 날짜가 항상 맨 위, 그 다음 최신순)
+    // 날짜와 시간순 정렬 (serviceDate 우선, 없으면 detail.sections에서 파싱, 그래도 없으면 date 사용)
     filteredRecords.sort((a, b) => {
-      const isAToday = a.date === todayStr;
-      const isBToday = b.date === todayStr;
+      let baseDateA = a.serviceDate;
+      if (!baseDateA && a.detail && a.detail.sections) {
+        const visitDataA = { sections: a.detail.sections };
+        baseDateA = extractServiceDateFromSummary(visitDataA);
+      }
+      baseDateA = baseDateA || a.date;
+      
+      let baseDateB = b.serviceDate;
+      if (!baseDateB && b.detail && b.detail.sections) {
+        const visitDataB = { sections: b.detail.sections };
+        baseDateB = extractServiceDateFromSummary(visitDataB);
+      }
+      baseDateB = baseDateB || b.date;
+      
+      const isAToday = baseDateA === todayStr;
+      const isBToday = baseDateB === todayStr;
       
       // 오늘 날짜가 항상 맨 위
       if (isAToday && !isBToday) return -1;
       if (!isAToday && isBToday) return 1;
       
       // 날짜 비교
-      const dateA = new Date(a.date);
-      const dateB = new Date(b.date);
+      const dateA = new Date(baseDateA);
+      const dateB = new Date(baseDateB);
       if (dateA.getTime() !== dateB.getTime()) {
         return dateB.getTime() - dateA.getTime(); // 최신 날짜가 먼저
       }
@@ -2564,7 +2915,7 @@ export default function MalloApp() {
                   오늘
                 </button>
               )}
-            </div>
+    </div>
           </div>
 
           {/* 전체 시술 기록 */}
@@ -2669,11 +3020,19 @@ export default function MalloApp() {
                 // 시간 포맷팅 (HH:mm -> 오전/오후 HH:mm)
                 const formatTimeDisplay = (timeStr) => {
                   if (!timeStr) return '';
-                  const [hour, minute] = timeStr.split(':');
+                  // HH:mm:ss 또는 HH:mm 형식 모두 처리
+                  const parts = timeStr.split(':');
+                  const hour = parts[0];
+                  const minute = parts[1] || '00';
+                  const second = parts[2] || '00'; // 초 포함
                   const hourNum = parseInt(hour);
                   const period = hourNum >= 12 ? '오후' : '오전';
                   const displayHour = hourNum > 12 ? hourNum - 12 : (hourNum === 0 ? 12 : hourNum);
-                  return `${period} ${displayHour}:${minute}`;
+                  // HH:mm:ss 형식이면 초도 표시, 아니면 HH:mm만 표시
+                  if (parts.length >= 3 && second !== '00') {
+                    return `${period} ${displayHour}:${minute.padStart(2, '0')}:${second.padStart(2, '0')}`;
+                  }
+                  return `${period} ${displayHour}:${minute.padStart(2, '0')}`;
                 };
 
                 // 날짜/시간 통합 포맷팅
@@ -2683,7 +3042,36 @@ export default function MalloApp() {
                   return `${date} · ${time}`;
                 };
 
-                const displayDateTime = formatDateTime(record.date, record.time);
+                // serviceDate 우선 사용, 없으면 date 사용 (날짜 표시용)
+                let baseDate = record.serviceDate;
+                if (!baseDate && record.detail && record.detail.sections) {
+                  const visitData = {
+                    sections: record.detail.sections
+                  };
+                  baseDate = extractServiceDateFromSummary(visitData);
+                }
+                baseDate = baseDate || record.date;
+                
+                // 날짜 포맷팅 (YYYY-MM-DD -> YYYY.MM.DD)
+                const displayDate = formatDateShort(baseDate);
+                
+                // 예약 시간을 가져오는 helper 함수
+                // 예약 시간 계산 (공통 util 사용)
+                const reservedAt = record.serviceDate || record.reservedAt || record.reservationDateTime;
+                const reservationText = reservedAt ? formatVisitReservationTime(reservedAt) : '';
+                
+                // 전체 기록 화면에서는 시간 부분만 잘라서 사용 (HH:MM 예약)
+                const reservationTimeLabel = reservationText 
+                  ? (() => {
+                      // "2025.11.28 09:00 방문 예약" -> "09:00 예약"
+                      const timeMatch = reservationText.match(/(\d{2}):(\d{2})/);
+                      if (timeMatch) {
+                        const [, hh, mm] = timeMatch;
+                        return `${hh}:${mm} 예약`;
+                      }
+                      return '';
+                    })()
+                  : '';
                 
                 // 고객 상세 페이지로 이동 핸들러
                 const handleCustomerClick = (record) => {
@@ -2706,12 +3094,12 @@ export default function MalloApp() {
                 return (
                 <div key={record.id} className="record-card">
                   <div className="record-card-main">
-                    {/* 상단 날짜/시간 */}
-                    <div className="record-card-date-row">
-                      <span className="record-card-date">
-                        {displayDateTime}
-                      </span>
-                    </div>
+                    {/* 예약 시간 (있을 때만 표시) */}
+                    {reservationTimeLabel && (
+                      <div className="record-card-reserve-time">
+                        {reservationTimeLabel}
+                      </div>
+                    )}
 
                     <div className="record-card-content">
                       {/* 왼쪽: 고객 정보 */}
