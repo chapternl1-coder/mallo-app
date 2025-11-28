@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Copy, Share2, Scissors, ArrowLeft, MoreHorizontal, Mail, Lock, ChevronDown, ChevronUp, ChevronRight, Phone, Calendar, Edit, Search, Minus, Home, User, Settings } from 'lucide-react';
+import { Mic, Square, Copy, Share2, Scissors, ArrowLeft, MoreHorizontal, Mail, Lock, ChevronDown, ChevronUp, ChevronRight, Phone, Calendar, Edit, Search, Minus, Home, User, Settings, History } from 'lucide-react';
 import { formatRecordDateTime, formatVisitReservation, formatVisitReservationFull, formatVisitReservationTime, formatServiceDateTimeLabel } from './utils/date';
 
 /**
@@ -3756,7 +3756,7 @@ export default function MalloApp() {
   const BottomNavigation = () => {
     const tabs = [
       { id: 'Home', label: '홈', icon: Home },
-      { id: 'History', label: '기록', icon: Calendar },
+      { id: 'History', label: '기록', icon: History },
       { id: 'Settings', label: '설정', icon: User },
     ];
 
