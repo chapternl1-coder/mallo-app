@@ -2052,7 +2052,7 @@ export default function MalloApp() {
             style={{ backgroundColor: '#C9A27A' }}
           >
             <Scissors size={20} className="text-white" />
-        </button>
+          </button>
       </header>
 
         <main className="flex-1 overflow-y-auto flex flex-col items-center justify-start p-8 space-y-12 pb-20 relative">
@@ -3527,6 +3527,154 @@ export default function MalloApp() {
     }
   }, [currentScreen]);
 
+  // 알림 설정 상태
+  const [notificationEnabled, setNotificationEnabled] = useState(true);
+
+  const renderProfile = () => {
+
+    return (
+      <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
+        {/* 헤더 */}
+        <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
+          <button 
+            onClick={() => setCurrentScreen('Home')} 
+            className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
+            style={{ color: '#232323' }}
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <h2 className="font-bold text-base" style={{ color: '#232323' }}>프로필</h2>
+          <div className="w-10"></div> {/* 오른쪽 공간 맞추기 */}
+        </header>
+
+        {/* 내용 영역 */}
+        <main className="flex-1 overflow-y-auto p-8 space-y-4 pb-32">
+          {/* 프로필 카드 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 relative">
+            <button
+              onClick={() => {
+                // TODO: 프로필 편집 기능 구현
+                alert('준비 중입니다.');
+              }}
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-xl transition-colors"
+              style={{ color: '#C9A27A' }}
+            >
+              <Edit size={20} />
+            </button>
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#C9A27A] to-[#B8946A] flex items-center justify-center text-2xl shadow-sm">
+                👩‍⚕️
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-lg mb-1" style={{ color: '#232323' }}>
+                  김말로 원장님
+                </h3>
+                <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.7 }}>
+                  mallo@beauty.com
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 메뉴 리스트 */}
+          <div className="space-y-2">
+            {/* 내 샵 정보 */}
+            <button
+              onClick={() => {
+                // TODO: 샵 정보 화면 구현
+                alert('준비 중입니다.');
+              }}
+              className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#F2F0E6] flex items-center justify-center">
+                  <span className="text-xl">🏠</span>
+                </div>
+                <span className="text-sm font-medium" style={{ color: '#232323' }}>내 샵 정보</span>
+              </div>
+              <ChevronRight size={18} style={{ color: '#A7A196' }} />
+            </button>
+
+            {/* 알림 설정 */}
+            <div className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#F2F0E6] flex items-center justify-center">
+                  <span className="text-xl">🔔</span>
+                </div>
+                <span className="text-sm font-medium" style={{ color: '#232323' }}>알림 설정</span>
+              </div>
+              <button
+                onClick={() => setNotificationEnabled(!notificationEnabled)}
+                className={`relative w-12 h-6 rounded-full transition-colors ${
+                  notificationEnabled ? 'bg-[#C9A27A]' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                    notificationEnabled ? 'translate-x-6' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* 테마 설정 */}
+            <button
+              onClick={() => {
+                // TODO: 테마 설정 화면 구현
+                alert('준비 중입니다.');
+              }}
+              className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#F2F0E6] flex items-center justify-center">
+                  <span className="text-xl">🎨</span>
+                </div>
+                <div className="flex-1 text-left">
+                  <span className="text-sm font-medium" style={{ color: '#232323' }}>테마 설정</span>
+                  <p className="text-xs mt-0.5" style={{ color: '#8B8574' }}>현재: 웜톤</p>
+                </div>
+              </div>
+              <ChevronRight size={18} style={{ color: '#A7A196' }} />
+            </button>
+
+            {/* 도움말 / 문의하기 */}
+            <button
+              onClick={() => {
+                alert('준비 중입니다.');
+              }}
+              className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#F2F0E6] flex items-center justify-center">
+                  <span className="text-xl">❓</span>
+                </div>
+                <span className="text-sm font-medium" style={{ color: '#232323' }}>도움말 / 문의하기</span>
+              </div>
+              <ChevronRight size={18} style={{ color: '#A7A196' }} />
+            </button>
+
+            {/* 로그아웃 */}
+            <button
+              onClick={() => {
+                // TODO: 로그아웃 기능 구현
+                alert('준비 중입니다.');
+              }}
+              className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors mt-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#FEF2F0] flex items-center justify-center">
+                  <span className="text-xl">🚪</span>
+                </div>
+                <span className="text-sm font-medium" style={{ color: '#D25B4B' }}>로그아웃</span>
+              </div>
+              <ChevronRight size={18} style={{ color: '#A7A196' }} />
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  };
+
   const renderHistory = () => {
     // "미기재"와 "null"을 실제 고객 정보로 치환하는 helper 함수
     const overrideCustomerInfoLine = (line, customerInfo) => {
@@ -4032,6 +4180,8 @@ export default function MalloApp() {
       setActiveTab('Home');
     } else if (currentScreen === 'History') {
       setActiveTab('History');
+    } else if (currentScreen === 'Profile') {
+      setActiveTab('Settings');
     }
   }, [currentScreen]);
 
@@ -4062,6 +4212,8 @@ export default function MalloApp() {
       content = renderEditCustomer();
     } else if (currentScreen === 'History') {
       content = renderHistory();
+    } else if (currentScreen === 'Profile') {
+      content = renderProfile();
     } else {
       content = <div className="p-8 text-center text-red-600">알 수 없는 화면: {String(currentScreen)}</div>;
     }
@@ -4091,8 +4243,7 @@ export default function MalloApp() {
       } else if (tabId === 'History') {
         setCurrentScreen('History');
       } else if (tabId === 'Settings') {
-        // TODO: 설정 화면 구현
-        setCurrentScreen('Home'); // 임시로 홈으로 이동
+        setCurrentScreen('Profile');
       }
     };
 
