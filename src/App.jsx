@@ -861,7 +861,7 @@ const MOCK_CUSTOMERS = [
     visitCount: 4,
     lastVisit: '2025-01-09',
     avatar: '👩‍🦱',
-    tags: ['#신규', '#왁싱']
+    tags: ['#왁싱']
   },
   {
     id: 9,
@@ -880,7 +880,7 @@ const MOCK_CUSTOMERS = [
     visitCount: 8,
     lastVisit: '2025-01-13',
     avatar: '👩‍🦰',
-    tags: ['#신규', '#염색']
+    tags: ['#염색']
   },
   {
     id: 11,
@@ -918,7 +918,7 @@ const MOCK_CUSTOMERS = [
     visitCount: 1,
     lastVisit: '2024-12-15',
     avatar: '👱‍♀️',
-    tags: ['#신규', '#왁싱']
+    tags: ['#왁싱']
   },
   {
     id: 15,
@@ -977,7 +977,7 @@ const MOCK_CUSTOMERS = [
     visitCount: 3,
     lastVisit: '2024-08-22',
     avatar: '👱‍♀️',
-    tags: ['#신규', '#왁싱']
+    tags: ['#왁싱']
   }
 ];
 
@@ -1126,6 +1126,7 @@ export default function MalloApp() {
   const [editCustomerName, setEditCustomerName] = useState(''); // 고객 정보 편집용
   const [editCustomerPhone, setEditCustomerPhone] = useState(''); // 고객 정보 편집용
   const [editCustomerTags, setEditCustomerTags] = useState([]); // 고객 정보 편집용
+  const [editCustomerMemo, setEditCustomerMemo] = useState(''); // 고객 메모 편집용
   const [newTag, setNewTag] = useState(''); // 새 태그 입력용
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -1272,9 +1273,14 @@ export default function MalloApp() {
 
   // MOCK_CUSTOMERS와 MOCK_VISITS를 상태로 관리 (실제 저장 기능을 위해)
   // 초기값은 localStorage에서 불러오거나, 없으면 MOCK 데이터 사용
-  const [customers, setCustomers] = useState(() => 
-    loadFromLocalStorage('mallo_customers', MOCK_CUSTOMERS)
-  );
+  const [customers, setCustomers] = useState(() => {
+    const loadedCustomers = loadFromLocalStorage('mallo_customers', MOCK_CUSTOMERS);
+    // "#신규" 태그 제거
+    return loadedCustomers.map(customer => ({
+      ...customer,
+      tags: (customer.tags || []).filter(tag => tag !== '#신규')
+    }));
+  });
   const [visits, setVisits] = useState(() => 
     loadFromLocalStorage('mallo_visits', MOCK_VISITS)
   );
@@ -1320,6 +1326,26 @@ export default function MalloApp() {
       setSearchQuery('');
     }
   }, [currentScreen]);
+
+  // customers에서 "#신규" 태그 제거
+  useEffect(() => {
+    setCustomers(prev => {
+      const updated = prev.map(customer => ({
+        ...customer,
+        tags: (customer.tags || []).filter(tag => tag !== '#신규')
+      }));
+      // 변경사항이 있으면 localStorage에도 저장
+      const hasChanges = prev.some((c, idx) => {
+        const oldTags = c.tags || [];
+        const newTags = updated[idx].tags || [];
+        return oldTags.length !== newTags.length || oldTags.some(tag => !newTags.includes(tag));
+      });
+      if (hasChanges) {
+        saveToLocalStorage('mallo_customers', updated);
+      }
+      return updated;
+    });
+  }, []); // 컴포넌트 마운트 시 한 번만 실행
 
   const timerRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -2268,7 +2294,7 @@ export default function MalloApp() {
                     visitCount: 1,
                     lastVisit: dateStr,
                     avatar: '👤',
-                    tags: ['#신규']
+                    tags: []
                   };
                   
                   // title에서 고객 이름과 '신규 고객' 텍스트 제거
@@ -2424,6 +2450,7 @@ export default function MalloApp() {
                 setEditCustomerName(customer.name || '');
                 setEditCustomerPhone(customer.phone || '');
                 setEditCustomerTags([...(customer.tags || [])]);
+                setEditCustomerMemo(customer.memo || '');
                 setNewTag('');
                 setCurrentScreen('EditCustomer');
               }}
@@ -2455,8 +2482,15 @@ export default function MalloApp() {
                         {tag}
                       </span>
                     ))}
-            </div>
-        )}
+                  </div>
+                )}
+                {/* 메모 */}
+                {customer.memo && customer.memo.trim() && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-sm font-medium mb-2" style={{ color: '#232323', opacity: 0.7 }}>메모</p>
+                    <p className="text-sm font-light leading-relaxed" style={{ color: '#232323' }}>{customer.memo}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -2970,14 +3004,15 @@ export default function MalloApp() {
               ...c,
               name: editCustomerName.trim(),
               phone: editCustomerPhone.trim() || null,
-              tags: editCustomerTags.filter(tag => tag.trim() !== '')
+              tags: editCustomerTags.filter(tag => tag.trim() !== ''),
+              memo: editCustomerMemo.trim() || null
             };
           }
           return c;
         });
         
         // localStorage에 저장
-        localStorage.setItem('customers', JSON.stringify(updated));
+        saveToLocalStorage('mallo_customers', updated);
         return updated;
       });
 
@@ -2999,6 +3034,7 @@ export default function MalloApp() {
       setEditCustomerName('');
       setEditCustomerPhone('');
       setEditCustomerTags([]);
+      setEditCustomerMemo('');
       setNewTag('');
       setCurrentScreen('CustomerDetail');
     };
@@ -3007,6 +3043,7 @@ export default function MalloApp() {
       setEditCustomerName('');
       setEditCustomerPhone('');
       setEditCustomerTags([]);
+      setEditCustomerMemo('');
       setNewTag('');
       setCurrentScreen('CustomerDetail');
     };
@@ -3047,26 +3084,26 @@ export default function MalloApp() {
         <main className="flex-1 overflow-y-auto p-8 space-y-5">
           {/* 이름 */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-            <label className="block text-sm font-bold mb-3" style={{ color: '#232323' }}>이름 *</label>
+            <label className="block text-sm font-bold mb-2" style={{ color: '#232323' }}>이름 *</label>
             <input
               type="text"
               value={editCustomerName}
               onChange={(e) => setEditCustomerName(e.target.value)}
-              className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
-              style={{ color: '#232323' }}
+              className="w-full px-3 py-1.5 rounded-2xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
+              style={{ color: '#232323', height: '36px' }}
               placeholder="고객 이름을 입력하세요"
             />
           </div>
 
           {/* 전화번호 */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-            <label className="block text-sm font-bold mb-3" style={{ color: '#232323' }}>전화번호</label>
+            <label className="block text-sm font-bold mb-2" style={{ color: '#232323' }}>전화번호</label>
             <input
               type="tel"
               value={editCustomerPhone}
               onChange={(e) => setEditCustomerPhone(e.target.value)}
-              className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
-              style={{ color: '#232323' }}
+              className="w-full px-3 py-1.5 rounded-2xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
+              style={{ color: '#232323', height: '36px' }}
               placeholder="010-0000-0000"
             />
           </div>
@@ -3074,7 +3111,7 @@ export default function MalloApp() {
           {/* 태그 */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
             <label className="block text-sm font-bold mb-3" style={{ color: '#232323' }}>태그</label>
-            <div className="flex gap-2 mb-3">
+            <div className="flex flex-col gap-2 mb-3">
               <input
                 type="text"
                 value={newTag}
@@ -3085,13 +3122,13 @@ export default function MalloApp() {
                     addTag();
                   }
                 }}
-                className="flex-1 px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
-                style={{ color: '#232323' }}
+                className="w-full px-4 py-2 rounded-2xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
+                style={{ color: '#232323', height: '40px' }}
                 placeholder="태그를 입력하고 Enter"
               />
               <button
                 onClick={addTag}
-                className="px-4 py-3 rounded-2xl font-medium text-white transition-all"
+                className="w-full px-4 py-2 rounded-2xl font-medium text-white transition-all h-10 flex items-center justify-center"
                 style={{ backgroundColor: '#C9A27A' }}
               >
                 추가
@@ -3117,6 +3154,19 @@ export default function MalloApp() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* 메모 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <label className="block text-sm font-bold mb-3" style={{ color: '#232323' }}>메모</label>
+            <textarea
+              value={editCustomerMemo}
+              onChange={(e) => setEditCustomerMemo(e.target.value)}
+              className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors resize-none"
+              style={{ color: '#232323', minHeight: '100px' }}
+              placeholder="고객에 대한 중요한 메모를 입력하세요"
+              rows={4}
+            />
           </div>
         </main>
       </div>
