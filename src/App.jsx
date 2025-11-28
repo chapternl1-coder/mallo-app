@@ -1043,7 +1043,7 @@ const MOCK_VISITS = {
       id: 5,
       date: '2025-01-12',
       time: '13:00',
-      title: '젤네일 신규',
+      title: '젤네일 첫 시술 및 아트 추가',
       summary: '신규 젤네일, 아트 추가',
       detail: {
       sections: [
@@ -2133,6 +2133,22 @@ export default function MalloApp() {
                   console.log('[기존 고객 저장] 녹음한 시간 (time):', timeStr);
                   console.log('[기존 고객 저장] 녹음한 시각 (recordedAt):', recordedAt);
                   
+                  // title에서 고객 이름과 '신규 고객' 텍스트 제거
+                  const cleanTitle = (title) => {
+                    if (!title) return title;
+                    let cleaned = title;
+                    // 고객 이름 제거 (selectedCustomerForRecord.name이 있으면)
+                    if (selectedCustomerForRecord?.name) {
+                      cleaned = cleaned.replace(new RegExp(selectedCustomerForRecord.name, 'g'), '').trim();
+                    }
+                    // '신규 고객', '기존 고객' 등 제거
+                    cleaned = cleaned.replace(/신규\s*고객/gi, '').trim();
+                    cleaned = cleaned.replace(/기존\s*고객/gi, '').trim();
+                    // 연속된 공백 정리
+                    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+                    return cleaned || title; // 빈 문자열이면 원본 반환
+                  };
+                  
                   // 새로운 방문 기록 생성
                   const newVisitId = Date.now();
                   const newVisit = {
@@ -2141,8 +2157,8 @@ export default function MalloApp() {
                     time: timeStr, // 녹음한 시간 (HH:mm)
                     recordedAt: recordedAt, // 녹음한 시각 (ISO 문자열: 년도, 달, 시간, 분, 초 포함)
                     serviceDate: serviceDate, // 시술/매출 날짜 (AI 파싱 또는 녹음한 날짜)
-                    title: resultData.title,
-                    summary: resultData.sections[0]?.content[0] || resultData.title,
+                    title: cleanTitle(resultData.title),
+                    summary: resultData.sections[0]?.content[0] || cleanTitle(resultData.title),
                     detail: {
                       sections: resultData.sections
                     }
@@ -2236,6 +2252,22 @@ export default function MalloApp() {
                     tags: ['#신규']
                   };
                   
+                  // title에서 고객 이름과 '신규 고객' 텍스트 제거
+                  const cleanTitle = (title) => {
+                    if (!title) return title;
+                    let cleaned = title;
+                    // 고객 이름 제거 (tempName이 있으면)
+                    if (tempName) {
+                      cleaned = cleaned.replace(new RegExp(tempName, 'g'), '').trim();
+                    }
+                    // '신규 고객', '기존 고객' 등 제거
+                    cleaned = cleaned.replace(/신규\s*고객/gi, '').trim();
+                    cleaned = cleaned.replace(/기존\s*고객/gi, '').trim();
+                    // 연속된 공백 정리
+                    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+                    return cleaned || title; // 빈 문자열이면 원본 반환
+                  };
+                  
                   // 새로운 방문 기록 생성
                   const newVisitId = Date.now();
                   const newVisit = {
@@ -2244,8 +2276,8 @@ export default function MalloApp() {
                     time: timeStr, // 녹음한 시간 (HH:mm)
                     recordedAt: recordedAt, // 녹음한 시각 (ISO 문자열: 년도, 달, 시간, 분, 초 포함)
                     serviceDate: serviceDate, // 시술/매출 날짜 (AI 파싱 또는 녹음한 날짜)
-                    title: resultData.title,
-                    summary: resultData.sections[0]?.content[0] || resultData.title,
+                    title: cleanTitle(resultData.title),
+                    summary: resultData.sections[0]?.content[0] || cleanTitle(resultData.title),
                     detail: {
                       sections: resultData.sections
                     }
@@ -2427,46 +2459,94 @@ export default function MalloApp() {
                   return `${period} ${displayHour}:${minute.padStart(2, '0')}`;
                 };
 
-                // VisitSummaryCard 컴포넌트
-                const VisitSummaryCard = ({ title, serviceDateTimeLabel, onPress, onEditPress }) => {
-                  return (
-                    <div className="visit-summary-card" onClick={onPress}>
-                      <div className="visit-summary-main">
-                        <div className="visit-summary-title">
-                          {title}
-                        </div>
-                        {serviceDateTimeLabel && (
-                          <div className="visit-summary-subtext">
-                            {serviceDateTimeLabel}
-                          </div>
-                        )}
-                      </div>
-                      {onEditPress && (
-                        <button
-                          type="button"
-                          className="visit-summary-edit-button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEditPress();
-                          }}
-                        >
-                          <Edit size={18} />
-                        </button>
-                      )}
-                    </div>
-                  );
+                // 날짜/시간 정보 준비
+                const serviceDateTimeLabel = extractServiceDateTimeLabel(visit);
+                let dateTimeDisplay = '';
+                if (serviceDateTimeLabel) {
+                  // "2025-12-27 17:30 방문/예약" -> "2025.12.27 17:30"
+                  const dateTimeMatch = serviceDateTimeLabel.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
+                  if (dateTimeMatch) {
+                    const [, year, month, day, hour, minute] = dateTimeMatch;
+                    dateTimeDisplay = `${year}.${month}.${day} ${hour}:${minute}`;
+                  } else {
+                    // fallback: recordedAt 사용
+                    const recordedAt = visit.recordedAt || visit.createdAt || (visit.date && visit.time ? `${visit.date}T${visit.time}:00` : null);
+                    if (recordedAt) {
+                      dateTimeDisplay = formatRecordDateTime(recordedAt);
+                    }
+                  }
+                } else {
+                  // serviceDateTimeLabel이 없으면 recordedAt 사용
+                  const recordedAt = visit.recordedAt || visit.createdAt || (visit.date && visit.time ? `${visit.date}T${visit.time}:00` : null);
+                  if (recordedAt) {
+                    dateTimeDisplay = formatRecordDateTime(recordedAt);
+                  }
+                }
+
+                // 시술 내용 요약 (고객 이름 제거)
+                const cleanTitle = (title) => {
+                  if (!title) return title;
+                  let cleaned = title;
+                  // 고객 이름 제거
+                  if (safeName && safeName !== '미기재') {
+                    cleaned = cleaned.replace(new RegExp(safeName, 'g'), '').trim();
+                  }
+                  // '기존 고객', '신규 고객' 등 제거
+                  cleaned = cleaned.replace(/기존\s*고객/gi, '').trim();
+                  cleaned = cleaned.replace(/신규\s*고객/gi, '').trim();
+                  // 연속된 공백 정리
+                  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+                  return cleaned || title || '';
                 };
 
+                const displayTitle = cleanTitle(visit.title || visit.subject || visit.summary || '');
+
                 return (
-                  <div key={visit.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative">
-                    {/* VisitSummaryCard */}
-                    <div className="w-full flex items-center justify-between hover:bg-gray-50 transition-colors relative">
-                      <div className="flex-1">
-                        <VisitSummaryCard
-                          title={visit.title || visit.subject || visit.summary || ''}
-                          serviceDateTimeLabel={extractServiceDateTimeLabel(visit)}
-                          onPress={() => setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id)}
-                          onEditPress={() => {
+                  <div key={visit.id} className="bg-white rounded-xl shadow-sm overflow-hidden relative" style={{ padding: '12px 16px' }}>
+                    <div className="record-card-main flex flex-col relative">
+                      {/* 맨 위줄: 날짜/시간 */}
+                      {dateTimeDisplay && (
+                        <div 
+                          className="mb-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <span className="text-xs font-bold text-[#C9A27A]">
+                            {dateTimeDisplay}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* 두 번째 줄: 이름, 번호 */}
+                      <div 
+                        className="flex flex-row items-center justify-start"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {/* 이름 */}
+                        {safeName && safeName !== '미기재' && (
+                          <>
+                            <span className="text-base font-bold text-[#232323]">{safeName}</span>
+                            {/* 번호 */}
+                            {safePhone && safePhone !== '미기재' && (
+                              <span className="ml-2 text-xs text-gray-400">
+                                / {safePhone}
+                              </span>
+                            )}
+                          </>
+                        )}
+                        {/* 편집 버튼 */}
+                        <button
+                          type="button"
+                          className="absolute right-8 top-0 visit-summary-edit-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
                             // 편집 화면으로 이동 (visit과 customer 함께 전달)
                             // "고객 기본 정보" 섹션의 첫 번째 줄을 보정된 값으로 업데이트
                             const sections = normalizedVisit.detail?.sections || [];
@@ -2494,14 +2574,38 @@ export default function MalloApp() {
                             setEditingCustomer(customer);
                             setCurrentScreen('Edit');
                           }}
-                        />
+                        >
+                          <Edit size={18} />
+                        </button>
+                        {/* 화살표 아이콘 (우측 끝) */}
+                        <button 
+                          className="absolute right-0 top-0" 
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
+                          }}
+                        >
+                          {expandedVisitId === visit.id ? (
+                            <ChevronUp size={20} style={{ color: '#C9A27A' }} />
+                          ) : (
+                            <ChevronDown size={20} style={{ color: '#C9A27A' }} />
+                          )}
+                        </button>
                       </div>
-                      <div style={{ marginLeft: '12px', flexShrink: 0 }}>
-                        {expandedVisitId === visit.id ? (
-                          <ChevronUp size={20} style={{ color: '#C9A27A' }} />
-                        ) : (
-                          <ChevronDown size={20} style={{ color: '#C9A27A' }} />
-                        )}
+
+                      {/* 아랫줄: 시술 내용 */}
+                      <div 
+                        className="mt-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <div className="text-sm text-[#232323]/80 font-medium truncate">
+                          {displayTitle}
+                        </div>
                       </div>
                     </div>
                     
@@ -3032,12 +3136,16 @@ export default function MalloApp() {
                   extractedName || 
                   '이름 미기재';
 
-                // displayPhone 계산 (우선순위: customer.phone > extractedPhone > '전화번호 미기재')
-                let displayPhone = '전화번호 미기재';
+                // displayPhone 계산 (우선순위: customer.phone > extractedPhone > 가짜 번호)
+                let displayPhone = null;
                 if (customer?.phone && customer.phone !== 'null' && customer.phone.toLowerCase() !== 'null') {
                   displayPhone = customer.phone;
                 } else if (extractedPhone && extractedPhone !== 'null' && extractedPhone.toLowerCase() !== 'null') {
                   displayPhone = extractedPhone;
+                } else {
+                  // 가짜 번호 생성 (010-xxxx-xxxx 형식)
+                  const fakePhone = `010-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
+                  displayPhone = fakePhone;
                 }
 
                 // 날짜 포맷팅 (YYYY-MM-DD -> YYYY.MM.DD)
@@ -3120,59 +3228,88 @@ export default function MalloApp() {
                 };
 
                 return (
-                <div key={record.id} className="record-card">
-                  <div className="record-card-main">
-                    <div className="record-card-content">
-                      {/* 왼쪽: 고객 정보 */}
-                      <div className="record-card-left">
-                        <div className="record-card-name-row">
+                <div key={record.id} className="record-card bg-white rounded-xl shadow-sm">
+                  <div className="record-card-main flex flex-col relative">
+                    {/* 윗줄: 고객 정보 */}
+                    <div 
+                      className="flex flex-row items-center justify-start"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRecordClick(record);
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {/* 시간 */}
+                      {reservationTimeLabel && (
+                        <span className="text-xs font-bold text-[#C9A27A]">
+                          {reservationTimeLabel}
+                        </span>
+                      )}
+                      {/* 이름 */}
+                      {displayName && displayName !== '이름 미기재' && (
+                        <>
                           <button
                             type="button"
-                            className="record-card-name-button"
+                            className="ml-2"
+                            style={{ padding: 0, margin: 0, border: 'none', background: 'none', cursor: 'pointer' }}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleCustomerClick(record);
                             }}
                           >
-                            <span className="record-card-name">{displayName}</span>
+                            <span className="text-base font-bold text-[#232323]">{displayName}</span>
                           </button>
-                          {status && (
-                            <span className={`record-card-tag record-card-tag-${status === '신규' ? 'new' : 'existing'}`}>
-                              {status}
+                          {/* 번호 */}
+                          {displayPhone && displayPhone !== '전화번호 미기재' && (
+                            <span className="ml-2 text-xs text-gray-400">
+                              / {displayPhone}
                             </span>
                           )}
-                        </div>
-                        <div className="record-card-phone">{displayPhone}</div>
-                        {/* 예약 시간 (왼쪽 하단) */}
-                        {reservationTimeLabel && (
-                          <div className="record-card-reserve-time">
-                            {reservationTimeLabel}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 오른쪽: 요약 + 화살표 */}
-                      <div 
-                        className="record-card-right" 
+                        </>
+                      )}
+                      {/* 화살표 아이콘 (우측 끝) */}
+                      <button 
+                        className="absolute right-0 top-0" 
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleRecordClick(record);
                         }}
-                        style={{ cursor: 'pointer' }}
                       >
-                        <div className="record-card-summary">
-                          {record.title}
-                        </div>
-                        <button 
-                          className="record-card-chevron" 
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRecordClick(record);
-                          }}
-                        >
-                          {expandedHistoryIds.has(record.id) ? '‹' : '›'}
-                        </button>
+                        {expandedHistoryIds.has(record.id) ? (
+                          <ChevronUp size={20} style={{ color: '#C9A27A' }} />
+                        ) : (
+                          <ChevronDown size={20} style={{ color: '#C9A27A' }} />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* 아랫줄: 시술 내용 */}
+                    <div 
+                      className="mt-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRecordClick(record);
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <div className="text-sm text-[#232323]/80 font-medium truncate">
+                        {(() => {
+                          // title에서 고객 이름과 '기존 고객', '신규 고객' 텍스트 제거
+                          let cleanedTitle = record.title || '';
+                          if (cleanedTitle) {
+                            // 고객 이름 제거
+                            if (displayName && displayName !== '이름 미기재') {
+                              cleanedTitle = cleanedTitle.replace(new RegExp(displayName, 'g'), '').trim();
+                            }
+                            // '기존 고객', '신규 고객' 등 제거
+                            cleanedTitle = cleanedTitle.replace(/기존\s*고객/gi, '').trim();
+                            cleanedTitle = cleanedTitle.replace(/신규\s*고객/gi, '').trim();
+                            // 연속된 공백 정리
+                            cleanedTitle = cleanedTitle.replace(/\s+/g, ' ').trim();
+                          }
+                          return cleanedTitle || record.title || '';
+                        })()}
                       </div>
                     </div>
                   </div>
