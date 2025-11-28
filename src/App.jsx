@@ -1841,7 +1841,7 @@ export default function MalloApp() {
           </div>
 
           {/* 신규 고객 바로 녹음 버튼 - 큰 원형 카드 형태 (항상 표시) */}
-          <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-md px-8" style={{ top: '280px' }}>
+          <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-md px-8" style={{ bottom: '50px' }}>
         <div 
               className="w-full bg-white rounded-3xl shadow-lg border-2 border-gray-200 hover:shadow-xl hover:border-[#C9A27A] transition-all duration-300 p-12 flex flex-col items-center justify-center gap-6"
               style={{ backgroundColor: '#FFFFFF' }}
@@ -1852,8 +1852,8 @@ export default function MalloApp() {
                   setSelectedCustomerForRecord(null);
                   startRecording();
                 }}
-                className="w-24 h-24 rounded-full flex items-center justify-center shadow-md transition-transform duration-300 hover:scale-110 active:scale-95 cursor-pointer"
-                style={{ backgroundColor: '#C9A27A' }}
+                className="rounded-full flex items-center justify-center shadow-md transition-transform duration-300 hover:scale-110 active:scale-95 cursor-pointer"
+                style={{ backgroundColor: '#C9A27A', width: '136px', height: '136px' }}
               >
                 <Mic size={40} className="text-white" />
         </button>
