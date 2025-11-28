@@ -1789,9 +1789,9 @@ export default function MalloApp() {
         </button>
       </header>
 
-        <main className="flex-1 overflow-y-auto flex flex-col items-center justify-start p-8 space-y-12 pb-20">
+        <main className="flex-1 overflow-y-auto flex flex-col items-center justify-start p-8 space-y-12 pb-20 relative">
           {/* 검색창 - 화면 중앙에 크게 배치 */}
-          <div className="w-full max-w-md relative mt-[180px]">
+          <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-md px-8" style={{ top: '140px' }}>
             <div className="bg-white rounded-2xl shadow-md border border-[#EFECE1] p-6">
               <div className="flex items-center gap-4 bg-white rounded-2xl px-4 h-14 border border-[#EFECE1] focus-within:border-[#C9A27A] focus-within:ring-2 focus-within:ring-[#C9A27A] transition-all">
                 <input 
@@ -1841,7 +1841,7 @@ export default function MalloApp() {
           </div>
 
           {/* 신규 고객 바로 녹음 버튼 - 큰 원형 카드 형태 (항상 표시) */}
-          <div className="w-full max-w-md mt-[100px]">
+          <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-md px-8" style={{ top: '280px' }}>
         <div 
               className="w-full bg-white rounded-3xl shadow-lg border-2 border-gray-200 hover:shadow-xl hover:border-[#C9A27A] transition-all duration-300 p-12 flex flex-col items-center justify-center gap-6"
               style={{ backgroundColor: '#FFFFFF' }}
