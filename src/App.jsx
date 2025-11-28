@@ -794,8 +794,8 @@ const MOCK_CUSTOMERS = [
     id: 1,
     name: '김민지',
     phone: '010-1234-5678',
-    visitCount: 5,
-    lastVisit: '2025-01-15',
+    visitCount: 15,
+    lastVisit: '2025-11-28',
     avatar: '👩',
     tags: ['#통증민감', '#인그로운']
   },
@@ -978,36 +978,248 @@ const MOCK_CUSTOMERS = [
     lastVisit: '2024-08-22',
     avatar: '👱‍♀️',
     tags: ['#왁싱']
+  },
+  {
+    id: 21,
+    name: '이다혜',
+    phone: '010-1357-8024',
+    visitCount: 0,
+    lastVisit: null,
+    avatar: '👩',
+    tags: []
   }
 ];
 
 const MOCK_VISITS = {
-  1: [ // 김민지
+  1: [ // 김민지 - 방문 10회
     {
       id: 1,
-      date: '2025-01-15',
+      date: '2025-11-28',
       time: '15:00',
-      title: '젤네일(이달의 아트) 및 웨딩 관리 안내',
-      summary: '기존 젤 제거, 이달의 아트 3번 시술, 강화제 서비스',
+      title: '속눈썹 D컬 리터치',
+      summary: '기존 단골 속눈썹 고객 리터치 및 시술 후 관리 안내',
       detail: {
-      sections: [
-          { title: '시술 내용', content: ['기존 젤 제거 진행', '이달의 아트 3번 시술', '손상모 우려로 강화제 서비스 도포'] },
-          { title: '고객 특징 (TMI)', content: ['신규 고객', '다음 주 웨딩 촬영 예정'] },
-          { title: '결제 금액', content: ['70,000원 (카드)'] },
-          { title: '다음 예약 추천', content: ['3주 후 리터치 권장', '큐티클 오일 도포 강조'] }
-      ]
-    }
-  },
-  {
+        sections: [
+          { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
+          { title: '방문·예약 정보', content: ['2025-11-28 15:00 방문'] },
+          { title: '시술·관리 상세', content: ['D컬 11mm + 12mm 섞어서 화려한 디자인 시술', '이전 C컬에서 D컬로 변경 요청'] },
+          { title: '주의사항·홈 케어', content: ['눈물 많아서 테이핑 주의', '리무버 자극 주의', '11/29 리터치 안내'] },
+          { title: '결제 금액', content: ['회원권에서 50,000원 차감'] }
+        ]
+      }
+    },
+    {
       id: 2,
-      date: '2024-12-28',
+      date: '2025-11-15',
+      time: '14:30',
+      title: '속눈썹 C컬 → D컬 변경',
+      summary: '끝이 처진 느낌으로 D컬로 변경, 11/29 리터치 안내',
+      detail: {
+        sections: [
+          { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
+          { title: '방문·예약 정보', content: ['2025-11-15 14:30 방문'] },
+          { title: '현재 상태·고객 고민', content: ['이전 C컬 시술 후 끝이 처지는 느낌', '더 바짝 올라가길 원함'] },
+          { title: '시술·관리 상세', content: ['C컬에서 D컬로 변경', '11mm와 12mm 혼합 디자인'] },
+          { title: '결제 금액', content: ['60,000원 (카드)'] }
+        ]
+      }
+    },
+    {
+      id: 3,
+      date: '2025-10-30',
+      time: '14:00',
+      title: '젤네일 제거 + 누드톤 재시술',
+      summary: '회사 회의 많아서 튀지 않게, 손톱 길이 짧게 정리',
+      detail: {
+        sections: [
+          { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
+          { title: '방문·예약 정보', content: ['2025-10-30 14:00 방문'] },
+          { title: '시술·관리 상세', content: ['기존 젤 제거', '누드톤 젤네일 재시술', '손톱 길이 짧게 정리'] },
+          { title: '결제 금액', content: ['55,000원 (카드)'] }
+        ]
+      }
+    },
+    {
+      id: 4,
+      date: '2025-09-20',
+      time: '16:00',
+      title: '속눈썹 리터치 및 영양 케어',
+      summary: '리터치 진행, 눈물 많아서 테이핑 주의',
+      detail: {
+        sections: [
+          { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
+          { title: '방문·예약 정보', content: ['2025-09-20 16:00 방문'] },
+          { title: '시술·관리 상세', content: ['속눈썹 리터치 진행', '영양 케어 서비스'] },
+          { title: '주의사항·홈 케어', content: ['눈물 많아서 테이핑 주의', '리무버 자극 주의'] },
+          { title: '결제 금액', content: ['회원권에서 50,000원 차감'] }
+        ]
+      }
+    },
+    {
+      id: 5,
+      date: '2025-08-10',
+      time: '15:30',
+      title: '젤네일 아트 변경',
+      summary: '여름 시즌 맞춰 밝은 컬러로 변경, 손톱 상태 양호',
+      detail: {
+        sections: [
+          { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
+          { title: '방문·예약 정보', content: ['2025-08-10 15:30 방문'] },
+          { title: '시술·관리 상세', content: ['기존 젤 제거', '여름 시즌 밝은 컬러 아트 시술'] },
+          { title: '결제 금액', content: ['65,000원 (카드)'] }
+        ]
+      }
+    },
+    {
+      id: 6,
+      date: '2025-07-05',
+      time: '13:00',
+      title: '속눈썹 풀세트',
+      summary: 'C컬 풀세트 시술, 눈을 꽉 감는 버릇 있어서 테이핑 주의',
+      detail: {
+        sections: [
+          { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
+          { title: '방문·예약 정보', content: ['2025-07-05 13:00 방문'] },
+          { title: '시술·관리 상세', content: ['C컬 풀세트 시술', '11mm와 12mm 혼합'] },
+          { title: '주의사항·홈 케어', content: ['눈을 꽉 감는 버릇 있어서 테이핑 주의', '눈물 많음'] },
+          { title: '결제 금액', content: ['80,000원 (카드)'] }
+        ]
+      }
+    },
+    {
+      id: 7,
+      date: '2025-05-25',
+      time: '14:00',
+      title: '젤네일 리터치 및 영양 케어',
+      summary: '리터치 진행, 손톱 건강 상태 양호',
+      detail: {
+        sections: [
+          { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
+          { title: '방문·예약 정보', content: ['2025-05-25 14:00 방문'] },
+          { title: '시술·관리 상세', content: ['젤네일 리터치 진행', '영양 케어 서비스'] },
+          { title: '결제 금액', content: ['회원권에서 50,000원 차감'] }
+        ]
+      }
+    },
+    {
+      id: 8,
+      date: '2025-04-15',
+      time: '16:30',
+      title: '속눈썹 리터치',
+      summary: '리터치 진행, 이전 시술 상태 양호',
+      detail: {
+        sections: [
+          { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
+          { title: '방문·예약 정보', content: ['2025-04-15 16:30 방문'] },
+          { title: '시술·관리 상세', content: ['속눈썹 리터치 진행'] },
+          { title: '결제 금액', content: ['회원권에서 50,000원 차감'] }
+        ]
+      }
+    },
+    {
+      id: 9,
+      date: '2025-02-28',
+      time: '15:00',
+      title: '젤네일 제거 및 재시술',
+      summary: '기존 젤 제거 후 누드톤 재시술, 손톱 상태 양호',
+      detail: {
+        sections: [
+          { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
+          { title: '방문·예약 정보', content: ['2025-02-28 15:00 방문'] },
+          { title: '시술·관리 상세', content: ['기존 젤 제거', '누드톤 젤네일 재시술'] },
+          { title: '결제 금액', content: ['55,000원 (카드)'] }
+        ]
+      }
+    },
+    {
+      id: 10,
+      date: '2024-12-01',
+      time: '13:30',
+      title: '첫 방문 – 속눈썹 C컬 풀세트',
+      summary: '눈물 많고 테이핑 약하게, 리무버 자극 주의',
+      detail: {
+        sections: [
+          { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 신규 고객'] },
+          { title: '방문·예약 정보', content: ['2024-12-01 13:30 방문'] },
+          { title: '시술·관리 상세', content: ['속눈썹 C컬 풀세트 시술', '11mm와 12mm 혼합'] },
+          { title: '주의사항·홈 케어', content: ['눈물 많아서 테이핑 약하게', '리무버 자극 주의', '눈을 꽉 감는 버릇 있음'] },
+          { title: '결제 금액', content: ['90,000원 (카드, 회원권 가입)'] }
+        ]
+      }
+    },
+    {
+      id: 11,
+      date: '2024-11-15',
+      time: '14:00',
+      title: '젤네일 제거 및 재시술',
+      summary: '기존 젤 제거 후 누드톤 재시술, 손톱 건강 상태 양호',
+      detail: {
+        sections: [
+          { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
+          { title: '방문·예약 정보', content: ['2024-11-15 14:00 방문'] },
+          { title: '시술·관리 상세', content: ['기존 젤 제거', '누드톤 젤네일 재시술'] },
+          { title: '결제 금액', content: ['55,000원 (카드)'] }
+        ]
+      }
+    },
+    {
+      id: 12,
+      date: '2024-10-20',
+      time: '15:30',
+      title: '속눈썹 리터치',
+      summary: '리터치 진행, 이전 시술 상태 양호',
+      detail: {
+        sections: [
+          { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
+          { title: '방문·예약 정보', content: ['2024-10-20 15:30 방문'] },
+          { title: '시술·관리 상세', content: ['속눈썹 리터치 진행'] },
+          { title: '결제 금액', content: ['회원권에서 50,000원 차감'] }
+        ]
+      }
+    },
+    {
+      id: 13,
+      date: '2024-09-10',
+      time: '16:00',
+      title: '젤네일 아트 변경',
+      summary: '가을 시즌 맞춰 따뜻한 톤으로 변경, 손톱 상태 양호',
+      detail: {
+        sections: [
+          { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
+          { title: '방문·예약 정보', content: ['2024-09-10 16:00 방문'] },
+          { title: '시술·관리 상세', content: ['기존 젤 제거', '가을 시즌 따뜻한 톤 아트 시술'] },
+          { title: '결제 금액', content: ['65,000원 (카드)'] }
+        ]
+      }
+    },
+    {
+      id: 14,
+      date: '2024-08-05',
+      time: '13:30',
+      title: '속눈썹 리터치 및 영양 케어',
+      summary: '리터치 진행, 눈물 많아서 테이핑 주의',
+      detail: {
+        sections: [
+          { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
+          { title: '방문·예약 정보', content: ['2024-08-05 13:30 방문'] },
+          { title: '시술·관리 상세', content: ['속눈썹 리터치 진행', '영양 케어 서비스'] },
+          { title: '주의사항·홈 케어', content: ['눈물 많아서 테이핑 주의', '리무버 자극 주의'] },
+          { title: '결제 금액', content: ['회원권에서 50,000원 차감'] }
+        ]
+      }
+    },
+    {
+      id: 15,
+      date: '2024-07-20',
       time: '14:30',
       title: '젤네일 리터치',
-      summary: '리터치 진행, 손톱 상태 양호',
+      summary: '리터치 진행, 손톱 건강 상태 양호',
       detail: {
-      sections: [
-          { title: '시술 내용', content: ['리터치 진행'] },
-          { title: '결제 금액', content: ['50,000원 (현금)'] }
+        sections: [
+          { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
+          { title: '방문·예약 정보', content: ['2024-07-20 14:30 방문'] },
+          { title: '시술·관리 상세', content: ['젤네일 리터치 진행'] },
+          { title: '결제 금액', content: ['회원권에서 50,000원 차감'] }
         ]
       }
     }
@@ -1071,7 +1283,8 @@ const MOCK_VISITS = {
         ]
       }
     }
-  ]
+  ],
+  21: [] // 이다혜 - 신규 회원 (방문 기록 없음)
 };
 
 // --- 2. Visual Components ---
@@ -1133,6 +1346,7 @@ export default function MalloApp() {
   const [password, setPassword] = useState('');
   const [recordingDate, setRecordingDate] = useState(null);
   const [searchQuery, setSearchQuery] = useState(''); // 고객 검색어
+  const [visibleVisitCount, setVisibleVisitCount] = useState(10); // 방문 히스토리에서 보여줄 개수
 
   // 요약 텍스트에서 방문·예약 날짜를 파싱하는 helper 함수
   const extractServiceDateFromSummary = (resultData) => {
@@ -1299,6 +1513,51 @@ export default function MalloApp() {
     saveToLocalStorage('mallo_visits', visits);
   }, [visits]);
 
+  // 컴포넌트 마운트 시 MOCK_CUSTOMERS의 김민지, 이다혜 데이터를 localStorage에 강제 업데이트
+  useEffect(() => {
+    // 김민지 데이터 업데이트
+    const mockKimMinji = MOCK_CUSTOMERS.find(c => c.id === 1 && c.phone === '010-1234-5678');
+    if (mockKimMinji) {
+      setCustomers(prev => {
+        const updated = prev.map(c => 
+          c.id === 1 && c.phone === '010-1234-5678' 
+            ? { ...mockKimMinji, tags: (mockKimMinji.tags || []).filter(tag => tag !== '#신규') }
+            : c
+        );
+        // 김민지가 없으면 추가
+        if (!updated.find(c => c.id === 1 && c.phone === '010-1234-5678')) {
+          updated.push({ ...mockKimMinji, tags: (mockKimMinji.tags || []).filter(tag => tag !== '#신규') });
+        }
+        return updated;
+      });
+    }
+    // 이다혜 데이터 업데이트 - id 21인 고객을 무조건 이다혜로 교체
+    const mockLeeDaHye = MOCK_CUSTOMERS.find(c => c.id === 21 && c.phone === '010-1357-8024');
+    if (mockLeeDaHye) {
+      setCustomers(prev => {
+        // id 21인 모든 고객을 제거하고 이다혜로 교체
+        const filtered = prev.filter(c => c.id !== 21);
+        // 이다혜 추가
+        filtered.push({ ...mockLeeDaHye, tags: (mockLeeDaHye.tags || []).filter(tag => tag !== '#신규') });
+        return filtered;
+      });
+    }
+    // MOCK_VISITS의 김민지 방문 기록도 강제 업데이트
+    if (MOCK_VISITS[1]) {
+      setVisits(prev => ({
+        ...prev,
+        1: MOCK_VISITS[1]
+      }));
+    }
+    // MOCK_VISITS의 이다혜 방문 기록도 강제 업데이트
+    if (MOCK_VISITS[21]) {
+      setVisits(prev => ({
+        ...prev,
+        21: MOCK_VISITS[21]
+      }));
+    }
+  }, []); // 컴포넌트 마운트 시 한 번만 실행
+
   // resultData 변경 시 customerInfo 동기화 (AI 추출 정보를 tempName, tempPhone에 반영)
   useEffect(() => {
     if (resultData && resultData.customerInfo && !selectedCustomerForRecord) {
@@ -1327,6 +1586,13 @@ export default function MalloApp() {
       setSearchQuery('');
     }
   }, [currentScreen]);
+
+  // 고객이 변경될 때 방문 히스토리 보기 개수 리셋
+  useEffect(() => {
+    if (currentScreen === 'CustomerDetail') {
+      setVisibleVisitCount(10);
+    }
+  }, [selectedCustomerId, currentScreen]);
 
   // customers에서 "#신규" 태그 제거
   useEffect(() => {
@@ -1791,7 +2057,7 @@ export default function MalloApp() {
 
         <main className="flex-1 overflow-y-auto flex flex-col items-center justify-start p-8 space-y-12 pb-20 relative">
           {/* 검색창 - 화면 중앙에 크게 배치 */}
-          <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-md px-8" style={{ top: '140px' }}>
+          <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-md px-8" style={{ top: '140px', zIndex: 100 }}>
             <div className="bg-white rounded-2xl shadow-md border border-[#EFECE1] p-6">
               <div className="flex items-center gap-4 bg-white rounded-2xl px-4 h-14 border border-[#EFECE1] focus-within:border-[#C9A27A] focus-within:ring-2 focus-within:ring-[#C9A27A] transition-all">
                 <input 
@@ -1807,12 +2073,14 @@ export default function MalloApp() {
 
             {/* 검색 결과 - Absolute Positioning으로 드롭다운 */}
             {searchQuery.trim() && filteredCustomers.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200 z-50 max-h-60 overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200 z-[100] max-h-60 overflow-y-auto">
                 <div className="p-2 space-y-1">
                   {filteredCustomers.map((customer) => (
                     <div 
                       key={customer.id}
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log('선택된 고객:', customer.name, customer.id, customer.phone);
                         setSelectedCustomerId(customer.id);
                         setCurrentScreen('CustomerDetail');
                       }}
@@ -1834,14 +2102,14 @@ export default function MalloApp() {
 
             {/* 검색 결과 없음 - Absolute Positioning */}
             {searchQuery.trim() && filteredCustomers.length === 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200 z-50 p-6">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200 z-[100] p-6">
                 <p className="text-base font-light text-center" style={{ color: '#232323', opacity: 0.6 }}>검색 결과가 없습니다.</p>
               </div>
             )}
           </div>
 
           {/* 신규 고객 바로 녹음 버튼 - 큰 원형 카드 형태 (항상 표시) */}
-          <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-md px-8" style={{ bottom: '50px' }}>
+          <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-md px-8 z-0" style={{ bottom: '50px' }}>
         <div 
               className="w-full bg-white rounded-3xl shadow-lg border-2 border-gray-200 hover:shadow-xl hover:border-[#C9A27A] transition-all duration-300 p-12 flex flex-col items-center justify-center gap-6"
               style={{ backgroundColor: '#FFFFFF' }}
@@ -2393,7 +2661,31 @@ export default function MalloApp() {
   };
 
   const renderCustomerDetail = () => {
-    const customer = customers.find(c => c.id === selectedCustomerId);
+    console.log('renderCustomerDetail - selectedCustomerId:', selectedCustomerId);
+    console.log('renderCustomerDetail - customers 배열:', customers);
+    console.log('renderCustomerDetail - id 21인 고객:', customers.find(c => c.id === 21));
+    let customer = customers.find(c => c.id === selectedCustomerId);
+    
+    // customers 배열에 없으면 MOCK_CUSTOMERS에서 직접 찾기
+    if (!customer) {
+      console.log('customers 배열에 고객이 없어서 MOCK_CUSTOMERS에서 찾는 중...');
+      const mockCustomer = MOCK_CUSTOMERS.find(c => c.id === selectedCustomerId);
+      if (mockCustomer) {
+        console.log('MOCK_CUSTOMERS에서 찾은 고객:', mockCustomer);
+        customer = { ...mockCustomer, tags: (mockCustomer.tags || []).filter(tag => tag !== '#신규') };
+        // customers 배열에 추가 (useEffect로 처리)
+        setTimeout(() => {
+          setCustomers(prev => {
+            if (!prev.find(c => c.id === selectedCustomerId)) {
+              return [...prev, customer];
+            }
+            return prev;
+          });
+        }, 0);
+      }
+    }
+    
+    console.log('renderCustomerDetail - 최종 찾은 고객:', customer);
     const customerVisits = visits[selectedCustomerId] || [];
 
     if (!customer) {
@@ -2404,6 +2696,16 @@ export default function MalloApp() {
         </div>
       );
     }
+
+    // 더 보기 함수
+    const handleLoadMoreVisits = () => {
+      setVisibleVisitCount((prev) => Math.min(prev + 10, customerVisits.length));
+    };
+
+    // 접기 함수
+    const handleCollapseVisits = () => {
+      setVisibleVisitCount(10);
+    };
 
     // "미기재"와 "null"을 실제 고객 정보로 치환하는 helper 함수
     const overrideCustomerInfoLine = (line, customerInfo) => {
@@ -2501,14 +2803,14 @@ export default function MalloApp() {
           </div>
 
           {/* 방문 히스토리 */}
-          <div className="space-y-4">
+          <div className="space-y-4 pb-24">
             <h3 className="text-base font-bold" style={{ color: '#232323' }}>방문 히스토리</h3>
             {customerVisits.length === 0 ? (
               <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 shadow-sm">
                 <p className="font-light text-base" style={{ color: '#232323', opacity: 0.6 }}>방문 기록이 없습니다</p>
               </div>
             ) : (
-              customerVisits.map((visit) => {
+              customerVisits.slice(0, visibleVisitCount).map((visit) => {
                 // record + customer를 합쳐서 사용 (customerName, customerPhone 보정)
                 const normalizedVisit = normalizeRecordWithCustomer(visit, customer);
                 const safeName = normalizedVisit.customerName || '미기재';
@@ -2727,6 +3029,28 @@ export default function MalloApp() {
                   </div>
                 );
               })
+            )}
+            
+            {/* 이전 기록 더 보기 / 접기 버튼 */}
+            {(customerVisits.length > visibleVisitCount || visibleVisitCount > 10) && (
+              <div className="flex justify-center mt-4 mb-20 gap-3">
+                {customerVisits.length > visibleVisitCount && (
+                  <button
+                    onClick={handleLoadMoreVisits}
+                    className="px-4 py-2 text-sm rounded-full border border-[#C9A27A] text-[#C9A27A] bg-white/90 shadow-sm hover:bg-[#C9A27A] hover:text-white transition-colors min-w-[180px]"
+                  >
+                    이전 기록 10건 더 보기
+                  </button>
+                )}
+                {visibleVisitCount > 10 && (
+                  <button
+                    onClick={handleCollapseVisits}
+                    className="px-4 py-2 text-sm rounded-full border border-[#C9A27A] text-[#C9A27A] bg-white/90 shadow-sm hover:bg-[#C9A27A] hover:text-white transition-colors min-w-[180px]"
+                  >
+                    접기
+                  </button>
+                )}
+              </div>
             )}
           </div>
       </main>
