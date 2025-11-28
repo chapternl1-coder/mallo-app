@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Copy, Share2, Scissors, ArrowLeft, MoreHorizontal, Mail, Lock, ChevronDown, ChevronUp, ChevronRight, Phone, Calendar, Edit, Search, Minus } from 'lucide-react';
+import { Mic, Square, Copy, Share2, Scissors, ArrowLeft, MoreHorizontal, Mail, Lock, ChevronDown, ChevronUp, ChevronRight, Phone, Calendar, Edit, Search, Minus, Home, User, Settings } from 'lucide-react';
 import { formatRecordDateTime, formatVisitReservation, formatVisitReservationFull, formatVisitReservationTime, formatServiceDateTimeLabel } from './utils/date';
 
 /**
@@ -1113,6 +1113,7 @@ const SkeletonLoader = () => (
 export default function MalloApp() {
   const [currentScreen, setCurrentScreen] = useState('Login'); // Login 화면부터 시작
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [activeTab, setActiveTab] = useState('Home'); // 하단 네비게이션 활성 탭
   const [userProfile] = useState({ sectorId: 'beauty', roleTitle: '뷰티샵 원장' });
   const [recordingTime, setRecordingTime] = useState(0);
   const [transcript, setTranscript] = useState('');
@@ -1675,6 +1676,7 @@ export default function MalloApp() {
       // 간단한 로그인 로직 (실제로는 API 호출)
       if (email && password) {
         setIsLoggedIn(true);
+        setActiveTab('Home');
         setCurrentScreen('Home');
       } else {
         alert('이메일과 비밀번호를 입력해주세요.');
@@ -1769,14 +1771,17 @@ export default function MalloApp() {
     const todayStr = `${today.getMonth() + 1}월 ${today.getDate()}일`;
 
     return (
-      <div className="flex flex-col h-full relative" style={{ backgroundColor: '#F2F0E6' }}>
+      <div className="flex flex-col h-full relative pb-[60px]" style={{ backgroundColor: '#F2F0E6' }}>
         <header className="px-8 py-6 flex justify-between items-center bg-white z-10 border-b border-gray-200 shadow-sm">
         <div className="flex flex-col">
             <h2 className="text-xl font-bold" style={{ color: '#232323' }}>원장님, 안녕하세요!</h2>
             <span className="text-sm font-light mt-1" style={{ color: '#232323', opacity: 0.6 }}>{todayStr}</span>
           </div>
           <button 
-            onClick={() => setCurrentScreen('History')}
+            onClick={() => {
+              setActiveTab('History');
+              setCurrentScreen('History');
+            }}
             className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-md hover:opacity-90 transition-opacity"
             style={{ backgroundColor: '#C9A27A' }}
           >
@@ -1784,7 +1789,7 @@ export default function MalloApp() {
         </button>
       </header>
 
-        <main className="flex-1 overflow-y-auto flex flex-col items-center justify-center p-8 space-y-12">
+        <main className="flex-1 overflow-y-auto flex flex-col items-center justify-center p-8 space-y-12 pb-20">
           {/* 검색창 - 화면 중앙에 크게 배치 */}
           <div className="w-full max-w-md relative">
             <div className="bg-white rounded-2xl shadow-md border border-[#EFECE1] p-6">
@@ -1841,7 +1846,7 @@ export default function MalloApp() {
               className="w-full bg-white rounded-3xl shadow-lg border-2 border-gray-200 hover:shadow-xl hover:border-[#C9A27A] transition-all duration-300 p-12 flex flex-col items-center justify-center gap-6"
               style={{ backgroundColor: '#FFFFFF' }}
             >
-              <button
+        <button 
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedCustomerForRecord(null);
@@ -1851,7 +1856,7 @@ export default function MalloApp() {
                 style={{ backgroundColor: '#C9A27A' }}
               >
                 <Mic size={40} className="text-white" />
-              </button>
+        </button>
               <div className="text-center">
                 <h3 className="text-2xl font-bold mb-2" style={{ color: '#232323' }}>신규 고객 바로 녹음</h3>
                 <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.6 }}>시술 내용을 말로만 기록하세요</p>
@@ -2482,8 +2487,8 @@ export default function MalloApp() {
                         {tag}
                       </span>
                     ))}
-                  </div>
-                )}
+            </div>
+        )}
                 {/* 메모 */}
                 {customer.memo && customer.memo.trim() && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
@@ -2971,8 +2976,8 @@ export default function MalloApp() {
                             <Minus size={16} />
                           </button>
                         )}
-                      </div>
-                    );
+    </div>
+  );
                   })}
                 </div>
                 <button
@@ -3059,7 +3064,7 @@ export default function MalloApp() {
       setEditCustomerTags(editCustomerTags.filter((_, i) => i !== index));
     };
 
-    return (
+  return (
       <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
         {/* Header */}
         <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
@@ -3093,7 +3098,7 @@ export default function MalloApp() {
               style={{ color: '#232323', height: '36px' }}
               placeholder="고객 이름을 입력하세요"
             />
-          </div>
+      </div>
 
           {/* 전화번호 */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
@@ -3310,11 +3315,14 @@ export default function MalloApp() {
     };
 
   return (
-      <div className="flex flex-col h-full relative" style={{ backgroundColor: '#F2F0E6' }}>
+      <div className="flex flex-col h-full relative pb-[60px]" style={{ backgroundColor: '#F2F0E6' }}>
         {/* Header */}
         <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
         <button 
-            onClick={() => setCurrentScreen('Home')}
+            onClick={() => {
+              setActiveTab('Home');
+              setCurrentScreen('Home');
+            }}
             className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
             style={{ color: '#232323' }}
         >
@@ -3694,6 +3702,15 @@ export default function MalloApp() {
     }
   }, [currentScreen, recordingTime, resultData, isProcessing]);
 
+  // currentScreen 변경 시 activeTab 동기화
+  useEffect(() => {
+    if (currentScreen === 'Home') {
+      setActiveTab('Home');
+    } else if (currentScreen === 'History') {
+      setActiveTab('History');
+    }
+  }, [currentScreen]);
+
   // 에러 핸들링
   let content;
   try {
@@ -3735,10 +3752,74 @@ export default function MalloApp() {
     );
   }
 
+  // 하단 네비게이션 바 컴포넌트
+  const BottomNavigation = () => {
+    const tabs = [
+      { id: 'Home', label: '홈', icon: Home },
+      { id: 'History', label: '기록', icon: Calendar },
+      { id: 'Settings', label: '설정', icon: User },
+    ];
+
+    const handleTabClick = (tabId) => {
+      setActiveTab(tabId);
+      if (tabId === 'Home') {
+        setCurrentScreen('Home');
+      } else if (tabId === 'History') {
+        setCurrentScreen('History');
+      } else if (tabId === 'Settings') {
+        // TODO: 설정 화면 구현
+        setCurrentScreen('Home'); // 임시로 홈으로 이동
+      }
+    };
+
+    return (
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="max-w-md mx-auto h-[60px] flex items-center justify-around">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabClick(tab.id)}
+                className="flex flex-col items-center justify-center flex-1 h-full transition-colors"
+              >
+                <Icon
+                  size={22}
+                  strokeWidth={isActive ? 2.5 : 2}
+                  style={{
+                    color: isActive ? '#C9A27A' : '#D1D5DB',
+                    transition: 'all 0.2s',
+                  }}
+                />
+                <span
+                  className="text-[10px] mt-1 font-medium"
+                  style={{
+                    color: isActive ? '#232323' : '#D1D5DB',
+                    transition: 'color 0.2s',
+                  }}
+                >
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+    );
+  };
+
   return (
     <div className="h-screen w-full flex items-center justify-center font-sans" style={{ backgroundColor: '#F2F0E6' }}>
       <div className="w-full max-w-md h-full sm:h-[90vh] sm:rounded-[2rem] sm:shadow-md overflow-hidden relative border-0" style={{ backgroundColor: '#F2F0E6' }}>
         {content}
+        {/* 로그인, Record, CustomerDetail, Edit, EditCustomer 화면이 아닐 때만 하단 네비게이션 바 표시 */}
+        {currentScreen !== 'Login' && 
+         currentScreen !== 'Record' && 
+         currentScreen !== 'CustomerDetail' && 
+         currentScreen !== 'Edit' && 
+         currentScreen !== 'EditCustomer' && 
+         <BottomNavigation />}
       </div>
     </div>
   );
