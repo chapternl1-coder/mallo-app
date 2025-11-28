@@ -1314,6 +1314,13 @@ export default function MalloApp() {
     console.log('App mounted, currentScreen:', currentScreen);
   }, [currentScreen]);
 
+  // 홈 화면으로 돌아올 때 검색창 리셋
+  useEffect(() => {
+    if (currentScreen === 'Home') {
+      setSearchQuery('');
+    }
+  }, [currentScreen]);
+
   const timerRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -1804,22 +1811,26 @@ export default function MalloApp() {
 
           {/* 신규 고객 바로 녹음 버튼 - 큰 원형 카드 형태 (항상 표시) */}
           <div className="w-full max-w-md">
-        <button 
-              onClick={() => {
-                setSelectedCustomerForRecord(null);
-                startRecording();
-              }}
-              className="w-full bg-white rounded-3xl shadow-lg border-2 border-gray-200 hover:shadow-xl hover:border-[#C9A27A] transition-all duration-300 active:scale-[0.98] p-12 flex flex-col items-center justify-center gap-6"
+        <div 
+              className="w-full bg-white rounded-3xl shadow-lg border-2 border-gray-200 hover:shadow-xl hover:border-[#C9A27A] transition-all duration-300 p-12 flex flex-col items-center justify-center gap-6"
               style={{ backgroundColor: '#FFFFFF' }}
             >
-              <div className="w-24 h-24 rounded-full flex items-center justify-center shadow-md transition-transform duration-300 hover:scale-110" style={{ backgroundColor: '#C9A27A' }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedCustomerForRecord(null);
+                  startRecording();
+                }}
+                className="w-24 h-24 rounded-full flex items-center justify-center shadow-md transition-transform duration-300 hover:scale-110 active:scale-95 cursor-pointer"
+                style={{ backgroundColor: '#C9A27A' }}
+              >
                 <Mic size={40} className="text-white" />
-              </div>
+              </button>
               <div className="text-center">
                 <h3 className="text-2xl font-bold mb-2" style={{ color: '#232323' }}>신규 고객 바로 녹음</h3>
                 <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.6 }}>시술 내용을 말로만 기록하세요</p>
               </div>
-        </button>
+        </div>
           </div>
       </main>
     </div>
