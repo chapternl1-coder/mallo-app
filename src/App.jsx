@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Copy, Share2, Scissors, ArrowLeft, MoreHorizontal, Mail, Lock, ChevronDown, ChevronUp, ChevronRight, Phone, Calendar, Edit, Search } from 'lucide-react';
+import { Mic, Square, Copy, Share2, Scissors, ArrowLeft, MoreHorizontal, Mail, Lock, ChevronDown, ChevronUp, ChevronRight, Phone, Calendar, Edit, Search, Minus } from 'lucide-react';
 import { formatRecordDateTime, formatVisitReservation, formatVisitReservationFull, formatVisitReservationTime, formatServiceDateTimeLabel } from './utils/date';
 
 /**
@@ -369,13 +369,17 @@ TRANSCRIPT에 뷰티샵 시술/고객 문맥이 있으면 아래 구조를 사�
 
 
 
-2) 두 번째 줄: 제목(오늘 시술 로그 한 줄 요약)
+2) 두 번째 줄: 제목(시술 내용 요약)
 
    - 형식: "제목: ○○○"
 
    - 오늘 발화의 핵심 시술/업무 내용을 한 문장으로 요약한다.
 
-   - 예: "단골 왁싱 고객 브라질리언+종아리 시술 및 인그로운 주의 메모"
+   - **중요: 제목에는 고객 이름을 절대 포함하지 말고, 순수 시술 행위와 주요 내용만 간결하게 요약할 것.**
+
+   - 예: "젤네일 제거 및 영양 케어" (O)
+
+   - 예: "김민지 님 - 젤네일 제거..." (X - 고객 이름 포함 금지)
 
 
 
@@ -685,7 +689,7 @@ TRANSCRIPT에 뷰티샵 시술/고객 문맥이 있으면 아래 구조를 사�
 
 {
 
-  "title": "제목 (한 줄 요약)",
+  "title": "시술 내용 요약 (고객 이름 제외, 순수 시술 행위만)",
 
   "customerInfo": {
 
@@ -747,7 +751,7 @@ TRANSCRIPT에 뷰티샵 시술/고객 문맥이 있으면 아래 구조를 사�
 
 
 
-- "title"은 위에서 설명한 "제목: ○○○" 부분의 내용만 포함한다.
+- "title"은 위에서 설명한 "제목: ○○○" 부분의 내용만 포함한다. **중요: title에는 고객 이름을 절대 포함하지 말고, 순수 시술 행위와 주요 내용만 간결하게 요약할 것. (예: "젤네일 제거 및 영양 케어")**
 
 - "sections"는 위에서 설명한 섹션들을 배열로 구성한다.
 
@@ -1119,6 +1123,10 @@ export default function MalloApp() {
   const [expandedVisitId, setExpandedVisitId] = useState(null);
   const [editingVisit, setEditingVisit] = useState(null); // 편집 중인 visit 기록
   const [editingCustomer, setEditingCustomer] = useState(null); // 편집 중인 customer 정보
+  const [editCustomerName, setEditCustomerName] = useState(''); // 고객 정보 편집용
+  const [editCustomerPhone, setEditCustomerPhone] = useState(''); // 고객 정보 편집용
+  const [editCustomerTags, setEditCustomerTags] = useState([]); // 고객 정보 편집용
+  const [newTag, setNewTag] = useState(''); // 새 태그 입력용
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [recordingDate, setRecordingDate] = useState(null);
@@ -2398,7 +2406,22 @@ export default function MalloApp() {
 
         <main className="flex-1 overflow-y-auto p-8 space-y-6 pb-32">
           {/* 고객 정보 카드 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 relative">
+            {/* 편집 버튼 */}
+            <button
+              onClick={() => {
+                setEditCustomerName(customer.name || '');
+                setEditCustomerPhone(customer.phone || '');
+                setEditCustomerTags([...(customer.tags || [])]);
+                setNewTag('');
+                setCurrentScreen('EditCustomer');
+              }}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
+              style={{ color: '#C9A27A' }}
+              title="편집"
+            >
+              <Edit size={20} />
+            </button>
             <div className="flex items-center gap-6 mb-6">
               <div className="text-7xl">{customer.avatar}</div>
               <div className="flex-1">
@@ -2718,11 +2741,39 @@ export default function MalloApp() {
       });
     };
 
+    // 제목에서 고객 이름과 신규/기존 정보 제거 함수
+    const cleanTitle = (title) => {
+      if (!title) return title;
+      let cleaned = title;
+      
+      // 편집 중인 고객 이름 제거
+      if (editingCustomer?.name) {
+        const customerName = editingCustomer.name;
+        // 이름 패턴 제거 (앞뒤 공백 포함)
+        cleaned = cleaned.replace(new RegExp(`\\s*${customerName}\\s*`, 'g'), ' ').trim();
+        // "○○○ 고객" 패턴 제거
+        cleaned = cleaned.replace(new RegExp(`${customerName}\\s*고객`, 'g'), '').trim();
+      }
+      
+      // "신규 고객", "기존 고객" 패턴 제거
+      cleaned = cleaned.replace(/\s*신규\s*고객\s*/gi, ' ').trim();
+      cleaned = cleaned.replace(/\s*기존\s*고객\s*/gi, ' ').trim();
+      cleaned = cleaned.replace(/\s*신규\s*/gi, ' ').trim();
+      cleaned = cleaned.replace(/\s*기존\s*/gi, ' ').trim();
+      
+      // 연속된 공백 정리
+      cleaned = cleaned.replace(/\s+/g, ' ').trim();
+      
+      return cleaned;
+    };
+
     // 제목 업데이트 함수
     const updateTitle = (newTitle) => {
+      // 입력 시에도 자동으로 정리
+      const cleaned = cleanTitle(newTitle);
       setTempResultData(prev => ({
         ...prev,
-        title: newTitle
+        title: cleaned
       }));
     };
 
@@ -2815,13 +2866,14 @@ export default function MalloApp() {
         <main className="flex-1 overflow-y-auto p-8 space-y-5">
           {/* 제목 편집 */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-            <label className="block text-sm font-bold mb-3" style={{ color: '#232323' }}>제목</label>
+            <label className="block text-sm font-bold mb-3" style={{ color: '#232323' }}>시술 요약</label>
             <textarea
-              value={tempResultData.title}
+              value={cleanTitle(tempResultData.title || '')}
               onChange={(e) => updateTitle(e.target.value)}
               className="w-full px-4 py-3 rounded-2xl border-none resize-none focus:bg-gray-50 outline-none transition-colors"
               style={{ color: '#232323', minHeight: '60px' }}
               rows={2}
+              placeholder="시술 내용만 입력하세요 (고객 이름, 신규/기존 정보는 자동으로 제거됩니다)"
             />
       </div>
 
@@ -2832,27 +2884,52 @@ export default function MalloApp() {
                   {section.title}
                 </h4>
                 <div className="space-y-3">
-                  {section.content.map((item, contentIndex) => (
-                    <div key={contentIndex} className="flex gap-2">
-                      <textarea
-                        value={item}
-                        onChange={(e) => updateSectionContent(sectionIndex, contentIndex, e.target.value)}
-                        className="flex-1 px-4 py-3 rounded-2xl border-none resize-none focus:bg-gray-50 outline-none transition-colors"
-                        style={{ color: '#232323', minHeight: '60px' }}
-                        rows={Math.max(2, Math.ceil(item.length / 40))}
-                        placeholder="내용을 입력하세요..."
-                      />
-                    {section.content.length > 1 && (
-                      <button
-                        onClick={() => removeSectionItem(sectionIndex, contentIndex)}
-                        className="px-3 py-2 rounded-2xl text-sm font-medium text-white hover:opacity-90 transition-opacity"
-                        style={{ backgroundColor: '#EF4444', minWidth: '60px' }}
-                      >
-                        삭제
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  {section.content.map((item, contentIndex) => {
+                    const isCustomerBasicInfo = section.title && section.title.includes('고객 기본 정보');
+                    const isVisitInfo = section.title && (
+                      section.title.includes('방문·예약 정보') ||
+                      section.title.includes('방문예약 정보')
+                    );
+                    const isProtectedSection = isCustomerBasicInfo || isVisitInfo;
+                    
+                    // 보호된 섹션에서 기본 항목 이후에 추가된 항목만 삭제 버튼 표시
+                    let showDeleteButton = false;
+                    if (isProtectedSection) {
+                      if (isCustomerBasicInfo) {
+                        // 고객 기본 정보: 처음 3개 항목은 삭제 불가, 4번째부터 삭제 가능
+                        showDeleteButton = contentIndex >= 3;
+                      } else if (isVisitInfo) {
+                        // 방문·예약 정보: 처음 1개 항목은 삭제 불가, 2번째부터 삭제 가능
+                        showDeleteButton = contentIndex >= 1;
+                      }
+                    } else {
+                      // 보호되지 않은 섹션: 항목이 2개 이상이면 삭제 버튼 표시
+                      showDeleteButton = section.content.length > 1;
+                    }
+                    
+                    return (
+                      <div key={contentIndex} className="flex gap-2 relative">
+                        <textarea
+                          value={item}
+                          onChange={(e) => updateSectionContent(sectionIndex, contentIndex, e.target.value)}
+                          className="flex-1 px-4 py-3 rounded-2xl border-none resize-none focus:bg-gray-50 outline-none transition-colors"
+                          style={{ color: '#232323', minHeight: '60px', paddingRight: showDeleteButton ? '50px' : '16px' }}
+                          rows={Math.max(2, Math.ceil(item.length / 40))}
+                          placeholder="내용을 입력하세요..."
+                        />
+                        {showDeleteButton && (
+                          <button
+                            onClick={() => removeSectionItem(sectionIndex, contentIndex)}
+                            className="absolute top-2 right-2 bg-red-100 text-red-500 p-1.5 rounded-full hover:bg-red-200 transition-colors flex items-center justify-center z-10"
+                            title="삭제"
+                          >
+                            <Minus size={16} />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
                 <button
                   onClick={() => addSectionItem(sectionIndex)}
                   className="w-full py-3 rounded-2xl text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors"
@@ -2861,11 +2938,178 @@ export default function MalloApp() {
                   + 항목 추가
                 </button>
               </div>
-            </div>
           ))}
         </main>
     </div>
-  );
+    );
+  };
+
+  const renderEditCustomer = () => {
+    const handleComplete = () => {
+      if (!editCustomerName.trim()) {
+        alert('이름은 필수입니다.');
+        return;
+      }
+
+      // 고객 정보 업데이트
+      setCustomers(prev => {
+        const updated = prev.map(c => {
+          if (c.id === selectedCustomerId) {
+            return {
+              ...c,
+              name: editCustomerName.trim(),
+              phone: editCustomerPhone.trim() || null,
+              tags: editCustomerTags.filter(tag => tag.trim() !== '')
+            };
+          }
+          return c;
+        });
+        
+        // localStorage에 저장
+        localStorage.setItem('customers', JSON.stringify(updated));
+        return updated;
+      });
+
+      // 관련된 visits의 customerName, customerPhone도 업데이트
+      setVisits(prev => {
+        const updated = { ...prev };
+        if (updated[selectedCustomerId]) {
+          updated[selectedCustomerId] = updated[selectedCustomerId].map(visit => ({
+            ...visit,
+            customerName: editCustomerName.trim(),
+            customerPhone: editCustomerPhone.trim() || null
+          }));
+        }
+        localStorage.setItem('visits', JSON.stringify(updated));
+        return updated;
+      });
+
+      // 편집 화면 닫기
+      setEditCustomerName('');
+      setEditCustomerPhone('');
+      setEditCustomerTags([]);
+      setNewTag('');
+      setCurrentScreen('CustomerDetail');
+    };
+
+    const handleCancel = () => {
+      setEditCustomerName('');
+      setEditCustomerPhone('');
+      setEditCustomerTags([]);
+      setNewTag('');
+      setCurrentScreen('CustomerDetail');
+    };
+
+    const addTag = () => {
+      if (newTag.trim() && !editCustomerTags.includes(newTag.trim())) {
+        setEditCustomerTags([...editCustomerTags, newTag.trim()]);
+        setNewTag('');
+      }
+    };
+
+    const removeTag = (index) => {
+      setEditCustomerTags(editCustomerTags.filter((_, i) => i !== index));
+    };
+
+    return (
+      <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
+        {/* Header */}
+        <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
+          <button 
+            onClick={handleCancel}
+            className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
+            style={{ color: '#232323' }}
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <h2 className="font-bold text-lg" style={{ color: '#232323' }}>고객 정보 편집</h2>
+          <button 
+            onClick={handleComplete}
+            className="px-4 py-2 rounded-2xl font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all"
+            style={{ backgroundColor: '#C9A27A' }}
+          >
+            완료
+          </button>
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-8 space-y-5">
+          {/* 이름 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <label className="block text-sm font-bold mb-3" style={{ color: '#232323' }}>이름 *</label>
+            <input
+              type="text"
+              value={editCustomerName}
+              onChange={(e) => setEditCustomerName(e.target.value)}
+              className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
+              style={{ color: '#232323' }}
+              placeholder="고객 이름을 입력하세요"
+            />
+          </div>
+
+          {/* 전화번호 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <label className="block text-sm font-bold mb-3" style={{ color: '#232323' }}>전화번호</label>
+            <input
+              type="tel"
+              value={editCustomerPhone}
+              onChange={(e) => setEditCustomerPhone(e.target.value)}
+              className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
+              style={{ color: '#232323' }}
+              placeholder="010-0000-0000"
+            />
+          </div>
+
+          {/* 태그 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <label className="block text-sm font-bold mb-3" style={{ color: '#232323' }}>태그</label>
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addTag();
+                  }
+                }}
+                className="flex-1 px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
+                style={{ color: '#232323' }}
+                placeholder="태그를 입력하고 Enter"
+              />
+              <button
+                onClick={addTag}
+                className="px-4 py-3 rounded-2xl font-medium text-white transition-all"
+                style={{ backgroundColor: '#C9A27A' }}
+              >
+                추가
+              </button>
+            </div>
+            {editCustomerTags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {editCustomerTags.map((tag, idx) => (
+                  <span 
+                    key={idx} 
+                    className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 flex items-center gap-2"
+                    style={{ color: '#232323' }}
+                  >
+                    {tag}
+                    <button
+                      onClick={() => removeTag(idx)}
+                      className="hover:bg-gray-200 rounded-full p-0.5 transition-colors"
+                      style={{ color: '#232323' }}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+    );
   };
 
   // 히스토리 화면용 검색어 상태
@@ -3412,6 +3656,8 @@ export default function MalloApp() {
       content = renderCustomerDetail();
     } else if (currentScreen === 'Edit') {
       content = renderEdit();
+    } else if (currentScreen === 'EditCustomer') {
+      content = renderEditCustomer();
     } else if (currentScreen === 'History') {
       content = renderHistory();
     } else {
