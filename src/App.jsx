@@ -2094,7 +2094,7 @@ export default function MalloApp() {
         {/* Fixed Action Bar - 2개 버튼 나란히 배치 (화면 하단 고정) */}
         <div className="absolute bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 px-8 py-4 shadow-lg" style={{ backgroundColor: '#F2F0E6' }}>
           <div className="flex gap-3">
-            {/* 내용 다듬기 버튼 */}
+            {/* 편집 버튼 */}
              <button 
               onClick={() => {
                 // 편집 화면으로 이동 (임시 데이터 초기화)
@@ -2107,7 +2107,7 @@ export default function MalloApp() {
               style={{ color: '#232323', width: '35%' }}
             >
               <Edit size={18} style={{ color: '#C9A27A' }} />
-              <span>내용 다듬기</span>
+              <span>편집</span>
             </button>
             
             {/* 저장하기 버튼 */}
@@ -2801,7 +2801,7 @@ export default function MalloApp() {
           >
             <ArrowLeft size={24} />
         </button>
-          <h2 className="font-bold text-lg" style={{ color: '#232323' }}>내용 다듬기</h2>
+          <h2 className="font-bold text-lg" style={{ color: '#232323' }}>편집</h2>
           <button 
             onClick={handleComplete}
             className="px-4 py-2 rounded-2xl font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all"
@@ -3230,34 +3230,35 @@ export default function MalloApp() {
                 return (
                 <div key={record.id} className="record-card bg-white rounded-xl shadow-sm">
                   <div className="record-card-main flex flex-col relative">
-                    {/* 윗줄: 고객 정보 */}
+                    {/* 상단 정보: 시간과 고객 정보 */}
                     <div 
-                      className="flex flex-row items-center justify-start"
+                      className="flex flex-col items-start relative"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleRecordClick(record);
                       }}
                       style={{ cursor: 'pointer' }}
                     >
-                      {/* 시간 */}
+                      {/* 윗줄: 시간 */}
                       {reservationTimeLabel && (
-                        <span className="text-xs font-bold text-[#C9A27A]">
-                          {reservationTimeLabel}
-                        </span>
+                        <div className="mb-1">
+                          <span className="text-xs font-bold text-[#C9A27A]">
+                            {reservationTimeLabel}
+                          </span>
+                        </div>
                       )}
-                      {/* 이름 */}
+                      {/* 아랫줄: 이름과 전화번호 */}
                       {displayName && displayName !== '이름 미기재' && (
-                        <>
+                        <div className="flex flex-row items-center">
                           <button
                             type="button"
-                            className="ml-2"
                             style={{ padding: 0, margin: 0, border: 'none', background: 'none', cursor: 'pointer' }}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleCustomerClick(record);
                             }}
                           >
-                            <span className="text-base font-bold text-[#232323]">{displayName}</span>
+                            <span className="text-lg font-bold text-[#232323]">{displayName}</span>
                           </button>
                           {/* 번호 */}
                           {displayPhone && displayPhone !== '전화번호 미기재' && (
@@ -3265,7 +3266,7 @@ export default function MalloApp() {
                               / {displayPhone}
                             </span>
                           )}
-                        </>
+                        </div>
                       )}
                       {/* 화살표 아이콘 (우측 끝) */}
                       <button 
