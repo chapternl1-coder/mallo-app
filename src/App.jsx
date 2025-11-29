@@ -1345,8 +1345,15 @@ export default function MalloApp() {
   const [serviceTags, setServiceTags] = useState([]); // 시술 태그 (ResultScreen에서 편집)
   const [newServiceTag, setNewServiceTag] = useState(''); // 새 시술 태그 입력용
   const [isAutoTaggingEnabled, setIsAutoTaggingEnabled] = useState(true); // AI 태그 자동 추천 설정 상태
-  const [managedTags, setManagedTags] = useState(['D컬', 'C컬', '리터치', '제거', '연장', '젤기본']); // 시술 태그 관리 목록
+  // 시술 태그 관리 목록 (카테고리별)
+  const [managedTags, setManagedTags] = useState({
+    procedure: ['속눈썹연장', '젤네일', '페디큐어'], // 시술
+    design: ['D컬', 'C컬', '이달의아트', '그라데이션'], // 디자인/스타일
+    care: ['영양', '랩핑', '제거'], // 케어/관리
+    caution: ['글루알러지', '임산부', '눈물많음'] // 주의사항
+  });
   const [newManagedTag, setNewManagedTag] = useState(''); // 태그 관리 화면에서 새 태그 입력용
+  const [tagSettingsActiveTab, setTagSettingsActiveTab] = useState('procedure'); // 태그 설정 화면의 활성 탭
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [recordingDate, setRecordingDate] = useState(null);
@@ -3843,6 +3850,40 @@ export default function MalloApp() {
   };
 
   const renderTagSettings = () => {
+    // 카테고리 정보
+    const categories = {
+      procedure: { label: '시술', placeholder: "'시술' 태그 입력..." },
+      design: { label: '디자인', placeholder: "'디자인' 태그 입력..." },
+      care: { label: '케어', placeholder: "'케어' 태그 입력..." },
+      caution: { label: '주의사항', placeholder: "'주의사항' 태그 입력..." }
+    };
+
+    // 현재 선택된 카테고리의 태그 목록
+    const currentTags = managedTags[tagSettingsActiveTab] || [];
+    const currentCategory = categories[tagSettingsActiveTab];
+
+    // 태그 추가 함수
+    const handleAddTag = () => {
+      if (newManagedTag.trim()) {
+        const trimmedTag = newManagedTag.trim();
+        if (!currentTags.includes(trimmedTag)) {
+          setManagedTags(prev => ({
+            ...prev,
+            [tagSettingsActiveTab]: [...(prev[tagSettingsActiveTab] || []), trimmedTag]
+          }));
+          setNewManagedTag('');
+        }
+      }
+    };
+
+    // 태그 삭제 함수
+    const handleDeleteTag = (tagIndex) => {
+      setManagedTags(prev => ({
+        ...prev,
+        [tagSettingsActiveTab]: prev[tagSettingsActiveTab].filter((_, i) => i !== tagIndex)
+      }));
+    };
+
     return (
       <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
         {/* 헤더 */}
@@ -3863,8 +3904,38 @@ export default function MalloApp() {
           {/* 설명 텍스트 */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
             <p className="text-sm font-light leading-relaxed" style={{ color: '#232323', opacity: 0.7 }}>
-              시술 태그를 등록해두면, 녹음 결과에서 자동으로 태그가 추출됩니다.
+              시술 태그를 카테고리별로 등록해두면, 녹음 결과에서 자동으로 태그가 추출됩니다.
             </p>
+          </div>
+
+          {/* 카테고리 탭 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="flex border-b border-gray-200">
+              {Object.keys(categories).map((categoryKey) => {
+                const isActive = tagSettingsActiveTab === categoryKey;
+                return (
+                  <button
+                    key={categoryKey}
+                    onClick={() => setTagSettingsActiveTab(categoryKey)}
+                    className={`flex-1 px-4 py-4 text-sm font-medium transition-colors relative ${
+                      isActive ? '' : 'hover:bg-gray-50'
+                    }`}
+                    style={{ 
+                      color: isActive ? '#232323' : 'rgba(35, 35, 35, 0.5)',
+                      fontWeight: isActive ? 'bold' : 'normal'
+                    }}
+                  >
+                    {categories[categoryKey].label}
+                    {isActive && (
+                      <div 
+                        className="absolute bottom-0 left-0 right-0 h-0.5"
+                        style={{ backgroundColor: '#C9A27A' }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* 태그 입력 영역 */}
@@ -3878,28 +3949,16 @@ export default function MalloApp() {
                 value={newManagedTag}
                 onChange={(e) => setNewManagedTag(e.target.value)}
                 onKeyPress={(e) => {
-                  if (e.key === 'Enter' && newManagedTag.trim()) {
-                    const trimmedTag = newManagedTag.trim();
-                    if (!managedTags.includes(trimmedTag)) {
-                      setManagedTags(prev => [...prev, trimmedTag]);
-                      setNewManagedTag('');
-                    }
+                  if (e.key === 'Enter') {
+                    handleAddTag();
                   }
                 }}
-                placeholder="태그를 입력하고 엔터를 누르세요"
+                placeholder={currentCategory.placeholder}
                 className="flex-1 px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A] transition-all"
                 style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
               />
               <button
-                onClick={() => {
-                  if (newManagedTag.trim()) {
-                    const trimmedTag = newManagedTag.trim();
-                    if (!managedTags.includes(trimmedTag)) {
-                      setManagedTags(prev => [...prev, trimmedTag]);
-                      setNewManagedTag('');
-                    }
-                  }
-                }}
+                onClick={handleAddTag}
                 className="px-6 py-3 rounded-2xl font-medium text-white shadow-sm hover:shadow-md transition-all"
                 style={{ backgroundColor: '#C9A27A' }}
               >
@@ -3911,15 +3970,15 @@ export default function MalloApp() {
           {/* 태그 클라우드 */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
             <h3 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
-              등록된 태그 ({managedTags.length}개)
+              {currentCategory.label} 태그 ({currentTags.length}개)
             </h3>
-            {managedTags.length === 0 ? (
+            {currentTags.length === 0 ? (
               <p className="text-sm font-light text-center py-8" style={{ color: '#232323', opacity: 0.5 }}>
                 등록된 태그가 없습니다.
               </p>
             ) : (
               <div className="flex flex-wrap gap-3">
-                {managedTags.map((tag, idx) => (
+                {currentTags.map((tag, idx) => (
                   <span
                     key={idx}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium"
@@ -3930,9 +3989,7 @@ export default function MalloApp() {
                   >
                     #{tag}
                     <button
-                      onClick={() => {
-                        setManagedTags(prev => prev.filter((_, i) => i !== idx));
-                      }}
+                      onClick={() => handleDeleteTag(idx)}
                       className="ml-1 hover:opacity-70 transition-opacity"
                       style={{ color: '#8C6D46' }}
                     >
