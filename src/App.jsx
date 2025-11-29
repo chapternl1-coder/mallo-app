@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Copy, Share2, Scissors, ArrowLeft, MoreHorizontal, Mail, Lock, ChevronDown, ChevronUp, ChevronRight, Phone, Calendar, Edit, Search, Minus, Home, User, Settings, History } from 'lucide-react';
+import { Mic, Square, Copy, Share2, Scissors, ArrowLeft, MoreHorizontal, Mail, Lock, ChevronDown, ChevronUp, ChevronRight, Phone, Calendar, Edit, Search, Minus, Home, User, Settings, History, X, Tag } from 'lucide-react';
 import { formatRecordDateTime, formatVisitReservation, formatVisitReservationFull, formatVisitReservationTime, formatServiceDateTimeLabel } from './utils/date';
 
 /**
@@ -1342,6 +1342,11 @@ export default function MalloApp() {
   const [editCustomerTags, setEditCustomerTags] = useState([]); // 고객 정보 편집용
   const [editCustomerMemo, setEditCustomerMemo] = useState(''); // 고객 메모 편집용
   const [newTag, setNewTag] = useState(''); // 새 태그 입력용
+  const [serviceTags, setServiceTags] = useState([]); // 시술 태그 (ResultScreen에서 편집)
+  const [newServiceTag, setNewServiceTag] = useState(''); // 새 시술 태그 입력용
+  const [isAutoTaggingEnabled, setIsAutoTaggingEnabled] = useState(true); // AI 태그 자동 추천 설정 상태
+  const [managedTags, setManagedTags] = useState(['D컬', 'C컬', '리터치', '제거', '연장', '젤기본']); // 시술 태그 관리 목록
+  const [newManagedTag, setNewManagedTag] = useState(''); // 태그 관리 화면에서 새 태그 입력용
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [recordingDate, setRecordingDate] = useState(null);
@@ -1409,6 +1414,42 @@ export default function MalloApp() {
 
     console.log('[extractServiceDateFromSummary] 날짜 패턴을 찾지 못함');
     return undefined;
+  };
+
+  // 태그 추출 함수 (content에서 키워드 매칭)
+  const extractTagsFromContent = (content) => {
+    if (!content) return [];
+    const tags = [];
+    // 한국어와 영문 대소문자 모두 처리
+    const contentLower = content.toLowerCase();
+    const contentOriginal = content;
+    
+    // 키워드 매핑 (다양한 변형 포함)
+    const keywordMap = {
+      'D컬': ['d컬', '디컬', 'd 컬', 'D컬', '디 컬'],
+      'C컬': ['c컬', '씨컬', 'c 컬', 'C컬', '씨 컬'],
+      '리터치': ['리터치', '리 터치', '리터'],
+      '연장': ['연장'],
+      '제거': ['제거', '리무버', '리무'],
+      '젤네일': ['젤', '젤네일', '젤 네일', '젤 네일'],
+      '아트': ['아트', '네일아트', '네일 아트', '네일아'],
+      '영양': ['영양', '영양케어', '영양 케어', '케어'],
+      '회원권': ['회원권', '멤버십', '멤버']
+    };
+    
+    Object.keys(keywordMap).forEach(tag => {
+      const keywords = keywordMap[tag];
+      // 소문자 변환된 텍스트와 원본 텍스트 모두 확인
+      const found = keywords.some(keyword => {
+        const keywordLower = keyword.toLowerCase();
+        return contentLower.includes(keywordLower) || contentOriginal.includes(keyword);
+      });
+      if (found) {
+        tags.push(tag);
+      }
+    });
+    
+    return tags;
   };
 
   // serviceDateTimeLabel 생성 함수
@@ -1512,6 +1553,29 @@ export default function MalloApp() {
   useEffect(() => {
     saveToLocalStorage('mallo_visits', visits);
   }, [visits]);
+
+  // resultData가 변경될 때마다 태그 자동 추출 (isAutoTaggingEnabled에 따라)
+  useEffect(() => {
+    if (resultData) {
+      if (isAutoTaggingEnabled) {
+        // ON일 경우: 기존처럼 content를 분석해서 태그 자동 생성
+        const allContent = [
+          resultData.title || '',
+          ...(resultData.sections || []).flatMap(section => 
+            (section.content || []).join(' ')
+          )
+        ].join(' ');
+        
+        const extractedTags = extractTagsFromContent(allContent);
+        setServiceTags(extractedTags);
+      } else {
+        // OFF일 경우: 빈 배열로 시작 (사용자가 수동으로 추가)
+        setServiceTags([]);
+      }
+    } else {
+      setServiceTags([]);
+    }
+  }, [resultData, isAutoTaggingEnabled]);
 
   // 컴포넌트 마운트 시 MOCK_CUSTOMERS의 김민지, 이다혜 데이터를 localStorage에 강제 업데이트
   useEffect(() => {
@@ -2371,6 +2435,67 @@ export default function MalloApp() {
           </div>
         </div>
 
+        {/* 태그 편집 영역 */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+          <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>시술 태그</h4>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {serviceTags.map((tag, idx) => (
+              <span
+                key={idx}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
+                style={{ 
+                  backgroundColor: 'rgba(201, 162, 122, 0.1)',
+                  color: '#8C6D46'
+                }}
+              >
+                #{tag}
+                <button
+                  onClick={() => {
+                    setServiceTags(prev => prev.filter((_, i) => i !== idx));
+                  }}
+                  className="ml-1 hover:opacity-70 transition-opacity"
+                  style={{ color: '#8C6D46' }}
+                >
+                  <X size={14} />
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newServiceTag}
+              onChange={(e) => setNewServiceTag(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && newServiceTag.trim()) {
+                  const trimmedTag = newServiceTag.trim();
+                  if (!serviceTags.includes(trimmedTag)) {
+                    setServiceTags(prev => [...prev, trimmedTag]);
+                    setNewServiceTag('');
+                  }
+                }
+              }}
+              placeholder="태그 추가 (Enter)"
+              className="flex-1 px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A]"
+              style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
+            />
+            <button
+              onClick={() => {
+                if (newServiceTag.trim()) {
+                  const trimmedTag = newServiceTag.trim();
+                  if (!serviceTags.includes(trimmedTag)) {
+                    setServiceTags(prev => [...prev, trimmedTag]);
+                    setNewServiceTag('');
+                  }
+                }
+              }}
+              className="px-4 py-2 rounded-xl font-medium text-sm border border-[#C9A27A] text-[#C9A27A] hover:bg-[#C9A27A] hover:text-white transition-colors"
+            >
+              + 태그 추가
+            </button>
+          </div>
+        </div>
+
         {/* Transcript Toggle */}
           <details className="group bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <summary className="font-medium text-base cursor-pointer p-5 flex justify-between items-center hover:bg-gray-50 transition-colors select-none" style={{ color: '#232323' }}>
@@ -2479,7 +2604,8 @@ export default function MalloApp() {
                     summary: resultData.sections[0]?.content[0] || cleanTitle(resultData.title),
                     detail: {
                       sections: resultData.sections
-                    }
+                    },
+                    serviceTags: serviceTags || [] // 시술 태그
                   };
                   
                   console.log('[기존 고객 저장] 저장되는 newVisit 객체:', JSON.stringify(newVisit, null, 2));
@@ -2598,7 +2724,8 @@ export default function MalloApp() {
                     summary: resultData.sections[0]?.content[0] || cleanTitle(resultData.title),
                     detail: {
                       sections: resultData.sections
-                    }
+                    },
+                    serviceTags: serviceTags || [] // 시술 태그
                   };
                   
                   console.log('[신규 고객 저장] 저장되는 newVisit 객체:', JSON.stringify(newVisit, null, 2));
@@ -2624,6 +2751,8 @@ export default function MalloApp() {
                 setSelectedCustomerForRecord(null);
                 setTempName('');
                 setTempPhone('');
+                setServiceTags([]);
+                setNewServiceTag('');
               }}
               className="flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-medium text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all"
               style={{ backgroundColor: '#C9A27A' }}
@@ -3595,6 +3724,22 @@ export default function MalloApp() {
               <ChevronRight size={18} style={{ color: '#A7A196' }} />
             </button>
 
+            {/* 시술 태그/키워드 관리 */}
+            <button
+              onClick={() => {
+                setCurrentScreen('TagSettings');
+              }}
+              className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#F2F0E6] flex items-center justify-center">
+                  <Tag size={20} style={{ color: '#C9A27A' }} />
+                </div>
+                <span className="text-sm font-medium" style={{ color: '#232323' }}>시술 태그/키워드 관리</span>
+              </div>
+              <ChevronRight size={18} style={{ color: '#A7A196' }} />
+            </button>
+
             {/* 알림 설정 */}
             <div className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -3612,6 +3757,28 @@ export default function MalloApp() {
                 <span
                   className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
                     notificationEnabled ? 'translate-x-6' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* AI 태그 자동 추천 */}
+            <div className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#F2F0E6] flex items-center justify-center">
+                  <span className="text-xl">🏷️</span>
+                </div>
+                <span className="text-sm font-medium" style={{ color: '#232323' }}>AI 태그 자동 추천</span>
+              </div>
+              <button
+                onClick={() => setIsAutoTaggingEnabled(!isAutoTaggingEnabled)}
+                className={`relative w-12 h-6 rounded-full transition-colors ${
+                  isAutoTaggingEnabled ? 'bg-[#C9A27A]' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                    isAutoTaggingEnabled ? 'translate-x-6' : 'translate-x-0'
                   }`}
                 />
               </button>
@@ -3669,6 +3836,112 @@ export default function MalloApp() {
               </div>
               <ChevronRight size={18} style={{ color: '#A7A196' }} />
             </button>
+          </div>
+        </main>
+      </div>
+    );
+  };
+
+  const renderTagSettings = () => {
+    return (
+      <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
+        {/* 헤더 */}
+        <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
+          <button 
+            onClick={() => setCurrentScreen('Profile')} 
+            className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
+            style={{ color: '#232323' }}
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <h2 className="font-bold text-base" style={{ color: '#232323' }}>시술 태그 관리</h2>
+          <div className="w-10"></div> {/* 오른쪽 공간 맞추기 */}
+        </header>
+
+        {/* 내용 영역 */}
+        <main className="flex-1 overflow-y-auto p-8 space-y-6 pb-32">
+          {/* 설명 텍스트 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+            <p className="text-sm font-light leading-relaxed" style={{ color: '#232323', opacity: 0.7 }}>
+              시술 태그를 등록해두면, 녹음 결과에서 자동으로 태그가 추출됩니다.
+            </p>
+          </div>
+
+          {/* 태그 입력 영역 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+            <label className="block text-sm font-medium mb-3" style={{ color: '#232323' }}>
+              새 태그 추가
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newManagedTag}
+                onChange={(e) => setNewManagedTag(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && newManagedTag.trim()) {
+                    const trimmedTag = newManagedTag.trim();
+                    if (!managedTags.includes(trimmedTag)) {
+                      setManagedTags(prev => [...prev, trimmedTag]);
+                      setNewManagedTag('');
+                    }
+                  }
+                }}
+                placeholder="태그를 입력하고 엔터를 누르세요"
+                className="flex-1 px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A] transition-all"
+                style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
+              />
+              <button
+                onClick={() => {
+                  if (newManagedTag.trim()) {
+                    const trimmedTag = newManagedTag.trim();
+                    if (!managedTags.includes(trimmedTag)) {
+                      setManagedTags(prev => [...prev, trimmedTag]);
+                      setNewManagedTag('');
+                    }
+                  }
+                }}
+                className="px-6 py-3 rounded-2xl font-medium text-white shadow-sm hover:shadow-md transition-all"
+                style={{ backgroundColor: '#C9A27A' }}
+              >
+                추가
+              </button>
+            </div>
+          </div>
+
+          {/* 태그 클라우드 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+            <h3 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
+              등록된 태그 ({managedTags.length}개)
+            </h3>
+            {managedTags.length === 0 ? (
+              <p className="text-sm font-light text-center py-8" style={{ color: '#232323', opacity: 0.5 }}>
+                등록된 태그가 없습니다.
+              </p>
+            ) : (
+              <div className="flex flex-wrap gap-3">
+                {managedTags.map((tag, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium"
+                    style={{ 
+                      backgroundColor: 'rgba(201, 162, 122, 0.1)',
+                      color: '#8C6D46'
+                    }}
+                  >
+                    #{tag}
+                    <button
+                      onClick={() => {
+                        setManagedTags(prev => prev.filter((_, i) => i !== idx));
+                      }}
+                      className="ml-1 hover:opacity-70 transition-opacity"
+                      style={{ color: '#8C6D46' }}
+                    >
+                      <X size={16} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </main>
       </div>
@@ -4214,6 +4487,8 @@ export default function MalloApp() {
       content = renderHistory();
     } else if (currentScreen === 'Profile') {
       content = renderProfile();
+    } else if (currentScreen === 'TagSettings') {
+      content = renderTagSettings();
     } else {
       content = <div className="p-8 text-center text-red-600">알 수 없는 화면: {String(currentScreen)}</div>;
     }
