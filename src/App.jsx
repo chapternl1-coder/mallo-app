@@ -1542,7 +1542,8 @@ export default function MalloApp() {
     return migrateTagsToObjects({
       procedure: ['속눈썹연장', '젤네일', '페디큐어'],
       design: ['D컬', 'C컬', '이달의아트', '그라데이션'],
-      care: ['영양', '랩핑', '제거']
+      care: ['영양', '랩핑', '제거'],
+      payment: ['회원권', '현금결제', '카드결제']
     });
   };
 
@@ -1561,7 +1562,6 @@ export default function MalloApp() {
     }
     return migrateTagsToObjects({
       trait: ['수다쟁이', '조용함', '친절함'],
-      payment: ['회원권', '현금결제', '카드결제'],
       pattern: ['단골', '신규', '비정기'],
       caution: ['글루알러지', '임산부', '눈물많음']
     });
@@ -1956,6 +1956,36 @@ export default function MalloApp() {
     setAllCustomerTags(converted);
   }, [customerTags]);
 
+  // payment가 customerTags에 있으면 visitTags로 마이그레이션
+  useEffect(() => {
+    if (customerTags.payment && customerTags.payment.length > 0) {
+      // customerTags의 payment를 visitTags로 이동 (중복 제거)
+      setVisitTags(prev => {
+        const existingPaymentTags = prev.payment || [];
+        const newPaymentTags = customerTags.payment.filter(tag => {
+          const label = typeof tag === 'string' ? tag : tag.label || tag;
+          return !existingPaymentTags.some(existing => {
+            const existingLabel = typeof existing === 'string' ? existing : existing.label || existing;
+            return existingLabel === label;
+          });
+        });
+        if (newPaymentTags.length > 0) {
+          return {
+            ...prev,
+            payment: [...existingPaymentTags, ...newPaymentTags]
+          };
+        }
+        return prev;
+      });
+      // customerTags에서 payment 제거
+      setCustomerTags(prev => {
+        const { payment, ...rest } = prev;
+        return rest;
+      });
+      console.log('[태그 마이그레이션] payment를 customerTags에서 visitTags로 이동');
+    }
+  }, [customerTags.payment]); // customerTags.payment가 변경될 때만 실행
+
   // 태그 매칭 함수: 원본 텍스트 또는 요약 텍스트에서 태그 찾기 (정규화된 키워드 매칭 + 어근 매칭)
   const matchTagsFromSummary = (sourceText, tags) => {
     if (!sourceText || !tags || tags.length === 0) return [];
@@ -2074,7 +2104,24 @@ export default function MalloApp() {
       console.log('[태그 자동 선택] sourceText 처음 200자:', sourceText?.substring(0, 200));
       console.log('[태그 자동 선택] allCustomerTags 개수:', allCustomerTags.length);
       console.log('[태그 자동 선택] allCustomerTags 샘플 (처음 5개):', allCustomerTags.slice(0, 5).map(t => ({ id: t.id, label: t.label, category: t.category })));
-      const matchedCustomerTags = matchTagsFromSummary(sourceText, allCustomerTags);
+      
+      // 방문 횟수 확인 (2 이상이면 "신규" 태그 제외)
+      const visitCount = selectedCustomerForRecord?.visitCount || 0;
+      const shouldExcludeNewTag = visitCount >= 2;
+      
+      // "신규" 태그 ID 찾기
+      const newTag = allCustomerTags.find(t => t.label === '신규');
+      const newTagId = newTag?.id;
+      
+      // 태그 매칭 (방문 횟수가 2 이상이면 "신규" 태그 제외)
+      let matchedCustomerTags = matchTagsFromSummary(sourceText, allCustomerTags);
+      
+      // 방문 횟수가 2 이상이면 "신규" 태그 제거
+      if (shouldExcludeNewTag && newTagId) {
+        matchedCustomerTags = matchedCustomerTags.filter(id => id !== newTagId);
+        console.log('[태그 자동 선택] 방문 횟수 2 이상 - "신규" 태그 제외됨');
+      }
+      
       console.log('[태그 자동 선택] 원본 텍스트:', sourceText?.substring(0, 100));
       console.log('[태그 자동 선택] 매칭된 태그 ID:', matchedCustomerTags);
       const matchedTagLabels = matchedCustomerTags.map(id => {
@@ -2107,11 +2154,25 @@ export default function MalloApp() {
             .filter(tag => existingTagLabels.includes(tag.label))
             .map(tag => tag.id);
           
+          // 방문 횟수가 2 이상이면 "신규" 태그를 제거하고 "기존" 태그 추가
+          let finalExistingTagIds = existingTagIds;
+          if (shouldExcludeNewTag) {
+            // "신규" 태그 제거
+            finalExistingTagIds = existingTagIds.filter(id => id !== newTagId);
+            
+            // "기존" 태그 추가 (없으면)
+            const existingTag = allCustomerTags.find(t => t.label === '기존');
+            const existingTagId = existingTag?.id;
+            if (existingTagId && !finalExistingTagIds.includes(existingTagId)) {
+              finalExistingTagIds = [...finalExistingTagIds, existingTagId];
+            }
+          }
+          
           // AI가 찾은 새 태그 ID 찾기
-          const newTagIds = matchedCustomerTags.filter(id => !existingTagIds.includes(id));
+          const newTagIds = matchedCustomerTags.filter(id => !finalExistingTagIds.includes(id));
           
           // 병합: 기존 태그 + AI가 찾은 새 태그 (중복 제거)
-          const mergedTagIds = [...new Set([...existingTagIds, ...matchedCustomerTags])];
+          const mergedTagIds = [...new Set([...finalExistingTagIds, ...matchedCustomerTags])];
           setSelectedCustomerTagIds(mergedTagIds);
           setNewCustomerTagIds(newTagIds);
         } else {
@@ -2191,6 +2252,25 @@ export default function MalloApp() {
             updatedCustomerTags.caution = [...cautionTags, '눈물많음'];
             needsUpdate = true;
             console.log('[고객 태그 자동 감지] "눈물많음" 태그 추가됨');
+          }
+        }
+        
+        // 방문 횟수가 2 이상이면 "신규" 태그를 "기존"으로 변경
+        const visitCount = customer.visitCount || 0;
+        if (visitCount >= 2) {
+          const patternTags = updatedCustomerTags.pattern || [];
+          const hasNewTag = patternTags.includes('신규');
+          const hasExistingTag = patternTags.includes('기존');
+          
+          if (hasNewTag || !hasExistingTag) {
+            // "신규" 태그 제거
+            updatedCustomerTags.pattern = patternTags.filter(tag => tag !== '신규');
+            // "기존" 태그 추가 (없으면)
+            if (!updatedCustomerTags.pattern.includes('기존')) {
+              updatedCustomerTags.pattern = [...updatedCustomerTags.pattern, '기존'];
+            }
+            needsUpdate = true;
+            console.log('[고객 태그 자동 감지] 방문 횟수 2 이상 - "신규" → "기존" 태그 변경됨');
           }
         }
         
@@ -4042,8 +4122,21 @@ export default function MalloApp() {
                     }
                   });
                   
-                  // "신규" 키워드가 감지되면 pattern에 추가 (중복 방지)
-                  if (isNewCustomer) {
+                  // 방문 횟수 확인 (2 이상이면 "신규" 제거하고 "기존" 추가)
+                  const currentVisitCount = selectedCustomerForRecord.visitCount || 0;
+                  const nextVisitCount = currentVisitCount + 1;
+                  
+                  // 방문 횟수가 2 이상이면 "신규" 태그 제거하고 "기존" 태그 추가
+                  if (nextVisitCount >= 2) {
+                    const patternTags = updatedCustomerTags.pattern || [];
+                    // "신규" 태그 제거
+                    updatedCustomerTags.pattern = patternTags.filter(tag => tag !== '신규');
+                    // "기존" 태그 추가 (없으면)
+                    if (!updatedCustomerTags.pattern.includes('기존')) {
+                      updatedCustomerTags.pattern = [...updatedCustomerTags.pattern, '기존'];
+                    }
+                  } else {
+                    // 첫 방문(1회)인 경우 자동으로 "신규" 태그 추가
                     const patternTags = updatedCustomerTags.pattern || [];
                     if (!patternTags.includes('신규')) {
                       updatedCustomerTags.pattern = [...patternTags, '신규'];
@@ -4192,11 +4285,9 @@ export default function MalloApp() {
                     }
                   });
                   
-                  // "신규" 키워드가 감지되면 pattern에 추가
-                  if (isNewCustomer) {
-                    if (!newCustomerTags.pattern.includes('신규')) {
-                      newCustomerTags.pattern = [...newCustomerTags.pattern, '신규'];
-                    }
+                  // 신규 고객(첫 방문)인 경우 자동으로 "신규" 태그 추가
+                  if (!newCustomerTags.pattern.includes('신규')) {
+                    newCustomerTags.pattern = [...newCustomerTags.pattern, '신규'];
                   }
                   
                   // 특정 키워드 감지하여 customerTags에 자동 추가
@@ -4519,6 +4610,10 @@ export default function MalloApp() {
                   console.log('renderCustomerDetail - customerTags:', customerTags);
                   const allTags = [];
                   
+                  // 방문 횟수 확인 (2 이상이면 "신규" 제거하고 "기존" 추가)
+                  const visitCount = customer.visitCount || 0;
+                  const shouldReplaceNewWithExisting = visitCount >= 2;
+                  
                   // 주의 태그 먼저 추가
                   if (customerTags.caution && customerTags.caution.length > 0) {
                     customerTags.caution.forEach(tag => {
@@ -4539,8 +4634,27 @@ export default function MalloApp() {
                   }
                   if (customerTags.pattern && customerTags.pattern.length > 0) {
                     customerTags.pattern.forEach(tag => {
-                      allTags.push({ tag, type: 'pattern' });
+                      // 방문 횟수가 2 이상이면 "신규" 태그는 제외하고 "기존" 태그 추가
+                      if (shouldReplaceNewWithExisting && tag === '신규') {
+                        // "신규" 태그는 건너뛰고 "기존" 태그가 없으면 추가
+                        if (!customerTags.pattern.includes('기존')) {
+                          allTags.push({ tag: '기존', type: 'pattern' });
+                        }
+                      } else {
+                        allTags.push({ tag, type: 'pattern' });
+                      }
                     });
+                  }
+                  
+                  // 방문 횟수가 2 이상이고 "기존" 태그가 없으면 추가
+                  if (shouldReplaceNewWithExisting && (!customerTags.pattern || !customerTags.pattern.includes('기존'))) {
+                    // "신규" 태그가 이미 필터링되었는지 확인
+                    const hasNewTag = customerTags.pattern && customerTags.pattern.includes('신규');
+                    if (!hasNewTag || allTags.find(t => t.tag === '기존')) {
+                      // 이미 "기존" 태그가 추가되었거나 "신규" 태그가 없으면 추가하지 않음
+                    } else {
+                      allTags.push({ tag: '기존', type: 'pattern' });
+                    }
                   }
                   
                   console.log('renderCustomerDetail - allTags:', allTags);
@@ -5735,12 +5849,12 @@ export default function MalloApp() {
     const visitSubTabs = {
       procedure: { label: '시술', placeholder: '시술 태그 입력…' },
       design: { label: '디자인', placeholder: '디자인 태그 입력…' },
-      care: { label: '케어', placeholder: '케어 태그 입력…' }
+      care: { label: '케어', placeholder: '케어 태그 입력…' },
+      payment: { label: '결제·예약', placeholder: '결제·예약 태그 입력…' }
     };
 
     const customerSubTabs = {
       trait: { label: '성향', placeholder: '성향 태그 입력…' },
-      payment: { label: '결제·예약', placeholder: '결제·예약 태그 입력…' },
       pattern: { label: '방문패턴', placeholder: '방문패턴 태그 입력…' },
       caution: { label: '⚠️주의', placeholder: '주의 태그 입력…' }
     };
