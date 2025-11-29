@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Copy, Share2, Scissors, ArrowLeft, MoreHorizontal, Mail, Lock, ChevronDown, ChevronUp, ChevronRight, Phone, Calendar, Edit, Search, Minus, Home, User, Settings, History, X, Tag, Hash } from 'lucide-react';
+import { Mic, Square, Copy, Share2, Scissors, ArrowLeft, MoreHorizontal, Mail, Lock, ChevronDown, ChevronUp, ChevronRight, Phone, Calendar, Edit, Search, Minus, Home, User, Settings, History, X, Tag, Hash, Camera } from 'lucide-react';
 import { formatRecordDateTime, formatVisitReservation, formatVisitReservationFull, formatVisitReservationTime, formatServiceDateTimeLabel } from './utils/date';
 
 /**
@@ -1472,7 +1472,13 @@ export default function MalloApp() {
   const [currentScreen, setCurrentScreen] = useState('Login'); // Login 화면부터 시작
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState('Home'); // 하단 네비게이션 활성 탭
-  const [userProfile] = useState({ sectorId: 'beauty', roleTitle: '뷰티샵 원장' });
+  const [userProfile, setUserProfile] = useState({ 
+    sectorId: 'beauty', 
+    roleTitle: '뷰티샵 원장',
+    name: '김말로 원장님',
+    email: 'mallo@beauty.com',
+    phone: '010-1234-5678'
+  });
   const [recordingTime, setRecordingTime] = useState(0);
   const [transcript, setTranscript] = useState('');
   const [rawTranscript, setRawTranscript] = useState(''); // STT 원본 텍스트 (태그 매칭용)
@@ -1489,6 +1495,9 @@ export default function MalloApp() {
   const [editCustomerTagIds, setEditCustomerTagIds] = useState([]); // 고객 특징 태그 편집용 (ID 배열)
   const [isEditCustomerTagPickerOpen, setIsEditCustomerTagPickerOpen] = useState(false); // 고객 특징 태그 선택 모달 오픈 여부
   const [editCustomerMemo, setEditCustomerMemo] = useState(''); // 고객 메모 편집용
+  const [editProfileName, setEditProfileName] = useState(''); // 프로필 편집용
+  const [editProfileEmail, setEditProfileEmail] = useState(''); // 프로필 편집용
+  const [editProfilePhone, setEditProfilePhone] = useState(''); // 프로필 편집용
   const [editingVisitTagIds, setEditingVisitTagIds] = useState([]); // 방문 편집용 태그 ID 배열
   const [isEditingVisitTagPickerOpen, setIsEditingVisitTagPickerOpen] = useState(false); // 방문 태그 선택 모달 오픈 여부
   const [newTag, setNewTag] = useState(''); // 새 태그 입력용
@@ -5652,8 +5661,117 @@ export default function MalloApp() {
     }
   }, [currentScreen]);
 
+  // 프로필 편집 화면 진입 시 현재 프로필 값으로 초기화
+  useEffect(() => {
+    if (currentScreen === 'profile-edit') {
+      setEditProfileName(userProfile.name || '');
+      setEditProfileEmail(userProfile.email || '');
+      setEditProfilePhone(userProfile.phone || '');
+    }
+  }, [currentScreen, userProfile]);
+
   // 알림 설정 상태
   const [notificationEnabled, setNotificationEnabled] = useState(true);
+
+  const renderProfileEdit = () => {
+    const handleSave = () => {
+      setUserProfile(prev => ({
+        ...prev,
+        name: editProfileName.trim(),
+        email: editProfileEmail.trim(),
+        phone: editProfilePhone.trim()
+      }));
+      setCurrentScreen('Profile');
+    };
+
+    return (
+      <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
+        {/* 헤더 */}
+        <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
+          <button 
+            onClick={() => setCurrentScreen('Profile')} 
+            className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
+            style={{ color: '#232323' }}
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <h2 className="font-bold text-base" style={{ color: '#232323' }}>프로필 수정</h2>
+          <div className="w-10"></div> {/* 오른쪽 공간 맞추기 */}
+        </header>
+
+        {/* 내용 영역 */}
+        <main className="flex-1 overflow-y-auto p-8 space-y-6 pb-32">
+          {/* 프로필 사진 */}
+          <div className="flex justify-center">
+            <div className="relative">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#C9A27A] to-[#B8946A] flex items-center justify-center text-4xl shadow-sm">
+                👩‍⚕️
+              </div>
+              <button
+                className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#C9A27A] flex items-center justify-center text-white shadow-md hover:bg-[#B8946A] transition-colors"
+                onClick={() => {
+                  // TODO: 프로필 사진 변경 기능 구현
+                  alert('프로필 사진 변경 기능은 준비 중입니다.');
+                }}
+              >
+                <Camera size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* 이름 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <label className="block text-sm font-bold mb-2" style={{ color: '#232323' }}>이름</label>
+            <input
+              type="text"
+              value={editProfileName}
+              onChange={(e) => setEditProfileName(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
+              style={{ color: '#232323' }}
+              placeholder="이름을 입력하세요"
+            />
+          </div>
+
+          {/* 연락처 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <label className="block text-sm font-bold mb-2" style={{ color: '#232323' }}>연락처</label>
+            <input
+              type="tel"
+              value={editProfilePhone}
+              onChange={(e) => setEditProfilePhone(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
+              style={{ color: '#232323' }}
+              placeholder="010-0000-0000"
+            />
+          </div>
+
+          {/* 이메일 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <label className="block text-sm font-bold mb-2" style={{ color: '#232323' }}>이메일</label>
+            <input
+              type="email"
+              value={editProfileEmail}
+              onChange={(e) => setEditProfileEmail(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
+              style={{ color: '#232323' }}
+              placeholder="email@example.com"
+            />
+          </div>
+        </main>
+
+        {/* 저장 버튼 (하단 고정) */}
+        <div className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-200 shadow-lg z-30">
+          <button
+            onClick={handleSave}
+            className="w-full py-4 rounded-xl font-bold text-white shadow-md hover:opacity-90 transition-all"
+            style={{ backgroundColor: '#C9A27A' }}
+          >
+            저장 완료
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   const renderProfile = () => {
 
@@ -5678,8 +5796,7 @@ export default function MalloApp() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 relative">
             <button
               onClick={() => {
-                // TODO: 프로필 편집 기능 구현
-                alert('준비 중입니다.');
+                setCurrentScreen('profile-edit');
               }}
               className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-xl transition-colors"
               style={{ color: '#C9A27A' }}
@@ -5692,10 +5809,10 @@ export default function MalloApp() {
               </div>
               <div className="flex-1">
                 <h3 className="font-bold text-lg mb-1" style={{ color: '#232323' }}>
-                  김말로 원장님
+                  {userProfile.name}
                 </h3>
                 <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.7 }}>
-                  mallo@beauty.com
+                  {userProfile.email}
                 </p>
               </div>
             </div>
@@ -6690,6 +6807,8 @@ export default function MalloApp() {
       content = renderHistory();
     } else if (currentScreen === 'Profile') {
       content = renderProfile();
+    } else if (currentScreen === 'profile-edit') {
+      content = renderProfileEdit();
     } else if (currentScreen === 'TagSettings') {
       content = renderTagSettings();
     } else {
@@ -6766,12 +6885,13 @@ export default function MalloApp() {
     <div className="h-screen w-full flex items-center justify-center font-sans" style={{ backgroundColor: '#F2F0E6' }}>
       <div className="w-full max-w-md h-full sm:h-[90vh] sm:rounded-[2rem] sm:shadow-md overflow-hidden relative border-0" style={{ backgroundColor: '#F2F0E6' }}>
         {content}
-        {/* 로그인, Record, CustomerDetail, Edit, EditCustomer 화면이 아닐 때만 하단 네비게이션 바 표시 */}
+        {/* 로그인, Record, CustomerDetail, Edit, EditCustomer, profile-edit 화면이 아닐 때만 하단 네비게이션 바 표시 */}
         {currentScreen !== 'Login' && 
          currentScreen !== 'Record' && 
          currentScreen !== 'CustomerDetail' && 
          currentScreen !== 'Edit' && 
          currentScreen !== 'EditCustomer' && 
+         currentScreen !== 'profile-edit' && 
          <BottomNavigation />}
       </div>
     </div>
