@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, Copy, Share2, Scissors, ArrowLeft, MoreHorizontal, Mail, Lock, ChevronDown, ChevronUp, ChevronRight, Phone, Calendar, Edit, Search, Minus, Home, User, Settings, History, X, Tag } from 'lucide-react';
+import { Mic, Square, Copy, Share2, Scissors, ArrowLeft, MoreHorizontal, Mail, Lock, ChevronDown, ChevronUp, ChevronRight, Phone, Calendar, Edit, Search, Minus, Home, User, Settings, History, X, Tag, Hash } from 'lucide-react';
 import { formatRecordDateTime, formatVisitReservation, formatVisitReservationFull, formatVisitReservationTime, formatServiceDateTimeLabel } from './utils/date';
 
 /**
@@ -1941,95 +1941,153 @@ export default function MalloApp() {
   // 태그 매칭 함수: 원본 텍스트 또는 요약 텍스트에서 태그 찾기 (정규화된 키워드 매칭)
   const matchTagsFromSummary = (sourceText, tags) => {
     if (!sourceText || !tags || tags.length === 0) return [];
+    
+    // 빈 텍스트나 공백만 있는 경우 매칭하지 않음
+    const trimmedText = sourceText.trim();
+    if (!trimmedText || trimmedText.length === 0) return [];
+    
     const normSummary = normalize(sourceText);
     
-    return tags
+    // 정규화된 텍스트도 비어있으면 매칭하지 않음
+    if (!normSummary || normSummary.length === 0) return [];
+    
+    console.log('[태그 매칭] 정규화된 텍스트:', normSummary.substring(0, 200));
+    console.log('[태그 매칭] 전체 태그 개수:', tags.length);
+    
+    const matched = tags
       .filter((tag) => {
         // label + keywords 전부를 후보 키로 사용
         const keys = [tag.label, ...(tag.keywords || [])];
         
-        return keys.some((key) => {
+        const isMatched = keys.some((key) => {
           const normKey = normalize(key);
-          if (!normKey) return false;
-          return normSummary.includes(normKey);
+          if (!normKey || normKey.length === 0) return false;
+          const found = normSummary.includes(normKey);
+          if (found) {
+            console.log('[태그 매칭] 매칭 성공:', tag.label, '-> 키워드:', key, '-> 정규화:', normKey);
+          }
+          return found;
         });
+        
+        return isMatched;
       })
       .map((tag) => tag.id);
+    
+    console.log('[태그 매칭] 최종 매칭된 태그 ID:', matched);
+    return matched;
   };
 
   // resultData가 변경될 때마다 태그 자동 추출 (isAutoTaggingEnabled에 따라)
   // 태그 매칭은 rawTranscript(원본 텍스트)를 우선 사용, 없으면 요약 텍스트 사용
   useEffect(() => {
-    if (resultData) {
-      if (isAutoTaggingEnabled) {
-        // 원본 텍스트 우선 사용, 없으면 요약 텍스트 사용
-        const sourceText = rawTranscript || (() => {
-          const allContent = [
-            resultData.title || '',
-            ...(resultData.sections || []).flatMap(section => 
-              (section.content || []).join(' ')
-            )
-          ].join(' ');
-          return allContent;
-        })();
-        
-        const extractedTags = extractTagsFromContent(sourceText, visitTags);
-        setServiceTags(extractedTags);
-        
-        // 방문 태그 선택 UI용: 원본 텍스트에서 태그 매칭
-        if (allVisitTags.length > 0) {
-          const matched = matchTagsFromSummary(sourceText, allVisitTags);
-          setRecommendedTagIds(matched);
-          // 기본값: 추천된 태그는 전부 ON 상태
-          setSelectedTagIds(matched);
-        }
-        
-        // 고객 특징 태그 선택 UI용: 원본 텍스트에서 태그 매칭
-        if (allCustomerTags.length > 0) {
-          const matchedCustomerTags = matchTagsFromSummary(sourceText, allCustomerTags);
-          setRecommendedCustomerTagIds(matchedCustomerTags);
-          
-          // 기존 고객 태그와 AI가 찾은 태그 병합 (Smart Merge)
-          if (selectedCustomerForRecord) {
-            const existingCustomerTags = selectedCustomerForRecord.customerTags || {};
-            const existingTagLabels = [];
-            Object.values(existingCustomerTags).forEach(categoryTags => {
-              if (Array.isArray(categoryTags)) {
-                categoryTags.forEach(tag => {
-                  const label = typeof tag === 'string' ? tag : tag.label || tag;
-                  existingTagLabels.push(label);
-                });
-              }
-            });
-            
-            // 기존 태그 ID 찾기
-            const existingTagIds = allCustomerTags
-              .filter(tag => existingTagLabels.includes(tag.label))
-              .map(tag => tag.id);
-            
-            // AI가 찾은 새 태그 ID 찾기
-            const newTagIds = matchedCustomerTags.filter(id => !existingTagIds.includes(id));
-            
-            // 병합: 기존 태그 + AI가 찾은 새 태그 (중복 제거)
-            const mergedTagIds = [...new Set([...existingTagIds, ...matchedCustomerTags])];
-            setSelectedCustomerTagIds(mergedTagIds);
-            setNewCustomerTagIds(newTagIds);
-          } else {
-            // 신규 고객인 경우 AI가 찾은 태그만 사용
-            setSelectedCustomerTagIds(matchedCustomerTags);
-            setNewCustomerTagIds(matchedCustomerTags);
-          }
-        }
-      } else {
-        // OFF일 경우: 빈 배열로 시작 (사용자가 수동으로 추가)
-        setServiceTags([]);
-        setRecommendedTagIds([]);
-        setSelectedTagIds([]);
-      }
-    } else {
+    if (!isAutoTaggingEnabled) {
+      // OFF일 경우: 빈 배열로 시작 (사용자가 수동으로 추가)
       setServiceTags([]);
       setRecommendedTagIds([]);
       setSelectedTagIds([]);
+      setRecommendedCustomerTagIds([]);
+      setSelectedCustomerTagIds([]);
+      setNewCustomerTagIds([]);
+      return;
+    }
+    
+    // 원본 텍스트 우선 사용, 없으면 요약 텍스트 사용
+    const sourceText = rawTranscript || (() => {
+      if (!resultData) return '';
+      const allContent = [
+        resultData.title || '',
+        ...(resultData.sections || []).flatMap(section => 
+          (section.content || []).join(' ')
+        )
+      ].join(' ');
+      return allContent;
+    })();
+    
+    // 텍스트가 비어있거나 의미있는 내용이 없으면 태그 매칭하지 않음
+    const trimmedSourceText = sourceText?.trim();
+    if (!trimmedSourceText || trimmedSourceText.length === 0) {
+      setServiceTags([]);
+      setRecommendedTagIds([]);
+      setSelectedTagIds([]);
+      setRecommendedCustomerTagIds([]);
+      setSelectedCustomerTagIds([]);
+      setNewCustomerTagIds([]);
+      return;
+    }
+    
+    console.log('[태그 자동 추출] sourceText 길이:', sourceText?.length);
+    console.log('[태그 자동 추출] sourceText 처음 200자:', sourceText?.substring(0, 200));
+    
+    const extractedTags = extractTagsFromContent(sourceText, visitTags);
+    setServiceTags(extractedTags);
+    
+    // 방문 태그 선택 UI용: 원본 텍스트에서 태그 매칭
+    if (allVisitTags.length > 0) {
+      const matched = matchTagsFromSummary(sourceText, allVisitTags);
+      console.log('[방문 태그 자동 선택] 원본 텍스트:', sourceText?.substring(0, 100));
+      console.log('[방문 태그 자동 선택] 매칭된 태그 ID:', matched);
+      const matchedTagLabels = matched.map(id => {
+        const tag = allVisitTags.find(t => t.id === id);
+        return tag ? tag.label : id;
+      });
+      console.log('[방문 태그 자동 선택] 매칭된 태그 라벨:', matchedTagLabels);
+      setRecommendedTagIds(matched);
+      // 기본값: 추천된 태그는 전부 ON 상태
+      setSelectedTagIds(matched);
+    }
+    
+    // 고객 특징 태그 선택 UI용: 원본 텍스트에서 태그 매칭
+    if (allCustomerTags.length > 0) {
+      console.log('[태그 자동 선택] sourceText 길이:', sourceText?.length);
+      console.log('[태그 자동 선택] sourceText 처음 200자:', sourceText?.substring(0, 200));
+      console.log('[태그 자동 선택] allCustomerTags 개수:', allCustomerTags.length);
+      console.log('[태그 자동 선택] allCustomerTags 샘플 (처음 5개):', allCustomerTags.slice(0, 5).map(t => ({ id: t.id, label: t.label, category: t.category })));
+      const matchedCustomerTags = matchTagsFromSummary(sourceText, allCustomerTags);
+      console.log('[태그 자동 선택] 원본 텍스트:', sourceText?.substring(0, 100));
+      console.log('[태그 자동 선택] 매칭된 태그 ID:', matchedCustomerTags);
+      const matchedTagLabels = matchedCustomerTags.map(id => {
+        const tag = allCustomerTags.find(t => t.id === id);
+        return tag ? tag.label : id;
+      });
+      console.log('[태그 자동 선택] 매칭된 태그 라벨:', matchedTagLabels);
+      setRecommendedCustomerTagIds(matchedCustomerTags);
+      
+      // 텍스트가 비어있으면 태그를 선택하지 않음 (기존 고객 태그도 표시하지 않음)
+      if (matchedCustomerTags.length === 0) {
+        setSelectedCustomerTagIds([]);
+        setNewCustomerTagIds([]);
+      } else {
+        // 기존 고객 태그와 AI가 찾은 태그 병합 (Smart Merge)
+        if (selectedCustomerForRecord) {
+          const existingCustomerTags = selectedCustomerForRecord.customerTags || {};
+          const existingTagLabels = [];
+          Object.values(existingCustomerTags).forEach(categoryTags => {
+            if (Array.isArray(categoryTags)) {
+              categoryTags.forEach(tag => {
+                const label = typeof tag === 'string' ? tag : tag.label || tag;
+                existingTagLabels.push(label);
+              });
+            }
+          });
+          
+          // 기존 태그 ID 찾기
+          const existingTagIds = allCustomerTags
+            .filter(tag => existingTagLabels.includes(tag.label))
+            .map(tag => tag.id);
+          
+          // AI가 찾은 새 태그 ID 찾기
+          const newTagIds = matchedCustomerTags.filter(id => !existingTagIds.includes(id));
+          
+          // 병합: 기존 태그 + AI가 찾은 새 태그 (중복 제거)
+          const mergedTagIds = [...new Set([...existingTagIds, ...matchedCustomerTags])];
+          setSelectedCustomerTagIds(mergedTagIds);
+          setNewCustomerTagIds(newTagIds);
+        } else {
+          // 신규 고객인 경우 AI가 찾은 태그만 사용
+          setSelectedCustomerTagIds(matchedCustomerTags);
+          setNewCustomerTagIds(matchedCustomerTags);
+        }
+      }
     }
   }, [resultData, rawTranscript, isAutoTaggingEnabled, allVisitTags, allCustomerTags, selectedCustomerForRecord]);
 
@@ -5512,8 +5570,8 @@ export default function MalloApp() {
               className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm" style={{ backgroundColor: '#C9A27A' }}>
-                  <Tag size={20} className="text-white" />
+                <div className="w-10 h-10 rounded-xl bg-[#F2F0E6] flex items-center justify-center">
+                  <span className="text-xl font-bold" style={{ color: '#C9A27A' }}>#</span>
                 </div>
                 <span className="text-sm font-medium" style={{ color: '#232323' }}>시술 태그/키워드 관리</span>
               </div>
