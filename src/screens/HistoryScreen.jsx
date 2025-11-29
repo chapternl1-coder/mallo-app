@@ -3,17 +3,21 @@ import { ArrowLeft, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatRecordDateTime } from '../utils/date';
 
 function HistoryScreen({
-  visits,
-  customers,
+  allRecords,
   selectedDate,
   setSelectedDate,
+  currentTheme,
+  setCurrentScreen,
+  setSelectedCustomerId,
+  setEditingVisit,
+  setEditingCustomer,
+  // 추가로 필요한 props들
+  customers,
   getTodayDateString,
   extractServiceDateFromSummary,
   extractServiceDateTimeLabel,
   formatRecordDateTime,
   setActiveTab,
-  setCurrentScreen,
-  setSelectedCustomerId,
   expandedHistoryIds,
   setExpandedHistoryIds
 }) {
@@ -41,32 +45,6 @@ function HistoryScreen({
 
     return updated;
   };
-
-  // 전체 시술 기록 수집 (모든 고객의 방문 기록)
-  const allRecords = [];
-  Object.keys(visits).forEach(customerId => {
-    const customerVisits = visits[customerId];
-    customerVisits.forEach(visit => {
-      const customer = customers.find(c => c.id === parseInt(customerId));
-      
-      // serviceDate가 없으면 detail.sections에서 파싱 시도
-      let finalServiceDate = visit.serviceDate;
-      if (!finalServiceDate && visit.detail && visit.detail.sections) {
-        const visitData = {
-          sections: visit.detail.sections
-        };
-        finalServiceDate = extractServiceDateFromSummary(visitData);
-      }
-      
-      allRecords.push({
-        ...visit,
-        serviceDate: finalServiceDate || visit.serviceDate || visit.date, // 파싱된 날짜 또는 기존 serviceDate 또는 date
-        customerName: customer?.name || '알 수 없음',
-        customerId: parseInt(customerId),
-        customer: customer // 고객 정보 전체를 포함
-      });
-    });
-  });
 
   // 오늘 날짜 구하기
   const todayStr = getTodayDateString();
@@ -127,8 +105,13 @@ function HistoryScreen({
     return `${year}년 ${parseInt(month)}월 ${parseInt(day)}일`;
   };
 
+  // 테마 색상 사용 (currentTheme이 없으면 기본값 사용)
+  const bgColor = currentTheme?.pastel || '#F2F0E6';
+  const textColor = currentTheme?.text || '#232323';
+  const accentColor = currentTheme?.color || '#C9A27A';
+
   return (
-    <div className="flex flex-col h-full relative pb-[60px]" style={{ backgroundColor: '#F2F0E6' }}>
+    <div className="flex flex-col h-full relative pb-[60px]" style={{ backgroundColor: bgColor }}>
       {/* Header */}
       <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
         <button 
@@ -137,14 +120,14 @@ function HistoryScreen({
             setCurrentScreen('Home');
           }}
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
-          style={{ color: '#232323' }}
+          style={{ color: textColor }}
         >
           <ArrowLeft size={24} />
         </button>
         <div className="text-center">
-          <h2 className="text-xl font-bold" style={{ color: '#232323' }}>전체 기록</h2>
+          <h2 className="text-xl font-bold" style={{ color: textColor }}>전체 기록</h2>
           {selectedDate && (
-            <p className="text-xs font-light mt-1" style={{ color: '#232323', opacity: 0.6 }}>
+            <p className="text-xs font-light mt-1" style={{ color: textColor, opacity: 0.6 }}>
               {formatDate(selectedDate)} 기록
             </p>
           )}
@@ -152,17 +135,17 @@ function HistoryScreen({
         <div className="w-10"></div> {/* 공간 맞추기용 */}
       </header>
 
-      <main className="flex-1 overflow-y-auto p-8 space-y-4 pb-8" style={{ backgroundColor: '#F2F0E6' }}>
+      <main className="flex-1 overflow-y-auto p-8 space-y-4 pb-8" style={{ backgroundColor: bgColor }}>
         {/* 날짜 필터 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
           <div className="flex items-center gap-3">
-            <Calendar size={20} style={{ color: '#C9A27A' }} />
+            <Calendar size={20} style={{ color: accentColor }} />
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               className="flex-1 px-4 py-2 rounded-xl border border-gray-200 focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A] outline-none transition-all text-sm"
-              style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
+              style={{ color: textColor, backgroundColor: '#FFFFFF' }}
             />
             {selectedDate && (
               <button
@@ -170,7 +153,7 @@ function HistoryScreen({
                   setSelectedDate(getTodayDateString()); // 전체가 아닌 오늘 날짜로 초기화
                 }}
                 className="px-3 py-2 text-xs font-medium rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
-                style={{ color: '#232323' }}
+                style={{ color: textColor }}
               >
                 오늘
               </button>
@@ -180,14 +163,14 @@ function HistoryScreen({
 
         {/* 전체 시술 기록 */}
         <div className="space-y-4">
-          <h3 className="text-base font-bold flex items-center gap-2" style={{ color: '#232323' }}>
+          <h3 className="text-base font-bold flex items-center gap-2" style={{ color: textColor }}>
             <span>📅</span>
             <span>{selectedDate ? formatDate(selectedDate) + ' 기록' : '전체 시술 기록'}</span>
           </h3>
           
           {filteredRecords.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
-              <p className="font-light text-base" style={{ color: '#232323', opacity: 0.6 }}>
+              <p className="font-light text-base" style={{ color: textColor, opacity: 0.6 }}>
                 {selectedDate ? '해당 날짜의 시술 기록이 없습니다' : '시술 기록이 없습니다'}
               </p>
             </div>
@@ -368,7 +351,7 @@ function HistoryScreen({
                       {/* 윗줄: 시간 */}
                       {reservationTimeLabel && (
                         <div className="mb-1">
-                          <span className="text-xs font-bold text-[#C9A27A]">
+                          <span className="text-xs font-bold" style={{ color: accentColor }}>
                             {reservationTimeLabel}
                           </span>
                         </div>
@@ -384,7 +367,7 @@ function HistoryScreen({
                               handleCustomerClick(record);
                             }}
                           >
-                            <span className="text-lg font-bold text-[#232323]">{displayName}</span>
+                            <span className="text-lg font-bold" style={{ color: textColor }}>{displayName}</span>
                           </button>
                           {/* 번호 */}
                           {displayPhone && displayPhone !== '전화번호 미기재' && (
@@ -404,9 +387,9 @@ function HistoryScreen({
                         }}
                       >
                         {expandedHistoryIds.has(record.id) ? (
-                          <ChevronUp size={20} style={{ color: '#C9A27A' }} />
+                          <ChevronUp size={20} style={{ color: accentColor }} />
                         ) : (
-                          <ChevronDown size={20} style={{ color: '#C9A27A' }} />
+                          <ChevronDown size={20} style={{ color: accentColor }} />
                         )}
                       </button>
                     </div>
@@ -420,7 +403,7 @@ function HistoryScreen({
                       }}
                       style={{ cursor: 'pointer' }}
                     >
-                      <div className="text-sm text-[#232323]/80 font-medium truncate">
+                      <div className="text-sm font-medium truncate" style={{ color: textColor, opacity: 0.8 }}>
                         {(() => {
                           // title에서 고객 이름과 '기존 고객', '신규 고객' 텍스트 제거
                           let cleanedTitle = record.title || '';
@@ -453,12 +436,12 @@ function HistoryScreen({
                         
                         return (
                           <div key={idx}>
-                            <h5 className="text-base font-bold mb-3" style={{ color: '#232323' }}>
+                            <h5 className="text-base font-bold mb-3" style={{ color: textColor }}>
                               {section.title}
                             </h5>
                             <ul className="space-y-2">
                               {section.content.map((item, i) => (
-                                <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
+                                <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: textColor, borderLeft: '2px solid #E5E7EB' }}>
                                   {overrideCustomerInfoLine(item, customerInfoForOverride)}
                                 </li>
                               ))}
@@ -489,4 +472,3 @@ function HistoryScreen({
 }
 
 export default HistoryScreen;
-
