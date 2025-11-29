@@ -1497,6 +1497,16 @@ export default function MalloApp() {
     care: ['영양', '랩핑', '제거']
   });
   
+  // 방문 태그 선택 UI용 상태
+  // visitTags를 객체 배열로 변환한 전체 태그 리스트
+  const [allVisitTags, setAllVisitTags] = useState([]);
+  // AI가 요약에서 찾아낸 추천 태그들의 id
+  const [recommendedTagIds, setRecommendedTagIds] = useState([]);
+  // 실제로 최종 저장될 선택된 태그들의 id
+  const [selectedTagIds, setSelectedTagIds] = useState([]);
+  // 태그 선택 바텀시트/모달 오픈 여부
+  const [isTagPickerOpen, setIsTagPickerOpen] = useState(false);
+  
   // 고객 특징 태그 관리 목록 (고객용)
   const [customerTags, setCustomerTags] = useState({
     trait: ['수다쟁이', '조용함', '친절함'],
@@ -1760,6 +1770,49 @@ export default function MalloApp() {
     saveToLocalStorage('mallo_visits', visits);
   }, [visits]);
 
+  // visitTags를 객체 배열로 변환하는 함수
+  const convertVisitTagsToArray = (tags) => {
+    const result = [];
+    Object.keys(tags).forEach(category => {
+      tags[category].forEach((label, index) => {
+        // 이미 객체인 경우와 문자열인 경우 모두 처리
+        if (typeof label === 'object' && label.label) {
+          result.push({
+            id: label.id || `${category}-${index}`,
+            label: label.label,
+            category: category
+          });
+        } else {
+          result.push({
+            id: `${category}-${index}-${label}`,
+            label: label,
+            category: category
+          });
+        }
+      });
+    });
+    return result;
+  };
+
+  // visitTags가 변경될 때 allVisitTags 업데이트
+  useEffect(() => {
+    const converted = convertVisitTagsToArray(visitTags);
+    setAllVisitTags(converted);
+  }, [visitTags]);
+
+  // 태그 매칭 함수: 요약 텍스트에서 태그 찾기
+  const matchTagsFromSummary = (summary, tags) => {
+    if (!summary || !tags || tags.length === 0) return [];
+    const lower = summary.toLowerCase();
+    
+    return tags
+      .filter((tag) => {
+        const label = tag.label.toLowerCase();
+        return lower.includes(label);
+      })
+      .map((tag) => tag.id);
+  };
+
   // resultData가 변경될 때마다 태그 자동 추출 (isAutoTaggingEnabled에 따라)
   useEffect(() => {
     if (resultData) {
@@ -1774,14 +1827,26 @@ export default function MalloApp() {
         
         const extractedTags = extractTagsFromContent(allContent, visitTags);
         setServiceTags(extractedTags);
+        
+        // 방문 태그 선택 UI용: 요약에서 태그 매칭
+        if (allVisitTags.length > 0) {
+          const matched = matchTagsFromSummary(allContent, allVisitTags);
+          setRecommendedTagIds(matched);
+          // 기본값: 추천된 태그는 전부 ON 상태
+          setSelectedTagIds(matched);
+        }
       } else {
         // OFF일 경우: 빈 배열로 시작 (사용자가 수동으로 추가)
         setServiceTags([]);
+        setRecommendedTagIds([]);
+        setSelectedTagIds([]);
       }
     } else {
       setServiceTags([]);
+      setRecommendedTagIds([]);
+      setSelectedTagIds([]);
     }
-  }, [resultData, isAutoTaggingEnabled]);
+  }, [resultData, isAutoTaggingEnabled, allVisitTags]);
 
   // 컴포넌트 마운트 시 MOCK_CUSTOMERS 데이터를 localStorage에 강제 업데이트
   useEffect(() => {
@@ -2442,6 +2507,127 @@ export default function MalloApp() {
   );
   };
 
+  // 태그 선택 모달 컴포넌트
+  const TagPickerModal = ({ allVisitTags, selectedTagIds, onClose, onChangeSelected }) => {
+    const [activeCategory, setActiveCategory] = useState('all');
+    const [search, setSearch] = useState('');
+
+    const categoryLabels = {
+      'all': '전체',
+      'procedure': '시술',
+      'design': '디자인',
+      'care': '케어'
+    };
+
+    const filteredTags = allVisitTags.filter((tag) => {
+      if (activeCategory !== 'all' && tag.category !== activeCategory) return false;
+      if (!search) return true;
+      return tag.label.toLowerCase().includes(search.toLowerCase());
+    });
+
+    const toggleTag = (tagId) => {
+      onChangeSelected(
+        selectedTagIds.includes(tagId)
+          ? selectedTagIds.filter((id) => id !== tagId)
+          : [...selectedTagIds, tagId]
+      );
+    };
+
+    return (
+      <div 
+        className="fixed inset-0 z-50 flex items-end justify-center"
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+        onClick={onClose}
+      >
+        <div 
+          className="bg-white rounded-t-3xl w-full max-w-md max-h-[80vh] flex flex-col shadow-lg"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <header className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 className="text-lg font-bold" style={{ color: '#232323' }}>태그 추가</h3>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              style={{ color: '#232323' }}
+            >
+              <X size={20} />
+            </button>
+          </header>
+
+          {/* 카테고리 탭 */}
+          <div className="flex gap-2 px-6 py-4 border-b border-gray-200 overflow-x-auto">
+            {['all', 'procedure', 'design', 'care'].map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setActiveCategory(cat)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                  activeCategory === cat
+                    ? 'bg-[#C9A27A] text-white'
+                    : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                {categoryLabels[cat]}
+              </button>
+            ))}
+          </div>
+
+          {/* 검색 */}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <input
+              type="text"
+              placeholder="태그 검색…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A]"
+              style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
+            />
+          </div>
+
+          {/* 태그 리스트 */}
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div className="flex flex-wrap gap-2">
+              {filteredTags.length === 0 ? (
+                <p className="text-sm w-full text-center" style={{ color: '#232323', opacity: 0.5 }}>
+                  해당 조건에 맞는 태그가 없어요.
+                </p>
+              ) : (
+                filteredTags.map((tag) => {
+                  const isSelected = selectedTagIds.includes(tag.id);
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => toggleTag(tag.id)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                        isSelected
+                          ? 'bg-[#C9A27A] text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-600 border border-gray-200'
+                      }`}
+                    >
+                      {tag.label}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          <footer className="px-6 py-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full py-3 rounded-xl font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all"
+              style={{ backgroundColor: '#C9A27A' }}
+            >
+              완료
+            </button>
+          </footer>
+        </div>
+      </div>
+    );
+  };
+
   const renderRecording = () => (
     <div className="flex flex-col h-full bg-white relative items-center justify-center overflow-hidden">
       {/* 배경 효과 - 따뜻한 크림색 파동 */}
@@ -2738,6 +2924,72 @@ export default function MalloApp() {
           </div>
         </div>
 
+        {/* 방문 태그 선택 UI */}
+        <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+          <div className="mb-4">
+            <h3 className="text-base font-bold mb-2" style={{ color: '#232323' }}>방문 태그 (선택사항)</h3>
+            <p className="text-sm" style={{ color: '#232323', opacity: 0.7 }}>
+              AI가 요약에서 태그 후보를 찾아봤어요. 필요한 것만 남겨주세요.
+            </p>
+          </div>
+
+          {/* 추천 태그 칩들 */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {recommendedTagIds.length === 0 ? (
+              <p className="text-sm" style={{ color: '#232323', opacity: 0.5 }}>
+                추천 태그가 없어요. 필요한 경우 아래에서 직접 추가할 수 있어요.
+              </p>
+            ) : (
+              recommendedTagIds.map((tagId) => {
+                const tag = allVisitTags.find((t) => t.id === tagId);
+                if (!tag) return null;
+
+                const isSelected = selectedTagIds.includes(tag.id);
+
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTagIds((prev) =>
+                        prev.includes(tag.id)
+                          ? prev.filter((id) => id !== tag.id) // OFF
+                          : [...prev, tag.id]                   // ON
+                      );
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                      isSelected 
+                        ? 'bg-[#C9A27A] text-white shadow-sm' 
+                        : 'bg-gray-100 text-gray-600 border border-gray-200'
+                    }`}
+                  >
+                    {tag.label}
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          {/* 태그 더 추가하기 버튼 */}
+          <button
+            type="button"
+            onClick={() => setIsTagPickerOpen(true)}
+            className="w-full py-2.5 rounded-xl text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            + 태그 더 추가하기
+          </button>
+        </section>
+
+        {/* 태그 선택 모달 */}
+        {isTagPickerOpen && (
+          <TagPickerModal
+            allVisitTags={allVisitTags}
+            selectedTagIds={selectedTagIds}
+            onClose={() => setIsTagPickerOpen(false)}
+            onChangeSelected={(nextSelected) => setSelectedTagIds(nextSelected)}
+          />
+        )}
+
         {/* Transcript Toggle */}
           <details className="group bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <summary className="font-medium text-base cursor-pointer p-5 flex justify-between items-center hover:bg-gray-50 transition-colors select-none" style={{ color: '#232323' }}>
@@ -2847,7 +3099,18 @@ export default function MalloApp() {
                     detail: {
                       sections: resultData.sections
                     },
-                    tags: serviceTags || [] // 시술 태그 (방문 히스토리 카드에 표시용)
+                    tags: (() => {
+                      // selectedTagIds를 태그 label 배열로 변환
+                      const selectedTagLabels = selectedTagIds
+                        .map(id => {
+                          const tag = allVisitTags.find(t => t.id === id);
+                          return tag ? tag.label : null;
+                        })
+                        .filter(label => label !== null);
+                      // serviceTags와 합치기 (중복 제거)
+                      const allTags = [...new Set([...serviceTags, ...selectedTagLabels])];
+                      return allTags;
+                    })() // 방문 히스토리 카드에 표시용
                   };
                   
                   console.log('[기존 고객 저장] 저장되는 newVisit 객체:', JSON.stringify(newVisit, null, 2));
@@ -3033,7 +3296,18 @@ export default function MalloApp() {
                     detail: {
                       sections: resultData.sections
                     },
-                    tags: serviceTags || [] // 시술 태그 (방문 히스토리 카드에 표시용)
+                    tags: (() => {
+                      // selectedTagIds를 태그 label 배열로 변환
+                      const selectedTagLabels = selectedTagIds
+                        .map(id => {
+                          const tag = allVisitTags.find(t => t.id === id);
+                          return tag ? tag.label : null;
+                        })
+                        .filter(label => label !== null);
+                      // serviceTags와 합치기 (중복 제거)
+                      const allTags = [...new Set([...serviceTags, ...selectedTagLabels])];
+                      return allTags;
+                    })() // 방문 히스토리 카드에 표시용
                   };
                   
                   console.log('[신규 고객 저장] 저장되는 newVisit 객체:', JSON.stringify(newVisit, null, 2));
@@ -4435,8 +4709,17 @@ export default function MalloApp() {
           {/* 설명 텍스트 */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
             <p className="text-sm font-light leading-relaxed" style={{ color: '#232323', opacity: 0.7 }}>
-              시술 태그를 미리 등록해두면,<br/>
-              녹음 후 결과 화면에서 빠르게 태그를 선택할 수 있어요.
+              {tagSettingsMainTab === 'visit' ? (
+                <>
+                  자주 쓰는 시술 용어를 등록해두세요.<br/>
+                  AI가 녹음 내용을 분석할 때, 원장님만의 태그를 쏙쏙 뽑아줍니다.
+                </>
+              ) : (
+                <>
+                  고객 특징 키워드를 등록해두면,<br/>
+                  AI가 대화 속에서 정보를 캐치하여 프로필에 자동으로 정리해줍니다.
+                </>
+              )}
             </p>
           </div>
 
