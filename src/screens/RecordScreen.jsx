@@ -1,0 +1,1030 @@
+import React from 'react';
+import { Square, Scissors, ArrowLeft, MoreHorizontal, Phone, Edit, ChevronRight } from 'lucide-react';
+
+// WaveBars 컴포넌트
+const WaveBars = () => (
+  <div className="flex items-center justify-center gap-1 h-12">
+    {[...Array(5)].map((_, i) => (
+      <div 
+        key={i} 
+        className="w-1.5 rounded-full animate-pulse"
+        style={{ 
+          backgroundColor: '#C9A27A',
+          opacity: 0.6,
+          animationDelay: `${i * 0.15}s`, 
+          animationDuration: '0.6s' 
+        }}
+      ></div>
+    ))}
+  </div>
+);
+
+// SkeletonLoader 컴포넌트
+const SkeletonLoader = () => (
+  <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-5 w-full animate-pulse">
+    <div className="h-6 bg-gray-200 rounded-2xl w-3/4 mb-6"></div>
+    {[...Array(3)].map((_, i) => (
+      <div key={i} className="space-y-3">
+        <div className="h-4 bg-gray-200 rounded-2xl w-1/3"></div>
+        <div className="h-3 bg-gray-100 rounded-2xl w-full"></div>
+        <div className="h-3 bg-gray-100 rounded-2xl w-5/6"></div>
+      </div>
+    ))}
+  </div>
+);
+
+function RecordScreen({
+  recordState,
+  recordingTime,
+  formatTime,
+  stopRecording,
+  cancelRecording,
+  resultData,
+  resetFlow,
+  getTodayDate,
+  selectedCustomerForRecord,
+  tempName,
+  setTempName,
+  tempPhone,
+  setTempPhone,
+  nameInputRef,
+  phoneInputRef,
+  handlePhoneChange,
+  currentSector,
+  userProfile,
+  DEV_MODE,
+  testSummaryInput,
+  setTestSummaryInput,
+  isTestingSummary,
+  handleTestSummarize,
+  recommendedTagIds,
+  setRecommendedTagIds,
+  selectedTagIds,
+  setSelectedTagIds,
+  allVisitTags,
+  isAutoTaggingEnabled,
+  setIsTagPickerOpen,
+  isTagPickerOpen,
+  selectedCustomerTagIds,
+  setSelectedCustomerTagIds,
+  newCustomerTagIds,
+  setNewCustomerTagIds,
+  allCustomerTags,
+  setIsCustomerTagPickerOpen,
+  isCustomerTagPickerOpen,
+  transcript,
+  recordingDate,
+  formatRecordingDate,
+  setTempResultData,
+  setCurrentScreen,
+  extractServiceDateFromSummary,
+  customers,
+  setCustomers,
+  visits,
+  setVisits,
+  setSelectedCustomerId,
+  serviceTags,
+  setServiceTags,
+  rawTranscript,
+  setResultData,
+  setTranscript,
+  setRawTranscript,
+  setRecordingDate,
+  setSelectedCustomerForRecord,
+  setNewServiceTag,
+  TagPickerModal,
+  CustomerTagPickerModal
+}) {
+  // recordState에 따라 다른 화면 렌더링
+  if (recordState === 'recording' || recordState === 'idle') {
+    return (
+      <div className="flex flex-col h-full bg-white relative items-center justify-center overflow-hidden">
+        {/* 배경 효과 - 따뜻한 크림색 파동 */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse opacity-20" style={{ backgroundColor: '#C9A27A', animationDuration: '4s' }}></div>
+          <div className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl animate-pulse opacity-15" style={{ backgroundColor: '#C9A27A', animationDuration: '5s', animationDelay: '1s' }}></div>
+          <div className="absolute top-1/2 right-1/3 w-88 h-88 rounded-full blur-3xl animate-pulse opacity-20" style={{ backgroundColor: '#F2F0E6', animationDuration: '6s', animationDelay: '0.5s' }}></div>
+          <div className="absolute bottom-1/4 left-1/3 w-72 h-72 rounded-full blur-3xl animate-pulse opacity-15" style={{ backgroundColor: '#F2F0E6', animationDuration: '4.5s', animationDelay: '2s' }}></div>
+        </div>
+
+        {/* 타이머 영역 */}
+        <div className="z-10 text-center mb-10">
+          <h2 className="text-sm font-medium tracking-widest uppercase mb-4" style={{ color: '#C9A27A', opacity: 0.8 }}>Recording</h2>
+          <p 
+            className="text-7xl font-mono font-light tracking-tighter tabular-nums"
+            style={{
+              color: '#232323',
+              textShadow: '0 2px 10px rgba(201, 162, 122, 0.2)'
+            }}
+          >
+            {formatTime(recordingTime)}
+          </p>
+        </div>
+
+        {/* Visualizer & Button */}
+        <div className="z-10 flex flex-col items-center gap-8">
+          <WaveBars />
+          
+          {/* 정지 버튼 - 물결(Ripple) 애니메이션 */}
+          <button 
+            onClick={stopRecording}
+            className="group relative flex items-center justify-center"
+            style={{ width: '136px', height: '136px' }}
+          >
+            {/* 물결 효과 - 여러 겹의 원 (골드 브라운 톤) */}
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute rounded-full border-2"
+                style={{
+                  width: '136px',
+                  height: '136px',
+                  borderColor: 'rgba(201, 162, 122, 0.3)',
+                  animation: `ping ${2.5 + i * 0.4}s cubic-bezier(0, 0, 0.2, 1) infinite`,
+                  animationDelay: `${i * 0.25}s`,
+                  left: '50%',
+                  top: '50%',
+                  transform: 'translate(-50%, -50%)',
+                }}
+              ></div>
+            ))}
+            
+            {/* 버튼 본체 */}
+            <div className="absolute inset-0 rounded-full blur-xl transition-colors" style={{ backgroundColor: 'rgba(201, 162, 122, 0.15)' }}></div>
+            <div 
+              className="relative rounded-full flex items-center justify-center group-hover:scale-105 group-active:scale-95 transition-all duration-200 z-10"
+              style={{ 
+                width: '136px',
+                height: '136px',
+                backgroundColor: '#C9A27A',
+                boxShadow: '0 10px 40px rgba(201, 162, 122, 0.4), 0 0 20px rgba(201, 162, 122, 0.2)'
+              }}
+            >
+              <Square size={32} fill="white" stroke="white" className="ml-0.5" />
+            </div>
+          </button>
+        </div>
+
+        {/* 취소 버튼 */}
+        <div className="absolute bottom-16 w-full px-8 flex justify-center z-10">
+          <button
+            onClick={cancelRecording}
+            className="px-6 py-2 text-sm font-medium rounded-full transition-all duration-200 hover:opacity-70"
+            style={{ 
+              color: '#232323',
+              backgroundColor: 'rgba(35, 35, 35, 0.05)',
+              border: '1px solid rgba(35, 35, 35, 0.1)'
+            }}
+          >
+            취소하기
+          </button>
+        </div>
+
+        <div className="absolute bottom-32 w-full px-8 text-center z-10">
+          <p 
+            className="text-sm leading-relaxed font-light bg-white/80 py-3 px-4 rounded-xl border backdrop-blur-sm"
+            style={{ 
+              color: '#232323', 
+              opacity: 0.7,
+              borderColor: 'rgba(201, 162, 122, 0.2)'
+            }}
+          >
+            💡 Tip: 고객 이름, 시술 종류, 결제 금액을<br/>구체적으로 말하면 더 정확해요.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (recordState === 'processing') {
+    return (
+      <div className="flex flex-col h-full px-8 pt-24 pb-12" style={{ backgroundColor: '#F2F0E6' }}>
+        <div className="text-center mb-12">
+          <div className="inline-block p-5 rounded-2xl bg-white shadow-md border border-gray-200 mb-6 animate-bounce" style={{ backgroundColor: '#FFFFFF' }}>
+            <Scissors size={32} style={{ color: '#C9A27A' }} />
+          </div>
+          <h2 className="text-2xl font-bold mb-3" style={{ color: '#232323' }}>시술 기록 정리 중</h2>
+          <p className="font-light" style={{ color: '#232323' }}>AI가 내용을 분석하고 서식을 적용하고 있습니다.</p>
+        </div>
+        
+        <div className="flex-1 w-full max-w-sm mx-auto space-y-5 opacity-50">
+          <SkeletonLoader />
+        </div>
+
+        <div className="text-sm text-center font-light mt-auto" style={{ color: '#232323', opacity: 0.6 }}>
+          Processing transcript...<br/>
+          Applying beauty salon template...
+        </div>
+      </div>
+    );
+  }
+
+  // recordState === 'result'인 경우
+  if (!resultData) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center" style={{ backgroundColor: '#F2F0E6' }}>
+        <p style={{ color: '#232323' }}>결과 데이터가 없습니다.</p>
+        <button onClick={resetFlow} className="mt-4 font-medium" style={{ color: '#232323' }}>홈으로 돌아가기</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full relative" style={{ backgroundColor: '#F2F0E6' }}>
+      {/* Header */}
+      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
+        <button onClick={resetFlow} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
+          <ArrowLeft size={24} />
+        </button>
+        <div className="text-center">
+          <span className="text-xs font-medium" style={{ color: '#232323', opacity: 0.7 }}>시술 기록</span>
+          <h2 className="font-bold text-base mt-1" style={{ color: '#232323' }}>{getTodayDate()}</h2>
+        </div>
+        <button className="p-2" style={{ color: '#232323', opacity: 0.5 }}>
+          <MoreHorizontal size={24} />
+        </button>
+      </header>
+
+      <main className="flex-1 overflow-y-auto p-8 space-y-5 pb-32" style={{ backgroundColor: '#F2F0E6' }}>
+        {/* 고객 정보 표시 - selectedCustomerForRecord가 있으면 카드, 없으면 입력창 */}
+        {selectedCustomerForRecord ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+            <div className="flex items-center gap-4">
+              <div className="text-4xl">{selectedCustomerForRecord.avatar}</div>
+              <div className="flex-1">
+                <h3 className="font-bold text-lg mb-1" style={{ color: '#232323' }}>{selectedCustomerForRecord.name}</h3>
+                <div className="flex items-center gap-2 text-sm font-light" style={{ color: '#232323', opacity: 0.7 }}>
+                  <Phone size={14} style={{ color: '#C9A27A' }} />
+                  <span>{selectedCustomerForRecord.phone}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 space-y-4">
+            <label className="block text-sm font-medium mb-2" style={{ color: '#232323' }}>신규 고객 정보</label>
+            
+            {/* 이름 입력 */}
+            <div>
+              <label className="block text-xs font-medium mb-2" style={{ color: '#232323', opacity: 0.7 }}>이름</label>
+              <input
+                ref={nameInputRef}
+                type="text"
+                value={tempName || ''}
+                onChange={(e) => setTempName(e.target.value)}
+                placeholder={!tempName ? "이름 입력" : ""}
+                className={`w-full px-4 py-3 rounded-2xl border focus:ring-1 outline-none transition-all ${
+                  !tempName ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#C9A27A] focus:ring-[#C9A27A]'
+                }`}
+                style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
+              />
+              {!tempName && (
+                <p className="text-xs mt-2" style={{ color: '#EF4444' }}>* 이름은 필수입니다</p>
+              )}
+            </div>
+            
+            {/* 전화번호 입력 */}
+            <div>
+              <label className="block text-xs font-medium mb-2" style={{ color: '#232323', opacity: 0.7 }}>전화번호</label>
+              <input
+                ref={phoneInputRef}
+                type="tel"
+                value={tempPhone || ''}
+                onChange={handlePhoneChange}
+                placeholder={!tempPhone ? "010-1234-5678" : ""}
+                className={`w-full px-4 py-3 rounded-2xl border focus:ring-1 outline-none transition-all ${
+                  !tempPhone ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#C9A27A] focus:ring-[#C9A27A]'
+                }`}
+                style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
+              />
+              {!tempPhone && (
+                <p className="text-xs mt-2" style={{ color: '#EF4444' }}>* 전화번호는 필수입니다</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Main Card */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-200">
+          <div className="px-8 py-6 relative overflow-hidden" style={{ backgroundColor: '#C9A27A' }}>
+            <div className="relative z-10">
+              <span className="inline-flex items-center px-3 py-1.5 rounded-2xl text-xs font-medium text-white mb-3 shadow-sm" style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }}>
+                {currentSector.icon}
+                <span className="ml-2">{userProfile.roleTitle}</span>
+              </span>
+              <h3 className="font-bold text-white text-lg mb-2">📝 오늘의 시술 요약</h3>
+              <p className="text-base font-medium text-white/90 leading-relaxed">{resultData.title}</p>
+            </div>
+          </div>
+
+          <div className="p-8 space-y-7">
+            {resultData.sections.map((section, idx) => (
+              <div key={idx} className="animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 100}ms` }}>
+                <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
+                  {section.title}
+                </h4>
+                <ul className="space-y-3">
+                  {section.content.map((item, i) => (
+                    <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 개발용 요약 테스트 박스 */}
+        {DEV_MODE && (
+          <section className="bg-white rounded-2xl border-2 border-dashed border-gray-300 shadow-sm p-5">
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-bold px-2 py-1 rounded bg-yellow-100 text-yellow-800">DEV</span>
+                <span className="text-base font-bold" style={{ color: '#232323' }}>개발용 요약 테스트</span>
+              </div>
+              <p className="text-sm" style={{ color: '#232323', opacity: 0.7 }}>
+                음성 대신 텍스트를 입력해서 요약·태그 흐름을 테스트할 수 있어요.
+              </p>
+            </div>
+
+            <textarea
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A] mb-3 resize-none"
+              placeholder="여기에 고객에게 말할 내용을 두서없이 적어보고, 아래 버튼을 눌러 테스트하세요."
+              value={testSummaryInput}
+              onChange={(e) => setTestSummaryInput(e.target.value)}
+              rows={4}
+              style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
+            />
+
+            <button
+              type="button"
+              className="w-full py-3 rounded-xl font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleTestSummarize}
+              disabled={isTestingSummary || !testSummaryInput.trim()}
+              style={{ backgroundColor: '#C9A27A' }}
+            >
+              {isTestingSummary ? "요약 테스트 중..." : "이 텍스트로 요약 테스트"}
+            </button>
+          </section>
+        )}
+
+        {/* Section 1: 이번 방문 태그 */}
+        <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+          <div className="mb-4">
+            <h3 className="text-base font-bold mb-2 flex items-center gap-2" style={{ color: '#232323' }}>
+              <span>🧴</span>
+              <span>이번 방문 태그</span>
+            </h3>
+            <p className="text-sm" style={{ color: '#232323', opacity: 0.7 }}>
+              이번 시술 기록에 저장됩니다.
+            </p>
+          </div>
+
+          {/* 추천 태그 칩들 */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {(recommendedTagIds.length === 0 && selectedTagIds.length === 0) ? (
+              <p className="text-sm" style={{ color: '#232323', opacity: 0.5 }}>
+                추천 태그가 없어요. 필요한 경우 아래에서 직접 추가할 수 있어요.
+              </p>
+            ) : (
+              [...new Set([...recommendedTagIds, ...selectedTagIds])].map((tagId) => {
+                const tag = allVisitTags.find((t) => t.id === tagId);
+                if (!tag) return null;
+
+                const isSelected = selectedTagIds.includes(tag.id);
+
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedTagIds((prev) => prev.filter((id) => id !== tag.id));
+                      if (!isAutoTaggingEnabled) {
+                        setRecommendedTagIds((prev) => prev.filter((id) => id !== tag.id));
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                      isSelected 
+                        ? 'bg-[#C9A27A] text-white shadow-sm' 
+                        : 'bg-gray-100 text-gray-600 border border-gray-200'
+                    }`}
+                  >
+                    {tag.label}
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          {/* 태그 더 추가하기 버튼 */}
+          <button
+            type="button"
+            onClick={() => setIsTagPickerOpen(true)}
+            className="w-full py-2.5 rounded-xl text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            + 태그 더 추가하기
+          </button>
+        </section>
+
+        {/* Section 2: 고객 프로필 업데이트 */}
+        <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+          <div className="mb-4">
+            <h3 className="text-base font-bold mb-2 flex items-center gap-2" style={{ color: '#232323' }}>
+              <span>👤</span>
+              <span>고객 프로필 업데이트</span>
+            </h3>
+            <p className="text-sm" style={{ color: '#232323', opacity: 0.7 }}>
+              {selectedCustomerForRecord 
+                ? '고객 정보에 영구적으로 저장됩니다.'
+                : '신규 고객으로 저장 시 고객 정보에 영구적으로 저장됩니다.'}
+            </p>
+          </div>
+
+          {/* 고객 태그 칩들 */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {selectedCustomerTagIds.length === 0 ? (
+              <p className="text-sm" style={{ color: '#232323', opacity: 0.5 }}>
+                고객 특징 태그가 없어요. 필요한 경우 아래에서 직접 추가할 수 있어요.
+              </p>
+            ) : (
+              selectedCustomerTagIds.map((tagId) => {
+                const tag = allCustomerTags.find((t) => t.id === tagId);
+                if (!tag) return null;
+
+                const isNew = selectedCustomerForRecord 
+                  ? newCustomerTagIds.includes(tag.id)
+                  : true;
+
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCustomerTagIds((prev) =>
+                        prev.includes(tag.id)
+                          ? prev.filter((id) => id !== tag.id)
+                          : [...prev, tag.id]
+                      );
+                      if (isNew) {
+                        setNewCustomerTagIds((prev) => prev.filter((id) => id !== tag.id));
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1 ${
+                      isNew
+                        ? 'bg-green-50 text-green-700 border border-green-200'
+                        : 'bg-gray-100 text-gray-600 border border-gray-200'
+                    }`}
+                  >
+                    {tag.label}
+                    {isNew && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-200 text-green-800 font-bold">
+                        New
+                      </span>
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          {/* 고객 태그 더 추가하기 버튼 */}
+          <button
+            type="button"
+            onClick={() => setIsCustomerTagPickerOpen(true)}
+            className="w-full py-2.5 rounded-xl text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            + 태그 더 추가하기
+          </button>
+        </section>
+
+        {/* 방문 태그 선택 모달 */}
+        {isTagPickerOpen && (
+          <TagPickerModal
+            allVisitTags={allVisitTags}
+            selectedTagIds={selectedTagIds}
+            onClose={() => setIsTagPickerOpen(false)}
+            onChangeSelected={(nextSelected) => {
+              setSelectedTagIds(nextSelected);
+              if (!isAutoTaggingEnabled) {
+                setRecommendedTagIds((prev) => {
+                  const newRecommended = [...new Set([...prev, ...nextSelected])];
+                  return newRecommended;
+                });
+              }
+            }}
+          />
+        )}
+
+        {/* 고객 태그 선택 모달 */}
+        {isCustomerTagPickerOpen && (
+          <CustomerTagPickerModal
+            allCustomerTags={allCustomerTags}
+            selectedTagIds={selectedCustomerTagIds}
+            onClose={() => setIsCustomerTagPickerOpen(false)}
+            onChangeSelected={(nextSelected) => {
+              setSelectedCustomerTagIds(nextSelected);
+              if (selectedCustomerForRecord) {
+                const existingCustomerTags = selectedCustomerForRecord.customerTags || {};
+                const existingTagLabels = [];
+                Object.values(existingCustomerTags).forEach(categoryTags => {
+                  if (Array.isArray(categoryTags)) {
+                    categoryTags.forEach(tag => {
+                      const label = typeof tag === 'string' ? tag : tag.label || tag;
+                      existingTagLabels.push(label);
+                    });
+                  }
+                });
+                
+                const existingTagIds = allCustomerTags
+                  .filter(tag => existingTagLabels.includes(tag.label))
+                  .map(tag => tag.id);
+                
+                const newTagIds = nextSelected.filter(id => !existingTagIds.includes(id));
+                setNewCustomerTagIds(newTagIds);
+              }
+            }}
+          />
+        )}
+
+        {/* Transcript Toggle */}
+        <details className="group bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <summary className="font-medium text-base cursor-pointer p-5 flex justify-between items-center hover:bg-gray-50 transition-colors select-none" style={{ color: '#232323' }}>
+            <span>원본 녹음 내용 보기</span>
+            <ChevronRight size={18} style={{ color: '#C9A27A' }} className="group-open:rotate-90 transition-transform duration-200" />
+          </summary>
+          <div className="p-5 pt-0 text-base leading-relaxed border-t border-gray-200 bg-gray-50" style={{ color: '#232323', opacity: 0.8 }}>
+            <div className="pt-4">"{transcript}"</div>
+          </div>
+        </details>
+        
+        {/* 녹음 일시 표시 */}
+        {recordingDate && (
+          <p className="text-center text-xs mt-4 font-medium" style={{ color: 'rgba(35, 35, 35, 0.4)' }}>
+            기록 일시: {(() => {
+              const year = recordingDate.getFullYear();
+              const month = recordingDate.getMonth() + 1;
+              const day = recordingDate.getDate();
+              const hours = recordingDate.getHours();
+              const minutes = recordingDate.getMinutes();
+              const ampm = hours >= 12 ? '오후' : '오전';
+              const displayHours = hours % 12 || 12;
+              const displayMinutes = minutes.toString().padStart(2, '0');
+              return `${year}년 ${month}월 ${day}일 ${ampm} ${displayHours}:${displayMinutes}`;
+            })()}
+          </p>
+        )}
+      </main>
+
+      {/* 녹음 일시 표시 */}
+      {recordingDate && (
+        <div className="p-8 pt-0 text-center">
+          <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.6 }}>
+            {formatRecordingDate(recordingDate)}
+          </p>
+        </div>
+      )}
+
+      {/* Fixed Action Bar - 3개 버튼 나란히 배치 (화면 하단 고정) */}
+      <div className="absolute bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 px-8 py-4 shadow-lg" style={{ backgroundColor: '#F2F0E6' }}>
+        <div className="flex gap-3">
+          {/* 편집 버튼 */}
+          <button 
+            onClick={() => {
+              if (resultData) {
+                setTempResultData(JSON.parse(JSON.stringify(resultData)));
+                setCurrentScreen('Edit');
+              }
+            }}
+            className="flex items-center justify-center gap-2 py-4 rounded-2xl font-medium bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
+            style={{ color: '#232323', width: '30%' }}
+          >
+            <Edit size={18} style={{ color: '#C9A27A' }} />
+            <span>편집</span>
+          </button>
+          
+          {/* 테스트 버튼 */}
+          <button
+            onClick={() => {
+              const TEST_SCENARIOS = [
+                {
+                  summary: "속눈썹 D컬 11mm로 연장 리터치 진행함. 글루 알러지 있어서 예민하심.",
+                  sections: [
+                    {
+                      title: '고객 기본 정보',
+                      content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
+                    },
+                    {
+                      title: '시술 내용',
+                      content: ['속눈썹 D컬 11mm로 연장 리터치 진행함. 글루 알러지 있어서 예민하심.']
+                    },
+                    {
+                      title: '주의사항',
+                      content: ['글루 알러지 있으므로 저자극 제품 사용']
+                    }
+                  ]
+                },
+                {
+                  summary: "기존 젤네일 제거하고 이달의아트로 변경. 현금영수증 해드렸음.",
+                  sections: [
+                    {
+                      title: '고객 기본 정보',
+                      content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
+                    },
+                    {
+                      title: '시술 내용',
+                      content: ['기존 젤네일 제거하고 이달의아트로 변경. 현금영수증 해드렸음.']
+                    },
+                    {
+                      title: '결제 금액',
+                      content: ['현금영수증 발급 완료']
+                    }
+                  ]
+                },
+                {
+                  summary: "오늘은 케어만 받고 가심. 손톱이 많이 상해서 영양제 듬뿍 발라드림.",
+                  sections: [
+                    {
+                      title: '고객 기본 정보',
+                      content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
+                    },
+                    {
+                      title: '시술 내용',
+                      content: ['오늘은 케어만 받고 가심. 손톱이 많이 상해서 영양제 듬뿍 발라드림.']
+                    },
+                    {
+                      title: '시술 후 상태',
+                      content: ['손톱 상태 개선을 위해 영양 케어 강화']
+                    }
+                  ]
+                },
+                {
+                  summary: "눈물이 많으셔서 시술 중간에 자주 쉬었음. 다음엔 C컬 말고 J컬로 하고 싶다고 하심.",
+                  sections: [
+                    {
+                      title: '고객 기본 정보',
+                      content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
+                    },
+                    {
+                      title: '시술 내용',
+                      content: ['눈물이 많으셔서 시술 중간에 자주 쉬었음. 다음엔 C컬 말고 J컬로 하고 싶다고 하심.']
+                    },
+                    {
+                      title: '주의사항',
+                      content: ['눈물이 많으므로 시술 시 주의 필요']
+                    }
+                  ]
+                },
+                {
+                  summary: "이번 고객님은 임산부셔서 조심스럽게 시술했습니다. 기존 젤네일 제거하고, 이달의아트로 변경하셨어요. 결제는 현금영수증 해드렸습니다.",
+                  sections: [
+                    {
+                      title: '고객 기본 정보',
+                      content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
+                    },
+                    {
+                      title: '시술 내용',
+                      content: ['이번 고객님은 임산부셔서 조심스럽게 시술했습니다. 기존 젤네일 제거하고, 이달의아트로 변경하셨어요. 결제는 현금영수증 해드렸습니다.']
+                    },
+                    {
+                      title: '주의사항',
+                      content: ['임산부 고객이므로 조심스럽게 시술 진행']
+                    }
+                  ]
+                }
+              ];
+              
+              const randomIndex = Math.floor(Math.random() * TEST_SCENARIOS.length);
+              const selectedScenario = TEST_SCENARIOS[randomIndex];
+              
+              const testResultData = {
+                title: selectedScenario.summary,
+                sections: selectedScenario.sections
+              };
+              
+              setResultData(testResultData);
+            }}
+            className="flex items-center justify-center gap-2 py-4 rounded-2xl font-medium bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
+            style={{ color: '#232323', width: '30%' }}
+          >
+            <span>🧪</span>
+            <span>테스트</span>
+          </button>
+          
+          {/* 저장하기 버튼 */}
+          <button 
+            onClick={() => {
+              // 저장 전 검증
+              if (selectedCustomerForRecord) {
+                // 기존 고객 선택 시 - 기록 저장
+                const customerId = selectedCustomerForRecord.id;
+                const today = new Date();
+                const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                const timeStr = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
+                const recordedAt = today.toISOString();
+                
+                const parsedServiceDate = extractServiceDateFromSummary(resultData);
+                const serviceDate = parsedServiceDate || dateStr;
+                
+                const cleanTitle = (title) => {
+                  if (!title) return title;
+                  let cleaned = title;
+                  if (selectedCustomerForRecord?.name) {
+                    cleaned = cleaned.replace(new RegExp(selectedCustomerForRecord.name, 'g'), '').trim();
+                  }
+                  cleaned = cleaned.replace(/신규\s*고객/gi, '').trim();
+                  cleaned = cleaned.replace(/기존\s*고객/gi, '').trim();
+                  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+                  return cleaned || title;
+                };
+                
+                const newVisitId = Date.now();
+                const newVisit = {
+                  id: newVisitId,
+                  date: dateStr,
+                  time: timeStr,
+                  recordedAt: recordedAt,
+                  serviceDate: serviceDate,
+                  title: cleanTitle(resultData.title),
+                  summary: resultData.sections[0]?.content[0] || cleanTitle(resultData.title),
+                  rawTranscript: rawTranscript || transcript,
+                  detail: {
+                    sections: resultData.sections
+                  },
+                  tags: (() => {
+                    const selectedTagLabels = selectedTagIds
+                      .map(id => {
+                        const tag = allVisitTags.find(t => t.id === id);
+                        return tag ? tag.label : null;
+                      })
+                      .filter(label => label !== null);
+                    const allTags = [...new Set([...serviceTags, ...selectedTagLabels])];
+                    return allTags;
+                  })()
+                };
+                
+                setVisits(prev => ({
+                  ...prev,
+                  [customerId]: [newVisit, ...(prev[customerId] || [])]
+                }));
+                
+                const updatedCustomerTags = { ...selectedCustomerForRecord.customerTags || {
+                  caution: [],
+                  trait: [],
+                  payment: [],
+                  pattern: []
+                }};
+                
+                selectedCustomerTagIds.forEach(tagId => {
+                  const tag = allCustomerTags.find(t => t.id === tagId);
+                  if (tag) {
+                    const category = tag.category;
+                    if (updatedCustomerTags[category]) {
+                      const existingLabels = new Set(
+                        updatedCustomerTags[category].map(t => 
+                          typeof t === 'string' ? t : t.label || t
+                        )
+                      );
+                      if (!existingLabels.has(tag.label)) {
+                        updatedCustomerTags[category] = [...updatedCustomerTags[category], tag.label];
+                      }
+                    } else {
+                      updatedCustomerTags[category] = [tag.label];
+                    }
+                  }
+                });
+                
+                const currentVisitCount = selectedCustomerForRecord.visitCount || 0;
+                const nextVisitCount = currentVisitCount + 1;
+                
+                if (nextVisitCount >= 2) {
+                  const patternTags = updatedCustomerTags.pattern || [];
+                  updatedCustomerTags.pattern = patternTags.filter(tag => tag !== '신규');
+                  if (!updatedCustomerTags.pattern.includes('기존')) {
+                    updatedCustomerTags.pattern = [...updatedCustomerTags.pattern, '기존'];
+                  }
+                } else {
+                  const patternTags = updatedCustomerTags.pattern || [];
+                  if (!patternTags.includes('신규')) {
+                    updatedCustomerTags.pattern = [...patternTags, '신규'];
+                  }
+                }
+                
+                const allContent = [
+                  resultData.title || '',
+                  ...(resultData.sections || []).flatMap(section => 
+                    (section.content || []).join(' ')
+                  )
+                ].join(' ').toLowerCase();
+                
+                if (allContent.includes('임산부')) {
+                  const cautionTags = updatedCustomerTags.caution || [];
+                  if (!cautionTags.includes('임산부')) {
+                    updatedCustomerTags.caution = [...cautionTags, '임산부'];
+                  }
+                }
+                
+                if (allContent.includes('글루알러지') || allContent.includes('글루 알러지')) {
+                  const cautionTags = updatedCustomerTags.caution || [];
+                  if (!cautionTags.includes('글루알러지')) {
+                    updatedCustomerTags.caution = [...cautionTags, '글루알러지'];
+                  }
+                }
+                
+                if (allContent.includes('눈물많음') || allContent.includes('눈물 많음') || allContent.includes('눈물이 많')) {
+                  const cautionTags = updatedCustomerTags.caution || [];
+                  if (!cautionTags.includes('눈물많음')) {
+                    updatedCustomerTags.caution = [...cautionTags, '눈물많음'];
+                  }
+                }
+                
+                setCustomers(prev => prev.map(c => {
+                  if (c.id === customerId) {
+                    return { 
+                      ...c, 
+                      visitCount: c.visitCount + 1, 
+                      lastVisit: dateStr,
+                      customerTags: updatedCustomerTags
+                    };
+                  }
+                  return c;
+                }));
+                
+                setSelectedCustomerId(customerId);
+                setCurrentScreen('CustomerDetail');
+              } else {
+                // 신규 고객인 경우 이름 필수 검증
+                if (!tempName || !tempName.trim()) {
+                  alert('고객님의 이름을 입력해주세요!');
+                  if (nameInputRef.current) {
+                    nameInputRef.current.focus();
+                    nameInputRef.current.style.borderColor = '#EF4444';
+                    nameInputRef.current.style.borderWidth = '2px';
+                    setTimeout(() => {
+                      if (nameInputRef.current) {
+                        nameInputRef.current.style.borderColor = '';
+                        nameInputRef.current.style.borderWidth = '';
+                      }
+                    }, 2000);
+                  }
+                  return;
+                }
+                
+                // 신규 고객인 경우 전화번호 필수 검증
+                if (!tempPhone || !tempPhone.trim()) {
+                  alert('고객님의 전화번호를 입력해주세요!');
+                  if (phoneInputRef.current) {
+                    phoneInputRef.current.focus();
+                    phoneInputRef.current.style.borderColor = '#EF4444';
+                    phoneInputRef.current.style.borderWidth = '2px';
+                    setTimeout(() => {
+                      if (phoneInputRef.current) {
+                        phoneInputRef.current.style.borderColor = '';
+                        phoneInputRef.current.style.borderWidth = '';
+                      }
+                    }, 2000);
+                  }
+                  return;
+                }
+                
+                // 신규 고객 생성 및 기록 저장
+                const today = new Date();
+                const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                const timeStr = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
+                const recordedAt = today.toISOString();
+                
+                const parsedServiceDate = extractServiceDateFromSummary(resultData);
+                const serviceDate = parsedServiceDate || dateStr;
+                
+                const newCustomerId = Math.max(...customers.map(c => c.id), 0) + 1;
+                
+                const newCustomerTags = {
+                  caution: [],
+                  trait: [],
+                  payment: [],
+                  pattern: []
+                };
+                
+                selectedCustomerTagIds.forEach(tagId => {
+                  const tag = allCustomerTags.find(t => t.id === tagId);
+                  if (tag) {
+                    const category = tag.category;
+                    if (newCustomerTags[category]) {
+                      newCustomerTags[category] = [...newCustomerTags[category], tag.label];
+                    } else {
+                      newCustomerTags[category] = [tag.label];
+                    }
+                  }
+                });
+                
+                if (!newCustomerTags.pattern.includes('신규')) {
+                  newCustomerTags.pattern = [...newCustomerTags.pattern, '신규'];
+                }
+                
+                const allContent = [
+                  resultData.title || '',
+                  ...(resultData.sections || []).flatMap(section => 
+                    (section.content || []).join(' ')
+                  )
+                ].join(' ').toLowerCase();
+                
+                if (allContent.includes('임산부')) {
+                  if (!newCustomerTags.caution.includes('임산부')) {
+                    newCustomerTags.caution = [...newCustomerTags.caution, '임산부'];
+                  }
+                }
+                
+                if (allContent.includes('글루알러지') || allContent.includes('글루 알러지')) {
+                  if (!newCustomerTags.caution.includes('글루알러지')) {
+                    newCustomerTags.caution = [...newCustomerTags.caution, '글루알러지'];
+                  }
+                }
+                
+                if (allContent.includes('눈물많음') || allContent.includes('눈물 많음') || allContent.includes('눈물이 많')) {
+                  if (!newCustomerTags.caution.includes('눈물많음')) {
+                    newCustomerTags.caution = [...newCustomerTags.caution, '눈물많음'];
+                  }
+                }
+                
+                const newCustomer = {
+                  id: newCustomerId,
+                  name: tempName.trim(),
+                  phone: tempPhone.trim(),
+                  visitCount: 1,
+                  lastVisit: dateStr,
+                  avatar: '👤',
+                  tags: [],
+                  customerTags: newCustomerTags
+                };
+                
+                const cleanTitle = (title) => {
+                  if (!title) return title;
+                  let cleaned = title;
+                  if (tempName) {
+                    cleaned = cleaned.replace(new RegExp(tempName, 'g'), '').trim();
+                  }
+                  cleaned = cleaned.replace(/신규\s*고객/gi, '').trim();
+                  cleaned = cleaned.replace(/기존\s*고객/gi, '').trim();
+                  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+                  return cleaned || title;
+                };
+                
+                const newVisitId = Date.now();
+                const newVisit = {
+                  id: newVisitId,
+                  date: dateStr,
+                  time: timeStr,
+                  recordedAt: recordedAt,
+                  serviceDate: serviceDate,
+                  title: cleanTitle(resultData.title),
+                  summary: resultData.sections[0]?.content[0] || cleanTitle(resultData.title),
+                  rawTranscript: rawTranscript || transcript,
+                  detail: {
+                    sections: resultData.sections
+                  },
+                  tags: (() => {
+                    const selectedTagLabels = selectedTagIds
+                      .map(id => {
+                        const tag = allVisitTags.find(t => t.id === id);
+                        return tag ? tag.label : null;
+                      })
+                      .filter(label => label !== null);
+                    const allTags = [...new Set([...serviceTags, ...selectedTagLabels])];
+                    return allTags;
+                  })()
+                };
+                
+                setCustomers(prev => [...prev, newCustomer]);
+                setVisits(prev => ({
+                  ...prev,
+                  [newCustomerId]: [newVisit]
+                }));
+                
+                setSelectedCustomerId(newCustomerId);
+                setCurrentScreen('CustomerDetail');
+              }
+              
+              // 저장 후 상태 초기화
+              setResultData(null);
+              setTranscript('');
+              setRawTranscript('');
+              setRecordingDate(null);
+              setSelectedCustomerForRecord(null);
+              setTempName('');
+              setTempPhone('');
+              setServiceTags([]);
+              setNewServiceTag('');
+            }}
+            className="flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-medium text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all"
+            style={{ backgroundColor: '#C9A27A' }}
+          >
+            저장하기
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default RecordScreen;
+

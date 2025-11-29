@@ -1,0 +1,86 @@
+import React from 'react';
+import { Scissors, Mail, Lock } from 'lucide-react';
+
+function LoginScreen({
+  email,
+  setEmail,
+  password,
+  setPassword,
+  setIsLoggedIn,
+  setActiveTab,
+  setCurrentScreen
+}) {
+  const handleLogin = () => {
+    // 간단한 로그인 로직 (실제로는 API 호출)
+    if (email && password) {
+      setIsLoggedIn(true);
+      setActiveTab('Home');
+      setCurrentScreen('Home');
+    } else {
+      alert('이메일과 비밀번호를 입력해주세요.');
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full items-center justify-center p-8" style={{ backgroundColor: '#F2F0E6' }}>
+      <div className="w-full max-w-sm space-y-10">
+        {/* 로고 */}
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl shadow-md mb-6" style={{ backgroundColor: '#C9A27A' }}>
+            <Scissors size={40} className="text-white" />
+          </div>
+          <h1 className="text-3xl font-bold mb-3" style={{ color: '#232323' }}>Mallo</h1>
+          <p className="font-light" style={{ color: '#232323' }}>오늘 시술, 말로만 기록하세요.</p>
+        </div>
+
+        {/* 로그인 폼 */}
+        <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-200 space-y-6">
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-sm font-medium" style={{ color: '#232323' }}>이메일</label>
+              <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 border border-gray-200 focus-within:border-[#C9A27A] focus-within:ring-1 focus-within:ring-[#C9A27A] transition-all">
+                <Mail size={18} style={{ color: '#C9A27A' }} />
+                <input 
+                  type="email" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="example@beauty.com"
+                  className="w-full bg-transparent outline-none font-light placeholder-gray-400"
+                  style={{ color: '#232323' }}
+                  onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium" style={{ color: '#232323' }}>비밀번호</label>
+              <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 border border-gray-200 focus-within:border-[#C9A27A] focus-within:ring-1 focus-within:ring-[#C9A27A] transition-all">
+                <Lock size={18} style={{ color: '#C9A27A' }} />
+                <input 
+                  type="password" 
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-transparent outline-none font-light placeholder-gray-400"
+                  style={{ color: '#232323' }}
+                  onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                />
+              </div>
+            </div>
+          </div>
+
+          <button 
+            onClick={handleLogin}
+            className="w-full py-4 rounded-2xl font-medium text-lg text-white shadow-md hover:shadow-lg hover:opacity-90 active:scale-[0.98] transition-all"
+            style={{ backgroundColor: '#C9A27A' }}
+          >
+            로그인
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default LoginScreen;
+

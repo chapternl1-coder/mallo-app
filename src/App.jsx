@@ -1,6 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Mic, Square, Copy, Share2, Scissors, ArrowLeft, MoreHorizontal, Mail, Lock, ChevronDown, ChevronUp, ChevronRight, Phone, Calendar, Edit, Search, Minus, Home, User, Settings, History, X, Tag, Hash, Camera } from 'lucide-react';
 import { formatRecordDateTime, formatVisitReservation, formatVisitReservationFull, formatVisitReservationTime, formatServiceDateTimeLabel } from './utils/date';
+import ProfileScreen from './screens/ProfileScreen';
+import TagSettingsScreen from './screens/TagSettingsScreen';
+import HomeScreen from './screens/HomeScreen';
+import CustomerDetailScreen from './screens/CustomerDetailScreen';
+import RecordScreen from './screens/RecordScreen';
+import LoginScreen from './screens/LoginScreen';
+import ProfileEditScreen from './screens/ProfileEditScreen';
+import EditCustomerScreen from './screens/EditCustomerScreen';
+import EditScreen from './screens/EditScreen';
+import HistoryScreen from './screens/HistoryScreen';
 
 /**
  * MALLO Service Prototype v2.1 (Fix: Tailwind ReferenceError)
@@ -1866,6 +1876,27 @@ export default function MalloApp() {
   }, [visits]);
 
   // 문자열 정규화 함수: 공백, 특수문자 제거하여 비교
+  // visit과 customer를 합쳐서 정규화된 visit 객체 반환 (customerName, customerPhone 보정)
+  const normalizeRecordWithCustomer = (visit, customer) => {
+    if (!visit) return null;
+    
+    return {
+      ...visit,
+      customerName: visit.customerName || customer?.name || '미기재',
+      customerPhone: visit.customerPhone || customer?.phone || '미기재',
+      // detail이 없으면 기본 구조 생성
+      detail: visit.detail || {
+        sections: visit.summary ? [
+          { title: '시술 내용', content: [visit.summary] }
+        ] : []
+      },
+      // title이 없으면 summary 사용
+      title: visit.title || visit.summary || '',
+      // tags는 배열로 보장
+      tags: visit.tags || []
+    };
+  };
+
   const normalize = (text) => {
     if (!text || typeof text !== 'string') return '';
     return text
@@ -3016,131 +3047,6 @@ export default function MalloApp() {
   );
   };
 
-  const renderHome = () => {
-    // 전화번호에서 하이픈과 공백 제거하는 헬퍼 함수
-    const normalizePhone = (phone) => {
-      return phone.replace(/[-\s]/g, '');
-    };
-
-    // 검색 필터링된 고객 리스트
-    const filteredCustomers = customers.filter(customer => {
-      if (!searchQuery.trim()) return true;
-      const query = searchQuery.toLowerCase();
-      const normalizedQuery = normalizePhone(query);
-      
-      // 이름 검색 (기존 로직 유지)
-      const nameMatch = customer.name.toLowerCase().includes(query);
-      
-      // 전화번호 검색 (하이픈과 공백 제거 후 비교)
-      const normalizedCustomerPhone = normalizePhone(customer.phone);
-      const phoneMatch = normalizedCustomerPhone.includes(normalizedQuery);
-      
-      return nameMatch || phoneMatch;
-    });
-
-    // 오늘 날짜 표시
-    const today = new Date();
-    const todayStr = `${today.getMonth() + 1}월 ${today.getDate()}일`;
-
-    return (
-      <div className="flex flex-col h-full relative pb-[60px]" style={{ backgroundColor: '#F2F0E6' }}>
-        <header className="px-8 py-6 flex justify-between items-center bg-white z-10 border-b border-gray-200 shadow-sm">
-        <div className="flex flex-col">
-            <h2 className="text-xl font-bold" style={{ color: '#232323' }}>원장님, 안녕하세요!</h2>
-            <span className="text-sm font-light mt-1" style={{ color: '#232323', opacity: 0.6 }}>{todayStr}</span>
-          </div>
-          <button 
-            onClick={() => {
-              setActiveTab('History');
-              setCurrentScreen('History');
-            }}
-            className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-md hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: '#C9A27A' }}
-          >
-            <Scissors size={20} className="text-white" />
-          </button>
-      </header>
-
-        <main className="flex-1 overflow-y-auto flex flex-col items-center justify-start p-8 space-y-12 pb-20 relative">
-          {/* 검색창 - 화면 중앙에 크게 배치 */}
-          <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-md px-8" style={{ top: '140px', zIndex: 100 }}>
-            <div className="bg-white rounded-2xl shadow-md border border-[#EFECE1] p-6">
-              <div className="flex items-center gap-4 bg-white rounded-2xl px-4 h-14 border border-[#EFECE1] focus-within:border-[#C9A27A] focus-within:ring-2 focus-within:ring-[#C9A27A] transition-all">
-                <input 
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="고객 이름이나 전화번호 검색"
-                  className="w-full bg-transparent outline-none font-light placeholder-gray-400 text-lg leading-normal"
-                  style={{ color: '#232323' }}
-                />
-        </div>
-            </div>
-
-            {/* 검색 결과 - Absolute Positioning으로 드롭다운 */}
-            {searchQuery.trim() && filteredCustomers.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200 z-[100] max-h-60 overflow-y-auto">
-                <div className="p-2 space-y-1">
-                  {filteredCustomers.map((customer) => (
-                    <div 
-                      key={customer.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        console.log('선택된 고객:', customer.name, customer.id, customer.phone);
-                        setSelectedCustomerId(customer.id);
-                        setCurrentScreen('CustomerDetail');
-                      }}
-                      className="bg-white rounded-xl p-4 hover:bg-gray-50 transition-all cursor-pointer border border-transparent hover:border-gray-200"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="text-3xl">{customer.avatar}</div>
-                        <div className="flex-1">
-                          <h4 className="font-bold text-base mb-1" style={{ color: '#232323' }}>{customer.name}</h4>
-                          <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.7 }}>{customer.phone}</p>
-        </div>
-                        <ChevronRight size={18} style={{ color: '#C9A27A' }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 검색 결과 없음 - Absolute Positioning */}
-            {searchQuery.trim() && filteredCustomers.length === 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-200 z-[100] p-6">
-                <p className="text-base font-light text-center" style={{ color: '#232323', opacity: 0.6 }}>검색 결과가 없습니다.</p>
-              </div>
-            )}
-          </div>
-
-          {/* 신규 고객 바로 녹음 버튼 - 큰 원형 카드 형태 (항상 표시) */}
-          <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-md px-8 z-0" style={{ bottom: '50px' }}>
-        <div 
-              className="w-full bg-white rounded-3xl shadow-lg border-2 border-gray-200 hover:shadow-xl hover:border-[#C9A27A] transition-all duration-300 p-12 flex flex-col items-center justify-center gap-6"
-              style={{ backgroundColor: '#FFFFFF' }}
-            >
-        <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedCustomerForRecord(null);
-                  startRecording();
-                }}
-                className="rounded-full flex items-center justify-center shadow-md transition-transform duration-300 hover:scale-110 active:scale-95 cursor-pointer"
-                style={{ backgroundColor: '#C9A27A', width: '136px', height: '136px' }}
-              >
-                <Mic size={40} className="text-white" />
-        </button>
-              <div className="text-center">
-                <h3 className="text-2xl font-bold mb-2" style={{ color: '#232323' }}>신규 고객 바로 녹음</h3>
-                <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.6 }}>시술 내용을 말로만 기록하세요</p>
-              </div>
-        </div>
-          </div>
-      </main>
-    </div>
-  );
-  };
 
   // 고객 태그 선택 모달 컴포넌트
   const CustomerTagPickerModal = ({ allCustomerTags, selectedTagIds, onClose, onChangeSelected }) => {
@@ -3385,1996 +3291,10 @@ export default function MalloApp() {
   );
   };
 
-  const renderRecording = () => (
-    <div className="flex flex-col h-full bg-white relative items-center justify-center overflow-hidden">
-      {/* 배경 효과 - 따뜻한 크림색 파동 */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse opacity-20" style={{ backgroundColor: '#C9A27A', animationDuration: '4s' }}></div>
-        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl animate-pulse opacity-15" style={{ backgroundColor: '#C9A27A', animationDuration: '5s', animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 right-1/3 w-88 h-88 rounded-full blur-3xl animate-pulse opacity-20" style={{ backgroundColor: '#F2F0E6', animationDuration: '6s', animationDelay: '0.5s' }}></div>
-        <div className="absolute bottom-1/4 left-1/3 w-72 h-72 rounded-full blur-3xl animate-pulse opacity-15" style={{ backgroundColor: '#F2F0E6', animationDuration: '4.5s', animationDelay: '2s' }}></div>
-      </div>
+  // renderEdit 함수는 EditScreen 컴포넌트로 이동됨
 
-      {/* 타이머 영역 */}
-      <div className="z-10 text-center mb-10">
-        <h2 className="text-sm font-medium tracking-widest uppercase mb-4" style={{ color: '#C9A27A', opacity: 0.8 }}>Recording</h2>
-        <p 
-          className="text-7xl font-mono font-light tracking-tighter tabular-nums"
-          style={{
-            color: '#232323',
-            textShadow: '0 2px 10px rgba(201, 162, 122, 0.2)'
-          }}
-        >
-          {formatTime(recordingTime)}
-        </p>
-      </div>
-
-      {/* Visualizer & Button */}
-      <div className="z-10 flex flex-col items-center gap-8">
-        <WaveBars />
-        
-        {/* 정지 버튼 - 물결(Ripple) 애니메이션 */}
-        <button 
-          onClick={stopRecording}
-          className="group relative flex items-center justify-center"
-          style={{ width: '136px', height: '136px' }}
-        >
-          {/* 물결 효과 - 여러 겹의 원 (골드 브라운 톤) */}
-          {[...Array(5)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute rounded-full border-2"
-              style={{
-                width: '136px',
-                height: '136px',
-                borderColor: 'rgba(201, 162, 122, 0.3)',
-                animation: `ping ${2.5 + i * 0.4}s cubic-bezier(0, 0, 0.2, 1) infinite`,
-                animationDelay: `${i * 0.25}s`,
-                left: '50%',
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
-              }}
-            ></div>
-          ))}
-          
-          {/* 버튼 본체 */}
-          <div className="absolute inset-0 rounded-full blur-xl transition-colors" style={{ backgroundColor: 'rgba(201, 162, 122, 0.15)' }}></div>
-          <div 
-            className="relative rounded-full flex items-center justify-center group-hover:scale-105 group-active:scale-95 transition-all duration-200 z-10"
-            style={{ 
-              width: '136px',
-              height: '136px',
-              backgroundColor: '#C9A27A',
-              boxShadow: '0 10px 40px rgba(201, 162, 122, 0.4), 0 0 20px rgba(201, 162, 122, 0.2)'
-            }}
-          >
-            <Square size={32} fill="white" stroke="white" className="ml-0.5" />
-          </div>
-        </button>
-      </div>
-
-      {/* 취소 버튼 */}
-      <div className="absolute bottom-16 w-full px-8 flex justify-center z-10">
-        <button
-          onClick={cancelRecording}
-          className="px-6 py-2 text-sm font-medium rounded-full transition-all duration-200 hover:opacity-70"
-          style={{ 
-            color: '#232323',
-            backgroundColor: 'rgba(35, 35, 35, 0.05)',
-            border: '1px solid rgba(35, 35, 35, 0.1)'
-          }}
-        >
-          취소하기
-        </button>
-      </div>
-
-      <div className="absolute bottom-32 w-full px-8 text-center z-10">
-        <p 
-          className="text-sm leading-relaxed font-light bg-white/80 py-3 px-4 rounded-xl border backdrop-blur-sm"
-          style={{ 
-            color: '#232323', 
-            opacity: 0.7,
-            borderColor: 'rgba(201, 162, 122, 0.2)'
-          }}
-        >
-          💡 Tip: 고객 이름, 시술 종류, 결제 금액을<br/>구체적으로 말하면 더 정확해요.
-        </p>
-      </div>
-    </div>
-  );
-
-  const renderProcessing = () => (
-    <div className="flex flex-col h-full px-8 pt-24 pb-12" style={{ backgroundColor: '#F2F0E6' }}>
-      <div className="text-center mb-12">
-        <div className="inline-block p-5 rounded-2xl bg-white shadow-md border border-gray-200 mb-6 animate-bounce" style={{ backgroundColor: '#FFFFFF' }}>
-          <Scissors size={32} style={{ color: '#C9A27A' }} />
-        </div>
-        <h2 className="text-2xl font-bold mb-3" style={{ color: '#232323' }}>시술 기록 정리 중</h2>
-        <p className="font-light" style={{ color: '#232323' }}>AI가 내용을 분석하고 서식을 적용하고 있습니다.</p>
-      </div>
-      
-      <div className="flex-1 w-full max-w-sm mx-auto space-y-5 opacity-50">
-        <SkeletonLoader />
-      </div>
-
-      <div className="text-sm text-center font-light mt-auto" style={{ color: '#232323', opacity: 0.6 }}>
-        Processing transcript...<br/>
-        Applying beauty salon template...
-      </div>
-    </div>
-  );
-
-  const renderResult = () => {
-    if (!resultData) {
-      return (
-        <div className="flex flex-col h-full items-center justify-center" style={{ backgroundColor: '#F2F0E6' }}>
-          <p style={{ color: '#232323' }}>결과 데이터가 없습니다.</p>
-          <button onClick={resetFlow} className="mt-4 font-medium" style={{ color: '#232323' }}>홈으로 돌아가기</button>
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex flex-col h-full relative" style={{ backgroundColor: '#F2F0E6' }}>
-      {/* Header */}
-        <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
-          <button onClick={resetFlow} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
-          <ArrowLeft size={24} />
-        </button>
-        <div className="text-center">
-            <span className="text-xs font-medium" style={{ color: '#232323', opacity: 0.7 }}>시술 기록</span>
-            <h2 className="font-bold text-base mt-1" style={{ color: '#232323' }}>{getTodayDate()}</h2>
-        </div>
-          <button className="p-2" style={{ color: '#232323', opacity: 0.5 }}>
-          <MoreHorizontal size={24} />
-        </button>
-      </header>
-
-        <main className="flex-1 overflow-y-auto p-8 space-y-5 pb-32" style={{ backgroundColor: '#F2F0E6' }}>
-          {/* 고객 정보 표시 - selectedCustomerForRecord가 있으면 카드, 없으면 입력창 */}
-          {selectedCustomerForRecord ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
-              <div className="flex items-center gap-4">
-                <div className="text-4xl">{selectedCustomerForRecord.avatar}</div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-lg mb-1" style={{ color: '#232323' }}>{selectedCustomerForRecord.name}</h3>
-                  <div className="flex items-center gap-2 text-sm font-light" style={{ color: '#232323', opacity: 0.7 }}>
-                    <Phone size={14} style={{ color: '#C9A27A' }} />
-                    <span>{selectedCustomerForRecord.phone}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 space-y-4">
-              <label className="block text-sm font-medium mb-2" style={{ color: '#232323' }}>신규 고객 정보</label>
-              
-              {/* 이름 입력 */}
-              <div>
-                <label className="block text-xs font-medium mb-2" style={{ color: '#232323', opacity: 0.7 }}>이름</label>
-                <input
-                  ref={nameInputRef}
-                  type="text"
-                  value={tempName || ''}
-                  onChange={(e) => setTempName(e.target.value)}
-                  placeholder={!tempName ? "이름 입력" : ""}
-                  className={`w-full px-4 py-3 rounded-2xl border focus:ring-1 outline-none transition-all ${
-                    !tempName ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#C9A27A] focus:ring-[#C9A27A]'
-                  }`}
-                  style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
-                />
-                {!tempName && (
-                  <p className="text-xs mt-2" style={{ color: '#EF4444' }}>* 이름은 필수입니다</p>
-                )}
-              </div>
-              
-              {/* 전화번호 입력 */}
-              <div>
-                <label className="block text-xs font-medium mb-2" style={{ color: '#232323', opacity: 0.7 }}>전화번호</label>
-                <input
-                  ref={phoneInputRef}
-                  type="tel"
-                  value={tempPhone || ''}
-                  onChange={handlePhoneChange}
-                  placeholder={!tempPhone ? "010-1234-5678" : ""}
-                  className={`w-full px-4 py-3 rounded-2xl border focus:ring-1 outline-none transition-all ${
-                    !tempPhone ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#C9A27A] focus:ring-[#C9A27A]'
-                  }`}
-                  style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
-                />
-                {!tempPhone && (
-                  <p className="text-xs mt-2" style={{ color: '#EF4444' }}>* 전화번호는 필수입니다</p>
-                )}
-              </div>
-            </div>
-          )}
-
-        {/* Main Card */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-200">
-            <div className="px-8 py-6 relative overflow-hidden" style={{ backgroundColor: '#C9A27A' }}>
-            <div className="relative z-10">
-                <span className="inline-flex items-center px-3 py-1.5 rounded-2xl text-xs font-medium text-white mb-3 shadow-sm" style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }}>
-                {currentSector.icon}
-                  <span className="ml-2">{userProfile.roleTitle}</span>
-              </span>
-                <h3 className="font-bold text-white text-lg mb-2">📝 오늘의 시술 요약</h3>
-                <p className="text-base font-medium text-white/90 leading-relaxed">{resultData.title}</p>
-            </div>
-          </div>
-
-            <div className="p-8 space-y-7">
-            {resultData.sections.map((section, idx) => (
-              <div key={idx} className="animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 100}ms` }}>
-                  <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
-                  {section.title}
-                </h4>
-                <ul className="space-y-3">
-                  {section.content.map((item, i) => (
-                      <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 개발용 요약 테스트 박스 */}
-        {DEV_MODE && (
-          <section className="bg-white rounded-2xl border-2 border-dashed border-gray-300 shadow-sm p-5">
-            <div className="mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-bold px-2 py-1 rounded bg-yellow-100 text-yellow-800">DEV</span>
-                <span className="text-base font-bold" style={{ color: '#232323' }}>개발용 요약 테스트</span>
-              </div>
-              <p className="text-sm" style={{ color: '#232323', opacity: 0.7 }}>
-                음성 대신 텍스트를 입력해서 요약·태그 흐름을 테스트할 수 있어요.
-              </p>
-            </div>
-
-            <textarea
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A] mb-3 resize-none"
-              placeholder="여기에 고객에게 말할 내용을 두서없이 적어보고, 아래 버튼을 눌러 테스트하세요."
-              value={testSummaryInput}
-              onChange={(e) => setTestSummaryInput(e.target.value)}
-              rows={4}
-              style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
-            />
-
-            <button
-              type="button"
-              className="w-full py-3 rounded-xl font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={handleTestSummarize}
-              disabled={isTestingSummary || !testSummaryInput.trim()}
-              style={{ backgroundColor: '#C9A27A' }}
-            >
-              {isTestingSummary ? "요약 테스트 중..." : "이 텍스트로 요약 테스트"}
-            </button>
-          </section>
-        )}
-
-        {/* Section 1: 이번 방문 태그 */}
-        <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-          <div className="mb-4">
-            <h3 className="text-base font-bold mb-2 flex items-center gap-2" style={{ color: '#232323' }}>
-              <span>🧴</span>
-              <span>이번 방문 태그</span>
-            </h3>
-            <p className="text-sm" style={{ color: '#232323', opacity: 0.7 }}>
-              이번 시술 기록에 저장됩니다.
-            </p>
-          </div>
-
-          {/* 추천 태그 칩들 */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            {(recommendedTagIds.length === 0 && selectedTagIds.length === 0) ? (
-              <p className="text-sm" style={{ color: '#232323', opacity: 0.5 }}>
-                추천 태그가 없어요. 필요한 경우 아래에서 직접 추가할 수 있어요.
-              </p>
-            ) : (
-              // recommendedTagIds와 selectedTagIds를 합쳐서 중복 제거
-              [...new Set([...recommendedTagIds, ...selectedTagIds])].map((tagId) => {
-                const tag = allVisitTags.find((t) => t.id === tagId);
-                if (!tag) return null;
-
-                const isSelected = selectedTagIds.includes(tag.id);
-                const isRecommended = recommendedTagIds.includes(tag.id);
-
-                return (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => {
-                      // 고객 프로필 태그처럼 클릭 시 바로 제거
-                      setSelectedTagIds((prev) => prev.filter((id) => id !== tag.id));
-                      // AI 자동 추천이 OFF일 때는 recommendedTagIds에서도 제거
-                      if (!isAutoTaggingEnabled) {
-                        setRecommendedTagIds((prev) => prev.filter((id) => id !== tag.id));
-                      }
-                    }}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                      isSelected 
-                        ? 'bg-[#C9A27A] text-white shadow-sm' 
-                        : 'bg-gray-100 text-gray-600 border border-gray-200'
-                    }`}
-                  >
-                    {tag.label}
-                  </button>
-                );
-              })
-            )}
-          </div>
-
-          {/* 태그 더 추가하기 버튼 */}
-          <button
-            type="button"
-            onClick={() => setIsTagPickerOpen(true)}
-            className="w-full py-2.5 rounded-xl text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            + 태그 더 추가하기
-          </button>
-        </section>
-
-        {/* Section 2: 고객 프로필 업데이트 */}
-        <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-          <div className="mb-4">
-            <h3 className="text-base font-bold mb-2 flex items-center gap-2" style={{ color: '#232323' }}>
-              <span>👤</span>
-              <span>고객 프로필 업데이트</span>
-            </h3>
-            <p className="text-sm" style={{ color: '#232323', opacity: 0.7 }}>
-              {selectedCustomerForRecord 
-                ? '고객 정보에 영구적으로 저장됩니다.'
-                : '신규 고객으로 저장 시 고객 정보에 영구적으로 저장됩니다.'}
-            </p>
-          </div>
-
-          {/* 고객 태그 칩들 */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            {selectedCustomerTagIds.length === 0 ? (
-              <p className="text-sm" style={{ color: '#232323', opacity: 0.5 }}>
-                고객 특징 태그가 없어요. 필요한 경우 아래에서 직접 추가할 수 있어요.
-              </p>
-            ) : (
-              selectedCustomerTagIds.map((tagId) => {
-                const tag = allCustomerTags.find((t) => t.id === tagId);
-                if (!tag) return null;
-
-                const isNew = selectedCustomerForRecord 
-                  ? newCustomerTagIds.includes(tag.id)
-                  : true; // 신규 고객인 경우 모든 태그를 새 태그로 표시
-
-                  return (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedCustomerTagIds((prev) =>
-                          prev.includes(tag.id)
-                            ? prev.filter((id) => id !== tag.id) // OFF
-                            : [...prev, tag.id]                   // ON
-                        );
-                        // 새 태그 목록에서도 제거
-                        if (isNew) {
-                          setNewCustomerTagIds((prev) => prev.filter((id) => id !== tag.id));
-                        }
-                      }}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1 ${
-                        isNew
-                          ? 'bg-green-50 text-green-700 border border-green-200' // 새로 추가된 태그
-                          : 'bg-gray-100 text-gray-600 border border-gray-200'    // 기존 태그
-                      }`}
-                    >
-                      {tag.label}
-                      {isNew && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-200 text-green-800 font-bold">
-                          New
-                        </span>
-                      )}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-
-          {/* 고객 태그 더 추가하기 버튼 */}
-          <button
-            type="button"
-            onClick={() => setIsCustomerTagPickerOpen(true)}
-            className="w-full py-2.5 rounded-xl text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            + 태그 더 추가하기
-          </button>
-        </section>
-
-        {/* 방문 태그 선택 모달 */}
-        {isTagPickerOpen && (
-          <TagPickerModal
-            allVisitTags={allVisitTags}
-            selectedTagIds={selectedTagIds}
-            onClose={() => setIsTagPickerOpen(false)}
-            onChangeSelected={(nextSelected) => {
-              setSelectedTagIds(nextSelected);
-              // AI 자동 추천이 OFF일 때는 수동으로 선택한 태그를 recommendedTagIds에도 추가
-              if (!isAutoTaggingEnabled) {
-                setRecommendedTagIds((prev) => {
-                  const newRecommended = [...new Set([...prev, ...nextSelected])];
-                  return newRecommended;
-                });
-              }
-            }}
-          />
-        )}
-
-        {/* 고객 태그 선택 모달 */}
-        {isCustomerTagPickerOpen && (
-          <CustomerTagPickerModal
-            allCustomerTags={allCustomerTags}
-            selectedTagIds={selectedCustomerTagIds}
-            onClose={() => setIsCustomerTagPickerOpen(false)}
-            onChangeSelected={(nextSelected) => {
-              setSelectedCustomerTagIds(nextSelected);
-              // 새로 추가된 태그 업데이트 (기존 고객 태그와 비교)
-              if (selectedCustomerForRecord) {
-                const existingCustomerTags = selectedCustomerForRecord.customerTags || {};
-                const existingTagLabels = [];
-                Object.values(existingCustomerTags).forEach(categoryTags => {
-                  if (Array.isArray(categoryTags)) {
-                    categoryTags.forEach(tag => {
-                      const label = typeof tag === 'string' ? tag : tag.label || tag;
-                      existingTagLabels.push(label);
-                    });
-                  }
-                });
-                
-                const existingTagIds = allCustomerTags
-                  .filter(tag => existingTagLabels.includes(tag.label))
-                  .map(tag => tag.id);
-                
-                const newTagIds = nextSelected.filter(id => !existingTagIds.includes(id));
-                setNewCustomerTagIds(newTagIds);
-              }
-            }}
-          />
-        )}
-
-        {/* Transcript Toggle */}
-          <details className="group bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <summary className="font-medium text-base cursor-pointer p-5 flex justify-between items-center hover:bg-gray-50 transition-colors select-none" style={{ color: '#232323' }}>
-            <span>원본 녹음 내용 보기</span>
-              <ChevronRight size={18} style={{ color: '#C9A27A' }} className="group-open:rotate-90 transition-transform duration-200" />
-          </summary>
-            <div className="p-5 pt-0 text-base leading-relaxed border-t border-gray-200 bg-gray-50" style={{ color: '#232323', opacity: 0.8 }}>
-            <div className="pt-4">"{transcript}"</div>
-          </div>
-        </details>
-        
-          {/* 녹음 일시 표시 */}
-          {recordingDate && (
-            <p className="text-center text-xs mt-4 font-medium" style={{ color: 'rgba(35, 35, 35, 0.4)' }}>
-              기록 일시: {(() => {
-                const year = recordingDate.getFullYear();
-                const month = recordingDate.getMonth() + 1;
-                const day = recordingDate.getDate();
-                const hours = recordingDate.getHours();
-                const minutes = recordingDate.getMinutes();
-                const ampm = hours >= 12 ? '오후' : '오전';
-                const displayHours = hours % 12 || 12;
-                const displayMinutes = minutes.toString().padStart(2, '0');
-                return `${year}년 ${month}월 ${day}일 ${ampm} ${displayHours}:${displayMinutes}`;
-              })()}
-            </p>
-          )}
-        </main>
-
-        {/* 녹음 일시 표시 */}
-        {recordingDate && (
-          <div className="p-8 pt-0 text-center">
-            <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.6 }}>
-              {formatRecordingDate(recordingDate)}
-            </p>
-          </div>
-        )}
-
-        {/* Fixed Action Bar - 3개 버튼 나란히 배치 (화면 하단 고정) */}
-        <div className="absolute bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 px-8 py-4 shadow-lg" style={{ backgroundColor: '#F2F0E6' }}>
-          <div className="flex gap-3">
-            {/* 편집 버튼 */}
-             <button 
-              onClick={() => {
-                // 편집 화면으로 이동 (임시 데이터 초기화)
-                if (resultData) {
-                  setTempResultData(JSON.parse(JSON.stringify(resultData))); // deep copy
-                  setCurrentScreen('Edit');
-                }
-              }}
-              className="flex items-center justify-center gap-2 py-4 rounded-2xl font-medium bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
-              style={{ color: '#232323', width: '30%' }}
-            >
-              <Edit size={18} style={{ color: '#C9A27A' }} />
-              <span>편집</span>
-            </button>
-            
-            {/* 테스트 버튼 */}
-            <button
-              onClick={() => {
-                // 테스트 시나리오 데이터
-                const TEST_SCENARIOS = [
-                  {
-                    summary: "속눈썹 D컬 11mm로 연장 리터치 진행함. 글루 알러지 있어서 예민하심.",
-                    sections: [
-                      {
-                        title: '고객 기본 정보',
-                        content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
-                      },
-                      {
-                        title: '시술 내용',
-                        content: ['속눈썹 D컬 11mm로 연장 리터치 진행함. 글루 알러지 있어서 예민하심.']
-                      },
-                      {
-                        title: '주의사항',
-                        content: ['글루 알러지 있으므로 저자극 제품 사용']
-                      }
-                    ]
-                  },
-                  {
-                    summary: "기존 젤네일 제거하고 이달의아트로 변경. 현금영수증 해드렸음.",
-                    sections: [
-                      {
-                        title: '고객 기본 정보',
-                        content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
-                      },
-                      {
-                        title: '시술 내용',
-                        content: ['기존 젤네일 제거하고 이달의아트로 변경. 현금영수증 해드렸음.']
-                      },
-                      {
-                        title: '결제 금액',
-                        content: ['현금영수증 발급 완료']
-                      }
-                    ]
-                  },
-                  {
-                    summary: "오늘은 케어만 받고 가심. 손톱이 많이 상해서 영양제 듬뿍 발라드림.",
-                    sections: [
-                      {
-                        title: '고객 기본 정보',
-                        content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
-                      },
-                      {
-                        title: '시술 내용',
-                        content: ['오늘은 케어만 받고 가심. 손톱이 많이 상해서 영양제 듬뿍 발라드림.']
-                      },
-                      {
-                        title: '시술 후 상태',
-                        content: ['손톱 상태 개선을 위해 영양 케어 강화']
-                      }
-                    ]
-                  },
-                  {
-                    summary: "눈물이 많으셔서 시술 중간에 자주 쉬었음. 다음엔 C컬 말고 J컬로 하고 싶다고 하심.",
-                    sections: [
-                      {
-                        title: '고객 기본 정보',
-                        content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
-                      },
-                      {
-                        title: '시술 내용',
-                        content: ['눈물이 많으셔서 시술 중간에 자주 쉬었음. 다음엔 C컬 말고 J컬로 하고 싶다고 하심.']
-                      },
-                      {
-                        title: '주의사항',
-                        content: ['눈물이 많으므로 시술 시 주의 필요']
-                      }
-                    ]
-                  },
-                  {
-                    summary: "이번 고객님은 임산부셔서 조심스럽게 시술했습니다. 기존 젤네일 제거하고, 이달의아트로 변경하셨어요. 결제는 현금영수증 해드렸습니다.",
-                    sections: [
-                      {
-                        title: '고객 기본 정보',
-                        content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
-                      },
-                      {
-                        title: '시술 내용',
-                        content: ['이번 고객님은 임산부셔서 조심스럽게 시술했습니다. 기존 젤네일 제거하고, 이달의아트로 변경하셨어요. 결제는 현금영수증 해드렸습니다.']
-                      },
-                      {
-                        title: '주의사항',
-                        content: ['임산부 고객이므로 조심스럽게 시술 진행']
-                      }
-                    ]
-                  }
-                ];
-                
-                // 랜덤으로 시나리오 선택
-                const randomIndex = Math.floor(Math.random() * TEST_SCENARIOS.length);
-                const selectedScenario = TEST_SCENARIOS[randomIndex];
-                
-                const testResultData = {
-                  title: selectedScenario.summary,
-                  sections: selectedScenario.sections
-                };
-                
-                setResultData(testResultData);
-                
-                // 태그 재분석을 위해 useEffect가 실행되도록 함
-                // resultData가 변경되면 자동으로 태그 분석이 실행됨
-              }}
-              className="flex items-center justify-center gap-2 py-4 rounded-2xl font-medium bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
-              style={{ color: '#232323', width: '30%' }}
-            >
-              <span>🧪</span>
-              <span>테스트</span>
-            </button>
-            
-            {/* 저장하기 버튼 */}
-            <button 
-              onClick={() => {
-                // 저장 전 검증
-                if (selectedCustomerForRecord) {
-                  // 기존 고객 선택 시 - 기록 저장
-                  const customerId = selectedCustomerForRecord.id;
-                  const today = new Date();
-                  // 녹음 기록을 년도, 달, 시간, 분으로 저장
-                  const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                  const timeStr = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
-                  const recordedAt = today.toISOString(); // 녹음한 시각을 ISO 문자열로 저장 (년도, 달, 시간, 분, 초 포함)
-                  
-                  // serviceDate 추출 시도 (AI 결과에서 시술 날짜 파싱)
-                  const parsedServiceDate = extractServiceDateFromSummary(resultData);
-                  const serviceDate = parsedServiceDate || dateStr; // 파싱된 날짜가 있으면 사용, 없으면 녹음한 날짜
-                  
-                  console.log('[기존 고객 저장] 파싱된 serviceDate:', parsedServiceDate);
-                  console.log('[기존 고객 저장] 최종 serviceDate:', serviceDate);
-                  console.log('[기존 고객 저장] 녹음한 날짜 (date):', dateStr);
-                  console.log('[기존 고객 저장] 녹음한 시간 (time):', timeStr);
-                  console.log('[기존 고객 저장] 녹음한 시각 (recordedAt):', recordedAt);
-                  
-                  // title에서 고객 이름과 '신규 고객' 텍스트 제거
-                  const cleanTitle = (title) => {
-                    if (!title) return title;
-                    let cleaned = title;
-                    // 고객 이름 제거 (selectedCustomerForRecord.name이 있으면)
-                    if (selectedCustomerForRecord?.name) {
-                      cleaned = cleaned.replace(new RegExp(selectedCustomerForRecord.name, 'g'), '').trim();
-                    }
-                    // '신규 고객', '기존 고객' 등 제거
-                    cleaned = cleaned.replace(/신규\s*고객/gi, '').trim();
-                    cleaned = cleaned.replace(/기존\s*고객/gi, '').trim();
-                    // 연속된 공백 정리
-                    cleaned = cleaned.replace(/\s+/g, ' ').trim();
-                    return cleaned || title; // 빈 문자열이면 원본 반환
-                  };
-                  
-                  // 새로운 방문 기록 생성
-                  const newVisitId = Date.now();
-                  const newVisit = {
-                    id: newVisitId,
-                    date: dateStr, // 녹음한 날짜 (YYYY-MM-DD)
-                    time: timeStr, // 녹음한 시간 (HH:mm)
-                    recordedAt: recordedAt, // 녹음한 시각 (ISO 문자열: 년도, 달, 시간, 분, 초 포함)
-                    serviceDate: serviceDate, // 시술/매출 날짜 (AI 파싱 또는 녹음한 날짜)
-                    title: cleanTitle(resultData.title),
-                    summary: resultData.sections[0]?.content[0] || cleanTitle(resultData.title),
-                    rawTranscript: rawTranscript || transcript, // STT 원본 텍스트 (태그 매칭용)
-                    detail: {
-                      sections: resultData.sections
-                    },
-                    tags: (() => {
-                      // selectedTagIds를 태그 label 배열로 변환
-                      const selectedTagLabels = selectedTagIds
-                        .map(id => {
-                          const tag = allVisitTags.find(t => t.id === id);
-                          return tag ? tag.label : null;
-                        })
-                        .filter(label => label !== null);
-                      // serviceTags와 합치기 (중복 제거)
-                      const allTags = [...new Set([...serviceTags, ...selectedTagLabels])];
-                      return allTags;
-                    })() // 방문 히스토리 카드에 표시용
-                  };
-                  
-                  console.log('[기존 고객 저장] 저장되는 newVisit 객체:', JSON.stringify(newVisit, null, 2));
-                  console.log('[기존 고객 저장] newVisit.date:', newVisit.date);
-                  console.log('[기존 고객 저장] newVisit.time:', newVisit.time);
-                  
-                  // visits 상태 업데이트
-                  setVisits(prev => ({
-                    ...prev,
-                    [customerId]: [newVisit, ...(prev[customerId] || [])]
-                  }));
-                  
-                  // "신규" 키워드 감지 (resultData에서)
-                  const detectNewCustomer = () => {
-                    const allContent = [
-                      resultData.title || '',
-                      ...(resultData.sections || []).flatMap(section => 
-                        (section.content || []).join(' ')
-                      )
-                    ].join(' ').toLowerCase();
-                    
-                    // "신규 고객", "신규 손님", "신규 회원" 등 감지
-                    return /신규\s*(고객|손님|회원|손님)/i.test(allContent) || 
-                           /신규/gi.test(allContent);
-                  };
-                  
-                  const isNewCustomer = detectNewCustomer();
-                  
-                  // 고객 태그 업데이트: selectedCustomerTagIds를 카테고리별로 분류
-                  const updatedCustomerTags = { ...selectedCustomerForRecord.customerTags || {
-                    caution: [],
-                    trait: [],
-                    payment: [],
-                    pattern: []
-                  }};
-                  
-                  // selectedCustomerTagIds를 카테고리별로 분류
-                  selectedCustomerTagIds.forEach(tagId => {
-                    const tag = allCustomerTags.find(t => t.id === tagId);
-                    if (tag) {
-                      const category = tag.category;
-                      if (updatedCustomerTags[category]) {
-                        // 중복 제거를 위해 Set 사용
-                        const existingLabels = new Set(
-                          updatedCustomerTags[category].map(t => 
-                            typeof t === 'string' ? t : t.label || t
-                          )
-                        );
-                        if (!existingLabels.has(tag.label)) {
-                          updatedCustomerTags[category] = [...updatedCustomerTags[category], tag.label];
-                        }
-                      } else {
-                        updatedCustomerTags[category] = [tag.label];
-                      }
-                    }
-                  });
-                  
-                  // 방문 횟수 확인 (2 이상이면 "신규" 제거하고 "기존" 추가)
-                  const currentVisitCount = selectedCustomerForRecord.visitCount || 0;
-                  const nextVisitCount = currentVisitCount + 1;
-                  
-                  // 방문 횟수가 2 이상이면 "신규" 태그 제거하고 "기존" 태그 추가
-                  if (nextVisitCount >= 2) {
-                    const patternTags = updatedCustomerTags.pattern || [];
-                    // "신규" 태그 제거
-                    updatedCustomerTags.pattern = patternTags.filter(tag => tag !== '신규');
-                    // "기존" 태그 추가 (없으면)
-                    if (!updatedCustomerTags.pattern.includes('기존')) {
-                      updatedCustomerTags.pattern = [...updatedCustomerTags.pattern, '기존'];
-                    }
-                  } else {
-                    // 첫 방문(1회)인 경우 자동으로 "신규" 태그 추가
-                    const patternTags = updatedCustomerTags.pattern || [];
-                    if (!patternTags.includes('신규')) {
-                      updatedCustomerTags.pattern = [...patternTags, '신규'];
-                    }
-                  }
-                  
-                  // 특정 키워드 감지하여 customerTags에 자동 추가
-                  const allContent = [
-                    resultData.title || '',
-                    ...(resultData.sections || []).flatMap(section => 
-                      (section.content || []).join(' ')
-                    )
-                  ].join(' ').toLowerCase();
-                  
-                  // "임산부" 키워드 감지
-                  if (allContent.includes('임산부')) {
-                    const cautionTags = updatedCustomerTags.caution || [];
-                    if (!cautionTags.includes('임산부')) {
-                      updatedCustomerTags.caution = [...cautionTags, '임산부'];
-                    }
-                  }
-                  
-                  // "글루알러지" 키워드 감지
-                  if (allContent.includes('글루알러지') || allContent.includes('글루 알러지')) {
-                    const cautionTags = updatedCustomerTags.caution || [];
-                    if (!cautionTags.includes('글루알러지')) {
-                      updatedCustomerTags.caution = [...cautionTags, '글루알러지'];
-                    }
-                  }
-                  
-                  // "눈물많음" 또는 "눈물 많음" 키워드 감지
-                  if (allContent.includes('눈물많음') || allContent.includes('눈물 많음') || allContent.includes('눈물이 많')) {
-                    const cautionTags = updatedCustomerTags.caution || [];
-                    if (!cautionTags.includes('눈물많음')) {
-                      updatedCustomerTags.caution = [...cautionTags, '눈물많음'];
-                    }
-                  }
-                  
-                  // 고객의 방문 횟수 및 customerTags 업데이트
-                  setCustomers(prev => prev.map(c => {
-                    if (c.id === customerId) {
-                      return { 
-                        ...c, 
-                        visitCount: c.visitCount + 1, 
-                        lastVisit: dateStr,
-                        customerTags: updatedCustomerTags
-                      };
-                    }
-                    return c;
-                  }));
-                  
-                  // CustomerDetail로 이동
-                  setSelectedCustomerId(customerId);
-                  setCurrentScreen('CustomerDetail');
-                } else {
-                  // 신규 고객인 경우 이름 필수 검증
-                  if (!tempName || !tempName.trim()) {
-                    alert('고객님의 이름을 입력해주세요!');
-                    // 이름 입력창에 포커스 및 빨간색 강조
-                    if (nameInputRef.current) {
-                      nameInputRef.current.focus();
-                      nameInputRef.current.style.borderColor = '#EF4444';
-                      nameInputRef.current.style.borderWidth = '2px';
-                      setTimeout(() => {
-                        if (nameInputRef.current) {
-                          nameInputRef.current.style.borderColor = '';
-                          nameInputRef.current.style.borderWidth = '';
-                        }
-                      }, 2000);
-                    }
-                    return;
-                  }
-                  
-                  // 신규 고객인 경우 전화번호 필수 검증
-                  if (!tempPhone || !tempPhone.trim()) {
-                    alert('고객님의 전화번호를 입력해주세요!');
-                    // 전화번호 입력창에 포커스 및 빨간색 강조
-                    if (phoneInputRef.current) {
-                      phoneInputRef.current.focus();
-                      phoneInputRef.current.style.borderColor = '#EF4444';
-                      phoneInputRef.current.style.borderWidth = '2px';
-                      setTimeout(() => {
-                        if (phoneInputRef.current) {
-                          phoneInputRef.current.style.borderColor = '';
-                          phoneInputRef.current.style.borderWidth = '';
-                        }
-                      }, 2000);
-                    }
-                    return;
-                  }
-                  
-                  // 신규 고객 생성 및 기록 저장
-                  const today = new Date();
-                  // 녹음 기록을 년도, 달, 시간, 분으로 저장
-                  const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                  const timeStr = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
-                  const recordedAt = today.toISOString(); // 녹음한 시각을 ISO 문자열로 저장 (년도, 달, 시간, 분, 초 포함)
-                  
-                  // serviceDate 추출 시도 (AI 결과에서 시술 날짜 파싱)
-                  const parsedServiceDate = extractServiceDateFromSummary(resultData);
-                  const serviceDate = parsedServiceDate || dateStr; // 파싱된 날짜가 있으면 사용, 없으면 녹음한 날짜
-                  
-                  console.log('[신규 고객 저장] 파싱된 serviceDate:', parsedServiceDate);
-                  console.log('[신규 고객 저장] 최종 serviceDate:', serviceDate);
-                  console.log('[신규 고객 저장] 녹음한 날짜 (date):', dateStr);
-                  console.log('[신규 고객 저장] 녹음한 시간 (time):', timeStr);
-                  console.log('[신규 고객 저장] 녹음한 시각 (recordedAt):', recordedAt);
-                  
-                  // 새로운 고객 ID 생성 (기존 최대 ID + 1)
-                  const newCustomerId = Math.max(...customers.map(c => c.id), 0) + 1;
-                  
-                  // "신규" 키워드 감지 (resultData에서)
-                  const detectNewCustomer = () => {
-                    const allContent = [
-                      resultData.title || '',
-                      ...(resultData.sections || []).flatMap(section => 
-                        (section.content || []).join(' ')
-                      )
-                    ].join(' ').toLowerCase();
-                    
-                    // "신규 고객", "신규 손님", "신규 회원" 등 감지
-                    return /신규\s*(고객|손님|회원|손님)/i.test(allContent) || 
-                           /신규/gi.test(allContent);
-                  };
-                  
-                  const isNewCustomer = detectNewCustomer();
-                  
-                  // 신규 고객 태그 업데이트: selectedCustomerTagIds를 카테고리별로 분류
-                  const newCustomerTags = {
-                    caution: [],
-                    trait: [],
-                    payment: [],
-                    pattern: []
-                  };
-                  
-                  // selectedCustomerTagIds를 카테고리별로 분류
-                  selectedCustomerTagIds.forEach(tagId => {
-                    const tag = allCustomerTags.find(t => t.id === tagId);
-                    if (tag) {
-                      const category = tag.category;
-                      if (newCustomerTags[category]) {
-                        newCustomerTags[category] = [...newCustomerTags[category], tag.label];
-                      } else {
-                        newCustomerTags[category] = [tag.label];
-                      }
-                    }
-                  });
-                  
-                  // 신규 고객(첫 방문)인 경우 자동으로 "신규" 태그 추가
-                  if (!newCustomerTags.pattern.includes('신규')) {
-                    newCustomerTags.pattern = [...newCustomerTags.pattern, '신규'];
-                  }
-                  
-                  // 특정 키워드 감지하여 customerTags에 자동 추가
-                  const allContent = [
-                    resultData.title || '',
-                    ...(resultData.sections || []).flatMap(section => 
-                      (section.content || []).join(' ')
-                    )
-                  ].join(' ').toLowerCase();
-                  
-                  // "임산부" 키워드 감지
-                  if (allContent.includes('임산부')) {
-                    if (!newCustomerTags.caution.includes('임산부')) {
-                      newCustomerTags.caution = [...newCustomerTags.caution, '임산부'];
-                    }
-                  }
-                  
-                  // "글루알러지" 키워드 감지
-                  if (allContent.includes('글루알러지') || allContent.includes('글루 알러지')) {
-                    if (!newCustomerTags.caution.includes('글루알러지')) {
-                      newCustomerTags.caution = [...newCustomerTags.caution, '글루알러지'];
-                    }
-                  }
-                  
-                  // "눈물많음" 또는 "눈물 많음" 키워드 감지
-                  if (allContent.includes('눈물많음') || allContent.includes('눈물 많음') || allContent.includes('눈물이 많')) {
-                    if (!newCustomerTags.caution.includes('눈물많음')) {
-                      newCustomerTags.caution = [...newCustomerTags.caution, '눈물많음'];
-                    }
-                  }
-                  
-                  // 새로운 고객 생성
-                  const newCustomer = {
-                    id: newCustomerId,
-                    name: tempName.trim(),
-                    phone: tempPhone.trim(),
-                    visitCount: 1,
-                    lastVisit: dateStr,
-                    avatar: '👤',
-                    tags: [],
-                    customerTags: newCustomerTags
-                  };
-                  
-                  // title에서 고객 이름과 '신규 고객' 텍스트 제거
-                  const cleanTitle = (title) => {
-                    if (!title) return title;
-                    let cleaned = title;
-                    // 고객 이름 제거 (tempName이 있으면)
-                    if (tempName) {
-                      cleaned = cleaned.replace(new RegExp(tempName, 'g'), '').trim();
-                    }
-                    // '신규 고객', '기존 고객' 등 제거
-                    cleaned = cleaned.replace(/신규\s*고객/gi, '').trim();
-                    cleaned = cleaned.replace(/기존\s*고객/gi, '').trim();
-                    // 연속된 공백 정리
-                    cleaned = cleaned.replace(/\s+/g, ' ').trim();
-                    return cleaned || title; // 빈 문자열이면 원본 반환
-                  };
-                  
-                  // 새로운 방문 기록 생성
-                  const newVisitId = Date.now();
-                  const newVisit = {
-                    id: newVisitId,
-                    date: dateStr, // 녹음한 날짜 (YYYY-MM-DD)
-                    time: timeStr, // 녹음한 시간 (HH:mm)
-                    recordedAt: recordedAt, // 녹음한 시각 (ISO 문자열: 년도, 달, 시간, 분, 초 포함)
-                    serviceDate: serviceDate, // 시술/매출 날짜 (AI 파싱 또는 녹음한 날짜)
-                    title: cleanTitle(resultData.title),
-                    summary: resultData.sections[0]?.content[0] || cleanTitle(resultData.title),
-                    rawTranscript: rawTranscript || transcript, // STT 원본 텍스트 (태그 매칭용)
-                    detail: {
-                      sections: resultData.sections
-                    },
-                    tags: (() => {
-                      // selectedTagIds를 태그 label 배열로 변환
-                      const selectedTagLabels = selectedTagIds
-                        .map(id => {
-                          const tag = allVisitTags.find(t => t.id === id);
-                          return tag ? tag.label : null;
-                        })
-                        .filter(label => label !== null);
-                      // serviceTags와 합치기 (중복 제거)
-                      const allTags = [...new Set([...serviceTags, ...selectedTagLabels])];
-                      return allTags;
-                    })() // 방문 히스토리 카드에 표시용
-                  };
-                  
-                  console.log('[신규 고객 저장] 저장되는 newVisit 객체:', JSON.stringify(newVisit, null, 2));
-                  console.log('[신규 고객 저장] newVisit.date:', newVisit.date);
-                  console.log('[신규 고객 저장] newVisit.time:', newVisit.time);
-                  
-                  // customers와 visits 상태 업데이트
-                  setCustomers(prev => [...prev, newCustomer]);
-                  setVisits(prev => ({
-                    ...prev,
-                    [newCustomerId]: [newVisit]
-                  }));
-                  
-                  // CustomerDetail로 이동
-                  setSelectedCustomerId(newCustomerId);
-                  setCurrentScreen('CustomerDetail');
-                }
-                
-                // 저장 후 상태 초기화
-                setResultData(null);
-                setTranscript('');
-                setRawTranscript('');
-                setRecordingDate(null);
-                setSelectedCustomerForRecord(null);
-                setTempName('');
-                setTempPhone('');
-                setServiceTags([]);
-                setNewServiceTag('');
-              }}
-              className="flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-medium text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all"
-              style={{ backgroundColor: '#C9A27A' }}
-            >
-              저장하기
-             </button>
-        </div>
-        </div>
-      </div>
-    );
-  };
-
-  // record + customer를 합쳐서 사용하는 helper 함수
-  const normalizeRecordWithCustomer = (record, customer) => {
-    const filled = { ...record };
-
-    const isEmpty = (v) =>
-      v === null ||
-      v === undefined ||
-      v === '' ||
-      v === 'null' ||
-      v === '미기재' ||
-      (typeof v === 'string' && v.toLowerCase() === 'null');
-
-    if (customer) {
-      if (isEmpty(filled.customerName)) {
-        filled.customerName = customer.name || filled.customerName;
-      }
-      if (isEmpty(filled.customerPhone)) {
-        filled.customerPhone = customer.phone || filled.customerPhone;
-      }
-    }
-
-    return filled;
-  };
-
-  const renderCustomerDetail = () => {
-    console.log('renderCustomerDetail - selectedCustomerId:', selectedCustomerId);
-    console.log('renderCustomerDetail - customers 배열:', customers);
-    console.log('renderCustomerDetail - id 21인 고객:', customers.find(c => c.id === 21));
-    let customer = customers.find(c => c.id === selectedCustomerId);
-    
-    // customers 배열에 없으면 MOCK_CUSTOMERS에서 직접 찾기
-    if (!customer) {
-      console.log('customers 배열에 고객이 없어서 MOCK_CUSTOMERS에서 찾는 중...');
-      const mockCustomer = MOCK_CUSTOMERS.find(c => c.id === selectedCustomerId);
-      if (mockCustomer) {
-        console.log('MOCK_CUSTOMERS에서 찾은 고객:', mockCustomer);
-        customer = { 
-          ...mockCustomer, 
-          tags: (mockCustomer.tags || []).filter(tag => tag !== '#신규'),
-          customerTags: mockCustomer.customerTags || {
-            caution: [],
-            trait: [],
-            payment: [],
-            pattern: []
-          }
-        };
-        // customers 배열에 추가 (useEffect로 처리)
-        setTimeout(() => {
-          setCustomers(prev => {
-            if (!prev.find(c => c.id === selectedCustomerId)) {
-              return [...prev, customer];
-            }
-            return prev;
-          });
-        }, 0);
-      }
-    }
-    
-    // customerTags가 없으면 기본 구조 추가
-    if (customer && !customer.customerTags) {
-      customer = {
-        ...customer,
-        customerTags: {
-          caution: [],
-          trait: [],
-          payment: [],
-          pattern: []
-        }
-      };
-    }
-    
-    const customerVisits = visits[selectedCustomerId] || [];
-    
-    console.log('renderCustomerDetail - 최종 찾은 고객:', customer);
-    console.log('renderCustomerDetail - customer.customerTags:', customer?.customerTags);
-    console.log('renderCustomerDetail - customerVisits:', customerVisits);
-    console.log('renderCustomerDetail - 첫 번째 방문 tags:', customerVisits[0]?.tags);
-
-    if (!customer) {
-      return (
-        <div className="flex flex-col h-full items-center justify-center" style={{ backgroundColor: '#F2F0E6' }}>
-          <p style={{ color: '#232323' }}>고객 정보를 찾을 수 없습니다.</p>
-          <button onClick={() => setCurrentScreen('History')} className="mt-4 font-medium" style={{ color: '#232323' }}>히스토리로 돌아가기</button>
-        </div>
-      );
-    }
-
-    // 더 보기 함수
-    const handleLoadMoreVisits = () => {
-      setVisibleVisitCount((prev) => Math.min(prev + 10, customerVisits.length));
-    };
-
-    // 접기 함수
-    const handleCollapseVisits = () => {
-      setVisibleVisitCount(10);
-    };
-
-    // "미기재"와 "null"을 실제 고객 정보로 치환하는 helper 함수
-    const overrideCustomerInfoLine = (line, customerInfo) => {
-      if (!line) return line;
-      
-      let updated = line;
-
-      // 이름이 미기재나 null로 되어있으면 실제 이름으로 교체
-      if (customerInfo?.name) {
-        updated = updated.replace(/이름:\s*미기재/g, `이름: ${customerInfo.name}`);
-        updated = updated.replace(/이름\s*:\s*미기재/g, `이름: ${customerInfo.name}`);
-        updated = updated.replace(/이름:\s*null/gi, `이름: ${customerInfo.name}`);
-        updated = updated.replace(/이름\s*:\s*null/gi, `이름: ${customerInfo.name}`);
-      }
-
-      // 전화번호가 미기재나 null로 되어있으면 실제 전화번호로 교체
-      if (customerInfo?.phone) {
-        updated = updated.replace(/전화번호:\s*미기재/g, `전화번호: ${customerInfo.phone}`);
-        updated = updated.replace(/전화번호\s*:\s*미기재/g, `전화번호: ${customerInfo.phone}`);
-        updated = updated.replace(/전화번호:\s*null/gi, `전화번호: ${customerInfo.phone}`);
-        updated = updated.replace(/전화번호\s*:\s*null/gi, `전화번호: ${customerInfo.phone}`);
-      }
-
-      return updated;
-    };
-
-    return (
-      <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
-        {/* Header */}
-        <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
-          <button onClick={() => setCurrentScreen('History')} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
-            <ArrowLeft size={24} />
-          </button>
-          <div className="text-center">
-            <span className="text-xs font-medium" style={{ color: '#232323', opacity: 0.7 }}>고객 상세</span>
-            <h2 className="font-bold text-base mt-1" style={{ color: '#232323' }}>{customer.name}</h2>
-          </div>
-          <button className="p-2" style={{ color: '#232323', opacity: 0.5 }}>
-            <MoreHorizontal size={24} />
-          </button>
-        </header>
-
-        <main className="flex-1 overflow-y-auto p-8 space-y-6 pb-32">
-          {/* 고객 정보 카드 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 relative">
-            {/* 편집 버튼 */}
-            <button
-              onClick={() => {
-                setEditCustomerName(customer.name || '');
-                setEditCustomerPhone(customer.phone || '');
-                setEditCustomerTags([...(customer.tags || [])]);
-                setEditCustomerMemo(customer.memo || '');
-                setNewTag('');
-                
-                // 고객 특징 태그를 ID 배열로 변환하여 로드
-                const customerTags = customer.customerTags || {};
-                const tagLabels = [];
-                Object.values(customerTags).forEach(categoryTags => {
-                  if (Array.isArray(categoryTags)) {
-                    categoryTags.forEach(tag => {
-                      const label = typeof tag === 'string' ? tag : tag.label || tag;
-                      tagLabels.push(label);
-                    });
-                  }
-                });
-                const tagIds = tagLabels
-                  .map(label => {
-                    const tag = allCustomerTags.find(t => t.label === label);
-                    return tag ? tag.id : null;
-                  })
-                  .filter(id => id !== null);
-                setEditCustomerTagIds(tagIds);
-                
-                setCurrentScreen('EditCustomer');
-              }}
-              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
-              style={{ color: '#C9A27A' }}
-              title="편집"
-            >
-              <Edit size={20} />
-            </button>
-            <div className="flex items-center gap-6 mb-6">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="font-bold text-2xl" style={{ color: '#232323' }}>{customer.name}</h3>
-                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100" style={{ color: '#232323' }}>
-                    {customer.visitCount}회방문
-                  </span>
-                </div>
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center gap-3 font-light" style={{ color: '#232323' }}>
-                    <Phone size={18} style={{ color: '#C9A27A' }} />
-                    <span>{customer.phone}</span>
-                  </div>
-                </div>
-                {/* customerTags 표시 (주의 태그가 맨 앞) */}
-                {(() => {
-                  const customerTags = customer.customerTags || {};
-                  console.log('renderCustomerDetail - customerTags:', customerTags);
-                  const allTags = [];
-                  
-                  // 방문 횟수 확인 (2 이상이면 "신규" 제거하고 "기존" 추가)
-                  const visitCount = customer.visitCount || 0;
-                  const shouldReplaceNewWithExisting = visitCount >= 2;
-                  
-                  // 주의 태그 먼저 추가
-                  if (customerTags.caution && customerTags.caution.length > 0) {
-                    customerTags.caution.forEach(tag => {
-                      allTags.push({ tag, type: 'caution' });
-                    });
-                  }
-                  
-                  // 나머지 태그 추가
-                  if (customerTags.trait && customerTags.trait.length > 0) {
-                    customerTags.trait.forEach(tag => {
-                      allTags.push({ tag, type: 'trait' });
-                    });
-                  }
-                  if (customerTags.payment && customerTags.payment.length > 0) {
-                    customerTags.payment.forEach(tag => {
-                      allTags.push({ tag, type: 'payment' });
-                    });
-                  }
-                  if (customerTags.pattern && customerTags.pattern.length > 0) {
-                    customerTags.pattern.forEach(tag => {
-                      // 방문 횟수가 2 이상이면 "신규" 태그는 제외하고 "기존" 태그 추가
-                      if (shouldReplaceNewWithExisting && tag === '신규') {
-                        // "신규" 태그는 건너뛰고 "기존" 태그가 없으면 추가
-                        if (!customerTags.pattern.includes('기존')) {
-                          allTags.push({ tag: '기존', type: 'pattern' });
-                        }
-                      } else {
-                        allTags.push({ tag, type: 'pattern' });
-                      }
-                    });
-                  }
-                  
-                  // 방문 횟수가 2 이상이고 "기존" 태그가 없으면 추가
-                  if (shouldReplaceNewWithExisting && (!customerTags.pattern || !customerTags.pattern.includes('기존'))) {
-                    // "신규" 태그가 이미 필터링되었는지 확인
-                    const hasNewTag = customerTags.pattern && customerTags.pattern.includes('신규');
-                    if (!hasNewTag || allTags.find(t => t.tag === '기존')) {
-                      // 이미 "기존" 태그가 추가되었거나 "신규" 태그가 없으면 추가하지 않음
-                    } else {
-                      allTags.push({ tag: '기존', type: 'pattern' });
-                    }
-                  }
-                  
-                  console.log('renderCustomerDetail - allTags:', allTags);
-                  
-                  if (allTags.length === 0) return null;
-                  
-                  return (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {allTags.map((item, idx) => {
-                        const isCaution = item.type === 'caution';
-                        return (
-                          <span
-                            key={idx}
-                            className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
-                              isCaution 
-                                ? 'bg-red-50 text-red-600 border border-red-100' 
-                                : 'bg-gray-100 text-gray-600'
-                            }`}
-                          >
-                            {isCaution && <span>⚠️</span>}
-                            {item.tag}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
-                {/* 메모 */}
-                {customer.memo && customer.memo.trim() && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <p className="text-sm font-medium mb-2" style={{ color: '#232323', opacity: 0.7 }}>메모</p>
-                    <p className="text-sm font-light leading-relaxed" style={{ color: '#232323' }}>{customer.memo}</p>
-            </div>
-        )}
-              </div>
-            </div>
-          </div>
-
-          {/* 방문 히스토리 */}
-          <div className="space-y-4 pb-24">
-            <h3 className="text-base font-bold" style={{ color: '#232323' }}>방문 히스토리</h3>
-            {customerVisits.length === 0 ? (
-              <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 shadow-sm">
-                <p className="font-light text-base" style={{ color: '#232323', opacity: 0.6 }}>방문 기록이 없습니다</p>
-              </div>
-            ) : (
-              customerVisits.slice(0, visibleVisitCount).map((visit) => {
-                // record + customer를 합쳐서 사용 (customerName, customerPhone 보정)
-                const normalizedVisit = normalizeRecordWithCustomer(visit, customer);
-                const safeName = normalizedVisit.customerName || '미기재';
-                const safePhone = normalizedVisit.customerPhone || '미기재';
-
-                // 시간 포맷팅 (HH:mm -> 오전/오후 HH:mm)
-                const formatTimeDisplay = (timeStr) => {
-                  if (!timeStr) return '';
-                  // HH:mm:ss 또는 HH:mm 형식 모두 처리
-                  const parts = timeStr.split(':');
-                  const hour = parts[0];
-                  const minute = parts[1] || '00';
-                  const second = parts[2] || '00'; // 초 포함
-                  const hourNum = parseInt(hour);
-                  const period = hourNum >= 12 ? '오후' : '오전';
-                  const displayHour = hourNum > 12 ? hourNum - 12 : (hourNum === 0 ? 12 : hourNum);
-                  // HH:mm:ss 형식이면 초도 표시, 아니면 HH:mm만 표시
-                  if (parts.length >= 3 && second !== '00') {
-                    return `${period} ${displayHour}:${minute.padStart(2, '0')}:${second.padStart(2, '0')}`;
-                  }
-                  return `${period} ${displayHour}:${minute.padStart(2, '0')}`;
-                };
-
-                // 날짜/시간 정보 준비
-                const serviceDateTimeLabel = extractServiceDateTimeLabel(visit);
-                let dateTimeDisplay = '';
-                if (serviceDateTimeLabel) {
-                  // "2025-12-27 17:30 방문/예약" -> "2025.12.27 17:30"
-                  const dateTimeMatch = serviceDateTimeLabel.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
-                  if (dateTimeMatch) {
-                    const [, year, month, day, hour, minute] = dateTimeMatch;
-                    dateTimeDisplay = `${year}.${month}.${day} ${hour}:${minute}`;
-                  } else {
-                    // fallback: recordedAt 사용
-                    const recordedAt = visit.recordedAt || visit.createdAt || (visit.date && visit.time ? `${visit.date}T${visit.time}:00` : null);
-                    if (recordedAt) {
-                      dateTimeDisplay = formatRecordDateTime(recordedAt);
-                    }
-                  }
-                } else {
-                  // serviceDateTimeLabel이 없으면 recordedAt 사용
-                  const recordedAt = visit.recordedAt || visit.createdAt || (visit.date && visit.time ? `${visit.date}T${visit.time}:00` : null);
-                  if (recordedAt) {
-                    dateTimeDisplay = formatRecordDateTime(recordedAt);
-                  }
-                }
-
-                // 시술 내용 요약 (고객 이름 제거)
-                const cleanTitle = (title) => {
-                  if (!title) return title;
-                  let cleaned = title;
-                  // 고객 이름 제거
-                  if (safeName && safeName !== '미기재') {
-                    cleaned = cleaned.replace(new RegExp(safeName, 'g'), '').trim();
-                  }
-                  // '기존 고객', '신규 고객' 등 제거
-                  cleaned = cleaned.replace(/기존\s*고객/gi, '').trim();
-                  cleaned = cleaned.replace(/신규\s*고객/gi, '').trim();
-                  // 연속된 공백 정리
-                  cleaned = cleaned.replace(/\s+/g, ' ').trim();
-                  return cleaned || title || '';
-                };
-
-                const displayTitle = cleanTitle(visit.title || visit.subject || visit.summary || '');
-
-                return (
-                  <div key={visit.id} className="bg-white rounded-xl shadow-sm overflow-hidden relative" style={{ padding: '12px 16px' }}>
-                    <div className="record-card-main flex flex-col relative">
-                      {/* 맨 위줄: 날짜/시간 */}
-                      {dateTimeDisplay && (
-                        <div 
-                          className="mb-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
-                          }}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <span className="text-xs font-bold text-[#C9A27A]">
-                            {dateTimeDisplay}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {/* 두 번째 줄: 이름, 번호 */}
-                      <div 
-                        className="flex flex-row items-center justify-start"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
-                        }}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        {/* 이름 */}
-                        {safeName && safeName !== '미기재' && (
-                          <>
-                            <span className="text-base font-bold text-[#232323]">{safeName}</span>
-                            {/* 번호 */}
-                            {safePhone && safePhone !== '미기재' && (
-                              <span className="ml-2 text-xs text-gray-400">
-                                / {safePhone}
-                              </span>
-                            )}
-                          </>
-                        )}
-                        {/* 편집 버튼 */}
-                        <button
-                          type="button"
-                          className="absolute right-8 top-0 visit-summary-edit-button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // 편집 화면으로 이동 (visit과 customer 함께 전달)
-                            // "고객 기본 정보" 섹션의 첫 번째 줄을 보정된 값으로 업데이트
-                            const sections = normalizedVisit.detail?.sections || [];
-                            const basicInfoSectionIndex = sections.findIndex(
-                              section => section.title && section.title.includes('고객 기본 정보')
-                            );
-                            
-                            if (basicInfoSectionIndex !== -1 && sections[basicInfoSectionIndex].content.length > 0) {
-                              const firstLine = `이름: ${safeName} / 전화번호: ${safePhone}`;
-                              sections[basicInfoSectionIndex] = {
-                                ...sections[basicInfoSectionIndex],
-                                content: [
-                                  firstLine,
-                                  ...sections[basicInfoSectionIndex].content.slice(1)
-                                ]
-                              };
-                            }
-                            
-                            const editData = {
-                              title: normalizedVisit.title,
-                              sections: sections
-                            };
-                            setTempResultData(editData);
-                            setEditingVisit(normalizedVisit);
-                            setEditingCustomer(customer);
-                            
-                            // 편집 중인 방문의 태그를 ID 배열로 변환
-                            const visitTagLabels = normalizedVisit.tags || [];
-                            const visitTagIds = visitTagLabels
-                              .map(label => {
-                                const tag = allVisitTags.find(t => t.label === label);
-                                return tag ? tag.id : null;
-                              })
-                              .filter(id => id !== null);
-                            setEditingVisitTagIds(visitTagIds);
-                            
-                            setCurrentScreen('Edit');
-                          }}
-                        >
-                          <Edit size={18} />
-                        </button>
-                        {/* 화살표 아이콘 (우측 끝) */}
-                        <button 
-                          className="absolute right-0 top-0" 
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
-                          }}
-                        >
-                          {expandedVisitId === visit.id ? (
-                            <ChevronUp size={20} style={{ color: '#C9A27A' }} />
-                          ) : (
-                            <ChevronDown size={20} style={{ color: '#C9A27A' }} />
-                          )}
-                        </button>
-                      </div>
-
-                      {/* 태그 리스트: 이름/번호 아래, 시술 내용 위 */}
-                      {visit.tags && visit.tags.length > 0 && (
-                        <div className="mt-1.5 mb-1.5 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
-                          {visit.tags.map((tag, idx) => (
-                            <span 
-                              key={idx}
-                              className="text-[11px] px-2 py-1 rounded-md"
-                              style={{ 
-                                backgroundColor: '#F2F0E6',
-                                color: '#8C6D46'
-                              }}
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* 아랫줄: 시술 내용 */}
-                      <div 
-                        className="mt-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
-                        }}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <div className="text-sm text-[#232323]/80 font-medium truncate">
-                          {displayTitle}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {expandedVisitId === visit.id && normalizedVisit.detail && (
-                      <div className="px-5 pb-5 space-y-5 border-t border-gray-200 pt-5 bg-gray-50">
-                        {normalizedVisit.detail.sections.map((section, idx) => {
-                          // "고객 기본 정보" 섹션의 첫 번째 줄을 보정된 값으로 표시
-                          let displayContent = section.content;
-                          if (section.title && section.title.includes('고객 기본 정보') && section.content.length > 0) {
-                            const firstLine = section.content[0];
-                            if (firstLine && firstLine.includes('이름:')) {
-                              displayContent = [
-                                `이름: ${safeName} / 전화번호: ${safePhone}`,
-                                ...section.content.slice(1)
-                              ];
-                            }
-                          }
-                          
-                          return (
-                            <div key={idx}>
-                              <h5 className="text-base font-bold mb-3" style={{ color: '#232323' }}>
-                                {section.title}
-                              </h5>
-                              <ul className="space-y-2">
-                                {displayContent.map((item, i) => (
-                                  <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
-                                    {overrideCustomerInfoLine(item, customer)}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          );
-                        })}
-                        
-                        {/* 기록 일시 (카드 하단) */}
-                        {(() => {
-                          const recordedAt = visit.recordedAt || (visit.date && visit.time ? `${visit.date}T${visit.time}:00` : null);
-                          return recordedAt ? (
-                            <div className="visit-detail-footer">
-                              기록 일시: {formatRecordDateTime(recordedAt)}
-                            </div>
-                          ) : null;
-                        })()}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-            
-            {/* 이전 기록 더 보기 / 접기 버튼 */}
-            {(customerVisits.length > visibleVisitCount || visibleVisitCount > 10) && (
-              <div className="flex justify-center mt-4 mb-20 gap-3">
-                {customerVisits.length > visibleVisitCount && (
-                  <button
-                    onClick={handleLoadMoreVisits}
-                    className="px-4 py-2 text-sm rounded-full border border-[#C9A27A] text-[#C9A27A] bg-white/90 shadow-sm hover:bg-[#C9A27A] hover:text-white transition-colors min-w-[180px]"
-                  >
-                    이전 기록 10건 더 보기
-                  </button>
-                )}
-                {visibleVisitCount > 10 && (
-                  <button
-                    onClick={handleCollapseVisits}
-                    className="px-4 py-2 text-sm rounded-full border border-[#C9A27A] text-[#C9A27A] bg-white/90 shadow-sm hover:bg-[#C9A27A] hover:text-white transition-colors min-w-[180px]"
-                  >
-                    접기
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-      </main>
-
-        {/* 하단 고정 버튼: 새 기록 남기기 */}
-        <div className="absolute bottom-8 left-8 right-8 z-30">
-          <button 
-            onClick={() => {
-              setSelectedCustomerForRecord(customer);
-              startRecording();
-            }}
-            className="w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-medium text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all"
-            style={{ backgroundColor: '#C9A27A' }}
-          >
-            <Mic size={20} />
-            <span>이 고객에 대해 새 기록 남기기</span>
-        </button>
-        </div>
-      </div>
-    );
-  };
-
-  const renderEdit = () => {
-    if (!tempResultData) {
-      return (
-        <div className="flex flex-col h-full items-center justify-center" style={{ backgroundColor: '#F2F0E6' }}>
-          <p style={{ color: '#232323' }}>편집할 데이터가 없습니다.</p>
-          <button onClick={() => setCurrentScreen('Record')} className="mt-4 font-medium" style={{ color: '#232323' }}>결과 화면으로 돌아가기</button>
-        </div>
-      );
-    }
-
-    // 편집 중인 visit과 customer 정보로 정규화
-    const normalizedVisit = editingVisit && editingCustomer 
-      ? normalizeRecordWithCustomer(editingVisit, editingCustomer)
-      : null;
-
-    // 섹션 내용 업데이트 함수
-    const updateSectionContent = (sectionIndex, contentIndex, newValue) => {
-      setTempResultData(prev => {
-        const updated = JSON.parse(JSON.stringify(prev));
-        updated.sections[sectionIndex].content[contentIndex] = newValue;
-        return updated;
-      });
-    };
-
-    // 섹션에 새 항목 추가 함수
-    const addSectionItem = (sectionIndex) => {
-      setTempResultData(prev => {
-        const updated = JSON.parse(JSON.stringify(prev));
-        updated.sections[sectionIndex].content.push('');
-        return updated;
-      });
-    };
-
-    // 섹션 항목 삭제 함수
-    const removeSectionItem = (sectionIndex, contentIndex) => {
-      setTempResultData(prev => {
-        const updated = JSON.parse(JSON.stringify(prev));
-        updated.sections[sectionIndex].content.splice(contentIndex, 1);
-        return updated;
-      });
-    };
-
-    // 제목에서 고객 이름과 신규/기존 정보 제거 함수
-    const cleanTitle = (title) => {
-      if (!title) return title;
-      let cleaned = title;
-      
-      // 편집 중인 고객 이름 제거
-      if (editingCustomer?.name) {
-        const customerName = editingCustomer.name;
-        // 이름 패턴 제거 (앞뒤 공백 포함)
-        cleaned = cleaned.replace(new RegExp(`\\s*${customerName}\\s*`, 'g'), ' ').trim();
-        // "○○○ 고객" 패턴 제거
-        cleaned = cleaned.replace(new RegExp(`${customerName}\\s*고객`, 'g'), '').trim();
-      }
-      
-      // "신규 고객", "기존 고객" 패턴 제거
-      cleaned = cleaned.replace(/\s*신규\s*고객\s*/gi, ' ').trim();
-      cleaned = cleaned.replace(/\s*기존\s*고객\s*/gi, ' ').trim();
-      cleaned = cleaned.replace(/\s*신규\s*/gi, ' ').trim();
-      cleaned = cleaned.replace(/\s*기존\s*/gi, ' ').trim();
-      
-      // 연속된 공백 정리
-      cleaned = cleaned.replace(/\s+/g, ' ').trim();
-      
-      return cleaned;
-    };
-
-    // 제목 업데이트 함수
-    const updateTitle = (newTitle) => {
-      // 입력 시에도 자동으로 정리
-      const cleaned = cleanTitle(newTitle);
-      setTempResultData(prev => ({
-        ...prev,
-        title: cleaned
-      }));
-    };
-
-    // 완료 버튼 클릭 핸들러
-    const handleComplete = () => {
-      // 빈 항목 제거
-      const cleanedData = {
-        ...tempResultData,
-        sections: tempResultData.sections.map(section => ({
-          ...section,
-          content: section.content.filter(item => item.trim() !== '')
-        }))
-      };
-      
-      // resultData 업데이트
-      setResultData(cleanedData);
-      
-      // 편집 중인 visit이 있으면 업데이트 (customerName, customerPhone 저장)
-      const currentNormalizedVisit = editingVisit && editingCustomer 
-        ? normalizeRecordWithCustomer(editingVisit, editingCustomer)
-        : null;
-      
-      if (editingVisit && editingCustomer && currentNormalizedVisit) {
-        const customerId = editingCustomer.id;
-        
-        // 편집된 태그를 label 배열로 변환
-        const editedTagLabels = editingVisitTagIds
-          .map(id => {
-            const tag = allVisitTags.find(t => t.id === id);
-            return tag ? tag.label : null;
-          })
-          .filter(label => label !== null);
-        
-        setVisits(prev => {
-          const updated = { ...prev };
-          if (updated[customerId]) {
-            updated[customerId] = updated[customerId].map(v => 
-              v.id === editingVisit.id 
-                ? { 
-                    ...v, 
-                    customerName: currentNormalizedVisit.customerName,
-                    customerPhone: currentNormalizedVisit.customerPhone,
-                    tags: editedTagLabels, // 태그 업데이트
-                    detail: {
-                      sections: cleanedData.sections
-                    }
-                  }
-                : v
-            );
-          }
-          return updated;
-        });
-      }
-      
-      setTempResultData(null);
-      setEditingVisit(null);
-      setEditingCustomer(null);
-      setEditingVisitTagIds([]);
-      
-      // 결과 화면으로 복귀 (Record 화면의 result 상태)
-      // 편집 화면에서 온 경우 CustomerDetail로 돌아가기
-      if (editingVisit) {
-        setCurrentScreen('CustomerDetail');
-      } else {
-        setCurrentScreen('Record');
-      }
-    };
-
-    return (
-      <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
-        {/* Header */}
-        <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
-        <button 
-            onClick={() => {
-              setTempResultData(null);
-              setEditingVisit(null);
-              setEditingCustomer(null);
-              setEditingVisitTagIds([]);
-              // 편집 화면에서 온 경우 CustomerDetail로 돌아가기
-              if (editingVisit) {
-                setCurrentScreen('CustomerDetail');
-              } else {
-                setCurrentScreen('Record');
-              }
-            }} 
-            className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
-            style={{ color: '#232323' }}
-          >
-            <ArrowLeft size={24} />
-        </button>
-          <h2 className="font-bold text-lg" style={{ color: '#232323' }}>편집</h2>
-          <button 
-            onClick={handleComplete}
-            className="px-4 py-2 rounded-2xl font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all"
-            style={{ backgroundColor: '#C9A27A' }}
-          >
-            완료
-          </button>
-        </header>
-
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-8 space-y-5">
-          {/* 제목 편집 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-            <label className="block text-sm font-bold mb-3" style={{ color: '#232323' }}>시술 요약</label>
-            <textarea
-              value={cleanTitle(tempResultData.title || '')}
-              onChange={(e) => updateTitle(e.target.value)}
-              className="w-full px-4 py-3 rounded-2xl border-none resize-none focus:bg-gray-50 outline-none transition-colors"
-              style={{ color: '#232323', minHeight: '60px' }}
-              rows={2}
-              placeholder="시술 내용만 입력하세요 (고객 이름, 신규/기존 정보는 자동으로 제거됩니다)"
-            />
-      </div>
-
-          {/* 시술 태그 편집 섹션 */}
-          {editingVisit && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <div className="mb-4">
-                <h4 className="text-base font-bold mb-2" style={{ color: '#232323' }}>
-                  시술 태그
-                </h4>
-                <p className="text-sm" style={{ color: '#232323', opacity: 0.7 }}>
-                  이번 방문에 적용된 시술 태그를 편집할 수 있습니다.
-                </p>
-    </div>
-
-              {/* 태그 칩들 */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                {editingVisitTagIds.length === 0 ? (
-                  <p className="text-sm" style={{ color: '#232323', opacity: 0.5 }}>
-                    태그가 없어요. 아래 버튼에서 추가할 수 있어요.
-                  </p>
-                ) : (
-                  editingVisitTagIds.map((tagId) => {
-                    const tag = allVisitTags.find((t) => t.id === tagId);
-                    if (!tag) return null;
-
-                    return (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => {
-                          setEditingVisitTagIds((prev) =>
-                            prev.filter((id) => id !== tag.id)
-                          );
-                        }}
-                        className="px-3 py-1.5 rounded-full text-sm font-medium transition-all bg-[#C9A27A] text-white shadow-sm hover:opacity-80 flex items-center gap-1"
-                      >
-                        {tag.label}
-                        <X size={14} />
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-
-              {/* 태그 더 추가하기 버튼 */}
-              <button
-                type="button"
-                onClick={() => setIsEditingVisitTagPickerOpen(true)}
-                className="w-full py-2.5 rounded-xl text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                + 태그 더 추가하기
-              </button>
-            </div>
-          )}
-
-          {/* 섹션 편집 */}
-          {tempResultData.sections.map((section, sectionIndex) => (
-              <div key={sectionIndex} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
-                  {section.title}
-                </h4>
-                <div className="space-y-3">
-                  {section.content.map((item, contentIndex) => {
-                    const isCustomerBasicInfo = section.title && section.title.includes('고객 기본 정보');
-                    const isVisitInfo = section.title && (
-                      section.title.includes('방문·예약 정보') ||
-                      section.title.includes('방문예약 정보')
-                    );
-                    const isProtectedSection = isCustomerBasicInfo || isVisitInfo;
-                    
-                    // 보호된 섹션에서 기본 항목 이후에 추가된 항목만 삭제 버튼 표시
-                    let showDeleteButton = false;
-                    if (isProtectedSection) {
-                      if (isCustomerBasicInfo) {
-                        // 고객 기본 정보: 처음 3개 항목은 삭제 불가, 4번째부터 삭제 가능
-                        showDeleteButton = contentIndex >= 3;
-                      } else if (isVisitInfo) {
-                        // 방문·예약 정보: 처음 1개 항목은 삭제 불가, 2번째부터 삭제 가능
-                        showDeleteButton = contentIndex >= 1;
-                      }
-                    } else {
-                      // 보호되지 않은 섹션: 항목이 2개 이상이면 삭제 버튼 표시
-                      showDeleteButton = section.content.length > 1;
-                    }
-
-  return (
-                      <div key={contentIndex} className="flex gap-2 relative">
-                        <textarea
-                          value={item}
-                          onChange={(e) => updateSectionContent(sectionIndex, contentIndex, e.target.value)}
-                          className="flex-1 px-4 py-3 rounded-2xl border-none resize-none focus:bg-gray-50 outline-none transition-colors"
-                          style={{ color: '#232323', minHeight: '60px', paddingRight: showDeleteButton ? '50px' : '16px' }}
-                          rows={Math.max(2, Math.ceil(item.length / 40))}
-                          placeholder="내용을 입력하세요..."
-                        />
-                        {showDeleteButton && (
-                          <button
-                            onClick={() => removeSectionItem(sectionIndex, contentIndex)}
-                            className="absolute top-2 right-2 bg-red-100 text-red-500 p-1.5 rounded-full hover:bg-red-200 transition-colors flex items-center justify-center z-10"
-                            title="삭제"
-                          >
-                            <Minus size={16} />
-                          </button>
-                        )}
-      </div>
-  );
-                  })}
-                </div>
-                <button
-                  onClick={() => addSectionItem(sectionIndex)}
-                  className="w-full py-3 rounded-2xl text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors"
-                  style={{ color: '#232323' }}
-                >
-                  + 항목 추가
-                </button>
-              </div>
-          ))}
-          
-          {/* 전체 삭제 버튼 (editingVisit이 있을 때만 표시, 스크롤 끝에만 표시) */}
-          {editingVisit && editingCustomer && (
-            <div className="flex justify-center p-6 mt-5">
-              <button 
-                onClick={() => {
-                  if (window.confirm('이 방문 기록을 삭제하시겠습니까?\n삭제된 기록은 복구할 수 없습니다.')) {
-                    const customerId = editingCustomer.id;
-                    const visitId = editingVisit.id;
-                    
-                    // 방문 기록 삭제 및 고객 방문 횟수 업데이트
-                    setVisits(prev => {
-                      const updated = { ...prev };
-                      if (updated[customerId]) {
-                        const remainingVisits = updated[customerId].filter(v => v.id !== visitId);
-                        updated[customerId] = remainingVisits.length > 0 ? remainingVisits : [];
-                        
-                        // 고객의 방문 횟수 업데이트
-                        setCustomers(prevCustomers => prevCustomers.map(c => {
-                          if (c.id === customerId) {
-                            return {
-                              ...c,
-                              visitCount: remainingVisits.length,
-                              lastVisit: remainingVisits.length > 0 
-                                ? remainingVisits[0].date 
-                                : null
-                            };
-                          }
-                          return c;
-                        }));
-                      }
-                      return updated;
-                    });
-                    
-                    // 상태 초기화
-                    setTempResultData(null);
-                    setEditingVisit(null);
-                    setEditingCustomer(null);
-                    setEditingVisitTagIds([]);
-                    
-                    // CustomerDetail 화면으로 돌아가기
-                    setSelectedCustomerId(customerId);
-                    setCurrentScreen('CustomerDetail');
-                  }
-                }}
-                className="px-6 py-2.5 rounded-xl text-sm font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all"
-                style={{ backgroundColor: '#EF4444' }}
-              >
-                전체 삭제
-              </button>
-            </div>
-          )}
-        </main>
-
-        {/* 방문 편집용 태그 선택 모달 */}
-        {isEditingVisitTagPickerOpen && (
-          <TagPickerModal
-            allVisitTags={allVisitTags}
-            selectedTagIds={editingVisitTagIds}
-            onClose={() => setIsEditingVisitTagPickerOpen(false)}
-            onChangeSelected={(nextSelected) => setEditingVisitTagIds(nextSelected)}
-          />
-        )}
-    </div>
-    );
-  };
-
-  const renderEditCustomer = () => {
+  // renderEditCustomer 함수는 EditCustomerScreen 컴포넌트로 이동됨 (제거됨)
+  const _renderEditCustomer_removed = () => {
     const handleComplete = () => {
       if (!editCustomerName.trim()) {
         alert('이름은 필수입니다.');
@@ -5673,7 +3593,8 @@ export default function MalloApp() {
   // 알림 설정 상태
   const [notificationEnabled, setNotificationEnabled] = useState(true);
 
-  const renderProfileEdit = () => {
+  // renderProfileEdit 함수는 ProfileEditScreen 컴포넌트로 이동됨 (제거됨)
+  const _renderProfileEdit_removed = () => {
     const handleSave = () => {
       setUserProfile(prev => ({
         ...prev,
@@ -5773,500 +3694,7 @@ export default function MalloApp() {
     );
   };
 
-  const renderProfile = () => {
 
-    return (
-      <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
-        {/* 헤더 */}
-        <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
-          <button 
-            onClick={() => setCurrentScreen('Home')} 
-            className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
-            style={{ color: '#232323' }}
-          >
-            <ArrowLeft size={24} />
-          </button>
-          <h2 className="font-bold text-base" style={{ color: '#232323' }}>프로필</h2>
-          <div className="w-10"></div> {/* 오른쪽 공간 맞추기 */}
-        </header>
-
-        {/* 내용 영역 */}
-        <main className="flex-1 overflow-y-auto p-8 space-y-4 pb-32">
-          {/* 프로필 카드 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 relative">
-            <button
-              onClick={() => {
-                setCurrentScreen('profile-edit');
-              }}
-              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-xl transition-colors"
-              style={{ color: '#C9A27A' }}
-            >
-              <Edit size={20} />
-            </button>
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#C9A27A] to-[#B8946A] flex items-center justify-center text-2xl shadow-sm">
-                👩‍⚕️
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-lg mb-1" style={{ color: '#232323' }}>
-                  {userProfile.name}
-                </h3>
-                <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.7 }}>
-                  {userProfile.email}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* 메뉴 리스트 */}
-          <div className="space-y-2">
-            {/* 내 샵 정보 */}
-            <button
-              onClick={() => {
-                // TODO: 샵 정보 화면 구현
-                alert('준비 중입니다.');
-              }}
-              className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#F2F0E6] flex items-center justify-center">
-                  <span className="text-xl">🏠</span>
-                </div>
-                <span className="text-sm font-medium" style={{ color: '#232323' }}>내 샵 정보</span>
-              </div>
-              <ChevronRight size={18} style={{ color: '#A7A196' }} />
-            </button>
-
-            {/* 시술 태그/키워드 관리 */}
-            <button
-              onClick={() => {
-                setCurrentScreen('TagSettings');
-              }}
-              className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#F2F0E6] flex items-center justify-center">
-                  <span className="text-xl font-bold" style={{ color: '#C9A27A' }}>#</span>
-                </div>
-                <span className="text-sm font-medium" style={{ color: '#232323' }}>시술 태그/키워드 관리</span>
-              </div>
-              <ChevronRight size={18} style={{ color: '#A7A196' }} />
-            </button>
-
-            {/* 알림 설정 */}
-            <div className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#F2F0E6] flex items-center justify-center">
-                  <span className="text-xl">🔔</span>
-                </div>
-                <span className="text-sm font-medium" style={{ color: '#232323' }}>알림 설정</span>
-              </div>
-              <button
-                onClick={() => setNotificationEnabled(!notificationEnabled)}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  notificationEnabled ? 'bg-[#C9A27A]' : 'bg-gray-300'
-                }`}
-              >
-                <span
-                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                    notificationEnabled ? 'translate-x-6' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-            </div>
-
-            {/* AI 태그 자동 추천 */}
-            <div className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#F2F0E6] flex items-center justify-center">
-                  <span className="text-xl">🏷️</span>
-                </div>
-                <span className="text-sm font-medium" style={{ color: '#232323' }}>AI 태그 자동 추천</span>
-              </div>
-              <button
-                onClick={() => setIsAutoTaggingEnabled(!isAutoTaggingEnabled)}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  isAutoTaggingEnabled ? 'bg-[#C9A27A]' : 'bg-gray-300'
-                }`}
-              >
-                <span
-                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                    isAutoTaggingEnabled ? 'translate-x-6' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-            </div>
-
-            {/* 테마 설정 */}
-            <button
-              onClick={() => {
-                // TODO: 테마 설정 화면 구현
-                alert('준비 중입니다.');
-              }}
-              className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#F2F0E6] flex items-center justify-center">
-                  <span className="text-xl">🎨</span>
-                </div>
-                <div className="flex-1 text-left">
-                  <span className="text-sm font-medium" style={{ color: '#232323' }}>테마 설정</span>
-                  <p className="text-xs mt-0.5" style={{ color: '#8B8574' }}>현재: 웜톤</p>
-                </div>
-              </div>
-              <ChevronRight size={18} style={{ color: '#A7A196' }} />
-            </button>
-
-            {/* 도움말 / 문의하기 */}
-            <button
-              onClick={() => {
-                alert('준비 중입니다.');
-              }}
-              className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#F2F0E6] flex items-center justify-center">
-                  <span className="text-xl">❓</span>
-                </div>
-                <span className="text-sm font-medium" style={{ color: '#232323' }}>도움말 / 문의하기</span>
-              </div>
-              <ChevronRight size={18} style={{ color: '#A7A196' }} />
-            </button>
-
-            {/* 로그아웃 */}
-            <button
-              onClick={() => {
-                // TODO: 로그아웃 기능 구현
-                alert('준비 중입니다.');
-              }}
-              className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors mt-4"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#FEF2F0] flex items-center justify-center">
-                  <span className="text-xl">🚪</span>
-                </div>
-                <span className="text-sm font-medium" style={{ color: '#D25B4B' }}>로그아웃</span>
-              </div>
-              <ChevronRight size={18} style={{ color: '#A7A196' }} />
-            </button>
-          </div>
-        </main>
-      </div>
-    );
-  };
-
-  const renderTagSettings = () => {
-    // 대분류 탭 정보
-    const mainTabs = {
-      visit: { label: '🧴 시술 태그 관리', icon: '🧴' },
-      customer: { label: '👤 고객 특징 관리', icon: '👤' }
-    };
-
-    // 소분류 탭 정보
-    const visitSubTabs = {
-      procedure: { label: '시술', placeholder: '시술 태그 입력…' },
-      design: { label: '디자인', placeholder: '디자인 태그 입력…' },
-      care: { label: '케어', placeholder: '케어 태그 입력…' },
-      payment: { label: '결제·예약', placeholder: '결제·예약 태그 입력…' }
-    };
-
-    const customerSubTabs = {
-      trait: { label: '성향', placeholder: '성향 태그 입력…' },
-      pattern: { label: '방문패턴', placeholder: '방문패턴 태그 입력…' },
-      caution: { label: '⚠️주의', placeholder: '주의 태그 입력…' }
-    };
-
-    // 현재 선택된 대분류에 따른 소분류 탭
-    const currentSubTabs = tagSettingsMainTab === 'visit' ? visitSubTabs : customerSubTabs;
-    
-    // 현재 선택된 카테고리의 태그 목록 (문자열과 객체 모두 처리)
-    const currentTags = tagSettingsMainTab === 'visit' 
-      ? (visitTags[tagSettingsSubTab] || [])
-      : (customerTags[tagSettingsSubTab] || []);
-    
-    const currentSubTab = currentSubTabs[tagSettingsSubTab];
-    const isCautionTab = tagSettingsSubTab === 'caution';
-
-    // 대분류 탭 변경 시 소분류 탭 초기화
-    const handleMainTabChange = (newMainTab) => {
-      setTagSettingsMainTab(newMainTab);
-      // 대분류 변경 시 첫 번째 소분류로 초기화
-      if (newMainTab === 'visit') {
-        setTagSettingsSubTab('procedure');
-      } else {
-        setTagSettingsSubTab('trait');
-      }
-    };
-
-    // 태그 추가 함수
-    const handleAddTag = () => {
-      if (newManagedTag.trim()) {
-        const trimmedLabel = newManagedTag.trim().replace(/^#/, '');
-        
-        // 현재 카테고리의 태그 개수 확인
-        const currentCategoryTags = tagSettingsMainTab === 'visit' 
-          ? (visitTags[tagSettingsSubTab] || [])
-          : (customerTags[tagSettingsSubTab] || []);
-        
-        // 최대 50개 제한 확인
-        if (currentCategoryTags.length >= 50) {
-          alert(`각 카테고리마다 최대 50개까지 추가할 수 있습니다.\n현재 ${currentCategoryTags.length}개의 태그가 등록되어 있습니다.`);
-          return;
-        }
-        
-        // 모든 태그를 배열로 변환하여 중복 체크
-        const allTags = tagSettingsMainTab === 'visit' 
-          ? convertVisitTagsToArray(visitTags)
-          : convertCustomerTagsToArray(customerTags);
-        
-        // normalize를 사용한 중복 체크
-        const normalizedNew = normalize(trimmedLabel);
-        const existing = allTags.find((tag) => {
-          const keys = [tag.label, ...(tag.keywords || [])];
-          return keys.some((k) => normalize(k) === normalizedNew);
-        });
-        
-        if (existing) {
-          // 이미 비슷한 태그가 있는 경우
-          alert(`"${trimmedLabel}"와 비슷한 태그 "${existing.label}"가 이미 등록되어 있습니다.`);
-          return;
-        }
-        
-        // 같은 카테고리 내에서 정확히 같은 label이 있는지 확인
-        const hasExactMatch = currentCategoryTags.some(tag => {
-          if (typeof tag === 'string') {
-            return tag === trimmedLabel;
-          } else if (typeof tag === 'object' && tag.label) {
-            return tag.label === trimmedLabel;
-          }
-          return false;
-        });
-        
-        if (hasExactMatch) {
-          alert(`"${trimmedLabel}" 태그는 이미 등록되어 있습니다.`);
-          return;
-        }
-        
-        // 새 태그 객체 생성
-        const newTag = {
-          id: `${tagSettingsSubTab}-${Date.now()}`,
-          label: trimmedLabel,
-          keywords: [] // 키워드 기능 제거
-        };
-        
-        if (tagSettingsMainTab === 'visit') {
-          setVisitTags(prev => {
-            const updated = {
-              ...prev,
-              [tagSettingsSubTab]: [...(prev[tagSettingsSubTab] || []), newTag]
-            };
-            console.log('[태그 추가] visitTags 업데이트:', updated);
-            return updated;
-          });
-        } else {
-          setCustomerTags(prev => {
-            const updated = {
-              ...prev,
-              [tagSettingsSubTab]: [...(prev[tagSettingsSubTab] || []), newTag]
-            };
-            console.log('[태그 추가] customerTags 업데이트:', updated);
-            return updated;
-          });
-        }
-        
-        setNewManagedTag('');
-        console.log('[태그 추가] 태그 추가 완료:', trimmedLabel, '카테고리:', tagSettingsSubTab);
-      }
-    };
-
-    // 태그 삭제 함수
-    const handleDeleteTag = (tagIndex) => {
-      if (tagSettingsMainTab === 'visit') {
-        setVisitTags(prev => ({
-          ...prev,
-          [tagSettingsSubTab]: prev[tagSettingsSubTab].filter((_, i) => i !== tagIndex)
-        }));
-      } else {
-        setCustomerTags(prev => ({
-          ...prev,
-          [tagSettingsSubTab]: prev[tagSettingsSubTab].filter((_, i) => i !== tagIndex)
-        }));
-      }
-    };
-
-    return (
-      <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
-        {/* 헤더 */}
-        <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
-          <button 
-            onClick={() => setCurrentScreen('Profile')} 
-            className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
-            style={{ color: '#232323' }}
-          >
-            <ArrowLeft size={24} />
-          </button>
-          <h2 className="font-bold text-base" style={{ color: '#232323' }}>시술 태그 관리</h2>
-          <button
-            onClick={() => setIsTagEditing(!isTagEditing)}
-            className="px-4 py-2 text-sm font-medium rounded-xl transition-colors"
-            style={{ 
-              color: '#C9A27A',
-              backgroundColor: isTagEditing ? 'rgba(201, 162, 122, 0.1)' : 'transparent'
-            }}
-          >
-            {isTagEditing ? '완료' : '편집'}
-          </button>
-        </header>
-
-        {/* 내용 영역 */}
-        <main className="flex-1 overflow-y-auto p-8 space-y-6 pb-32">
-          {/* 설명 텍스트 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
-            <p className="text-sm font-light leading-relaxed" style={{ color: '#232323', opacity: 0.7 }}>
-              {tagSettingsMainTab === 'visit' ? (
-                <>
-                  자주 쓰는 시술 용어를 등록해두세요.<br/>
-                  AI가 녹음 내용을 분석할 때, 원장님만의 태그를 쏙쏙 뽑아줍니다.
-                </>
-              ) : (
-                <>
-                  고객 특징 키워드를 등록해두면,<br/>
-                  AI가 대화 속에서 정보를 캐치하여 프로필에 자동으로 정리해줍니다.
-                </>
-              )}
-            </p>
-          </div>
-
-          {/* Level 1 탭 (대분류) */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="flex">
-              {Object.keys(mainTabs).map((mainTabKey) => {
-                const isActive = tagSettingsMainTab === mainTabKey;
-                return (
-                  <button
-                    key={mainTabKey}
-                    onClick={() => handleMainTabChange(mainTabKey)}
-                    className={`flex-1 px-4 py-4 text-sm font-medium transition-colors ${
-                      isActive ? '' : 'hover:bg-gray-50'
-                    }`}
-                    style={{ 
-                      color: isActive ? '#8C6D46' : 'rgba(35, 35, 35, 0.4)',
-                      fontWeight: isActive ? 'bold' : 'normal',
-                      backgroundColor: isActive ? 'rgba(201, 162, 122, 0.08)' : 'transparent'
-                    }}
-                  >
-                    {mainTabs[mainTabKey].label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Level 2 탭 (소분류) */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="flex">
-              {Object.keys(currentSubTabs).map((subTabKey) => {
-                const isActive = tagSettingsSubTab === subTabKey;
-                const isCaution = subTabKey === 'caution';
-                return (
-                  <button
-                    key={subTabKey}
-                    onClick={() => setTagSettingsSubTab(subTabKey)}
-                    className={`flex-1 px-4 py-4 text-sm font-medium transition-colors ${
-                      isActive ? '' : 'hover:bg-gray-50'
-                    }`}
-                    style={{ 
-                      color: isActive 
-                        ? (isCaution ? '#DC2626' : '#8C6D46')
-                        : 'rgba(35, 35, 35, 0.4)',
-                      fontWeight: isActive ? 'bold' : 'normal',
-                      backgroundColor: isActive 
-                        ? (isCaution ? 'rgba(220, 38, 38, 0.08)' : 'rgba(201, 162, 122, 0.08)')
-                        : 'transparent'
-                    }}
-                  >
-                    {currentSubTabs[subTabKey].label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 태그 입력 영역 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 space-y-3">
-            <label className="block text-sm font-medium" style={{ color: '#232323' }}>
-              새 태그 추가
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newManagedTag}
-                onChange={(e) => setNewManagedTag(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    handleAddTag();
-                  }
-                }}
-                placeholder={currentSubTab.placeholder}
-                className="flex-1 px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A] transition-all"
-                style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
-              />
-              <button
-                onClick={handleAddTag}
-                className="px-6 py-3 rounded-2xl font-medium text-white shadow-sm hover:shadow-md transition-all"
-                style={{ backgroundColor: '#C9A27A' }}
-              >
-                추가
-              </button>
-            </div>
-          </div>
-
-          {/* 태그 클라우드 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
-            <h3 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
-              {currentSubTab.label} 태그 ({currentTags.length}개)
-            </h3>
-            {currentTags.length === 0 ? (
-              <p className="text-sm font-light text-center py-8" style={{ color: '#232323', opacity: 0.5 }}>
-                등록된 태그가 없습니다.
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {currentTags.map((tag, idx) => {
-                  // 문자열인 경우와 객체인 경우 모두 처리
-                  const tagLabel = typeof tag === 'string' ? tag : (tag.label || tag);
-                  const tagKeywords = typeof tag === 'object' && tag.keywords ? tag.keywords : [];
-                  const displayLabel = tagLabel.replace(/^#/, '');
-                  return (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium"
-                      style={{ 
-                        backgroundColor: isCautionTab ? '#FEF2F2' : '#F7F5F0',
-                        color: isCautionTab ? '#DC2626' : '#4A4A4A',
-                        border: isCautionTab ? '1px solid #FECACA' : 'none'
-                      }}
-                    >
-                      {displayLabel}
-                      {isTagEditing && (
-                        <button
-                          onClick={() => handleDeleteTag(idx)}
-                          className="ml-1 hover:opacity-70 transition-opacity"
-                          style={{ color: isCautionTab ? '#DC2626' : '#B8A08A' }}
-                        >
-                          <X size={14} />
-                        </button>
-                      )}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </main>
-      </div>
-    );
-  };
 
   const renderHistory = () => {
     // "미기재"와 "null"을 실제 고객 정보로 치환하는 helper 함수
@@ -6782,35 +4210,245 @@ export default function MalloApp() {
   let content;
   try {
     if (currentScreen === 'Login') {
-      content = renderLogin();
+      content = (
+        <LoginScreen
+          email={email}
+          setEmail={setEmail}
+          password={password}
+          setPassword={setPassword}
+          setIsLoggedIn={setIsLoggedIn}
+          setActiveTab={setActiveTab}
+          setCurrentScreen={setCurrentScreen}
+        />
+      );
     } else if (currentScreen === 'Home') {
-      content = renderHome();
+      content = (
+        <HomeScreen
+          currentScreen={currentScreen}
+          setCurrentScreen={setCurrentScreen}
+          setActiveTab={setActiveTab}
+          customers={customers}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          setSelectedCustomerId={setSelectedCustomerId}
+          selectedCustomerForRecord={selectedCustomerForRecord}
+          setSelectedCustomerForRecord={setSelectedCustomerForRecord}
+          startRecording={startRecording}
+        />
+      );
     } else if (currentScreen === 'Record') {
-      // Record 화면 내부 상태에 따라 다른 컴포넌트 렌더링
-      if (recordState === 'recording') {
-        content = renderRecording();
-      } else if (recordState === 'processing') {
-        content = renderProcessing();
-      } else if (recordState === 'result') {
-        content = renderResult();
-      } else {
-        // idle 상태일 때는 녹음 시작
-        content = renderRecording();
-      }
+      content = (
+        <RecordScreen
+          recordState={recordState}
+          recordingTime={recordingTime}
+          formatTime={formatTime}
+          stopRecording={stopRecording}
+          cancelRecording={cancelRecording}
+          resultData={resultData}
+          resetFlow={resetFlow}
+          getTodayDate={getTodayDate}
+          selectedCustomerForRecord={selectedCustomerForRecord}
+          tempName={tempName}
+          setTempName={setTempName}
+          tempPhone={tempPhone}
+          setTempPhone={setTempPhone}
+          nameInputRef={nameInputRef}
+          phoneInputRef={phoneInputRef}
+          handlePhoneChange={handlePhoneChange}
+          currentSector={currentSector}
+          userProfile={userProfile}
+          DEV_MODE={DEV_MODE}
+          testSummaryInput={testSummaryInput}
+          setTestSummaryInput={setTestSummaryInput}
+          isTestingSummary={isTestingSummary}
+          handleTestSummarize={handleTestSummarize}
+          recommendedTagIds={recommendedTagIds}
+          setRecommendedTagIds={setRecommendedTagIds}
+          selectedTagIds={selectedTagIds}
+          setSelectedTagIds={setSelectedTagIds}
+          allVisitTags={allVisitTags}
+          isAutoTaggingEnabled={isAutoTaggingEnabled}
+          setIsTagPickerOpen={setIsTagPickerOpen}
+          isTagPickerOpen={isTagPickerOpen}
+          selectedCustomerTagIds={selectedCustomerTagIds}
+          setSelectedCustomerTagIds={setSelectedCustomerTagIds}
+          newCustomerTagIds={newCustomerTagIds}
+          setNewCustomerTagIds={setNewCustomerTagIds}
+          allCustomerTags={allCustomerTags}
+          setIsCustomerTagPickerOpen={setIsCustomerTagPickerOpen}
+          isCustomerTagPickerOpen={isCustomerTagPickerOpen}
+          transcript={transcript}
+          recordingDate={recordingDate}
+          formatRecordingDate={formatRecordingDate}
+          setTempResultData={setTempResultData}
+          setCurrentScreen={setCurrentScreen}
+          extractServiceDateFromSummary={extractServiceDateFromSummary}
+          customers={customers}
+          setCustomers={setCustomers}
+          visits={visits}
+          setVisits={setVisits}
+          setSelectedCustomerId={setSelectedCustomerId}
+          serviceTags={serviceTags}
+          setServiceTags={setServiceTags}
+          rawTranscript={rawTranscript}
+          TagPickerModal={TagPickerModal}
+          CustomerTagPickerModal={CustomerTagPickerModal}
+          setResultData={setResultData}
+          setTranscript={setTranscript}
+          setRawTranscript={setRawTranscript}
+          setRecordingDate={setRecordingDate}
+          setSelectedCustomerForRecord={setSelectedCustomerForRecord}
+        />
+      );
     } else if (currentScreen === 'CustomerDetail') {
-      content = renderCustomerDetail();
+      content = (
+        <CustomerDetailScreen
+          currentScreen={currentScreen}
+          setCurrentScreen={setCurrentScreen}
+          selectedCustomerId={selectedCustomerId}
+          customers={customers}
+          setCustomers={setCustomers}
+          visits={visits}
+          visibleVisitCount={visibleVisitCount}
+          setVisibleVisitCount={setVisibleVisitCount}
+          expandedVisitId={expandedVisitId}
+          setExpandedVisitId={setExpandedVisitId}
+          setEditCustomerName={setEditCustomerName}
+          setEditCustomerPhone={setEditCustomerPhone}
+          setEditCustomerTags={setEditCustomerTags}
+          setEditCustomerMemo={setEditCustomerMemo}
+          setNewTag={setNewTag}
+          setEditCustomerTagIds={setEditCustomerTagIds}
+          allCustomerTags={allCustomerTags}
+          allVisitTags={allVisitTags}
+          extractServiceDateTimeLabel={extractServiceDateTimeLabel}
+          normalizeRecordWithCustomer={normalizeRecordWithCustomer}
+          setTempResultData={setTempResultData}
+          setEditingVisit={setEditingVisit}
+          setEditingCustomer={setEditingCustomer}
+          setEditingVisitTagIds={setEditingVisitTagIds}
+          setSelectedCustomerForRecord={setSelectedCustomerForRecord}
+          startRecording={startRecording}
+          MOCK_CUSTOMERS={MOCK_CUSTOMERS}
+        />
+      );
     } else if (currentScreen === 'Edit') {
-      content = renderEdit();
+      content = (
+        <EditScreen
+          tempResultData={tempResultData}
+          setTempResultData={setTempResultData}
+          editingVisit={editingVisit}
+          editingCustomer={editingCustomer}
+          editingVisitTagIds={editingVisitTagIds}
+          setEditingVisitTagIds={setEditingVisitTagIds}
+          allVisitTags={allVisitTags}
+          normalizeRecordWithCustomer={normalizeRecordWithCustomer}
+          setResultData={setResultData}
+          setVisits={setVisits}
+          setCustomers={setCustomers}
+          setCurrentScreen={setCurrentScreen}
+          setSelectedCustomerId={setSelectedCustomerId}
+          isEditingVisitTagPickerOpen={isEditingVisitTagPickerOpen}
+          setIsEditingVisitTagPickerOpen={setIsEditingVisitTagPickerOpen}
+          TagPickerModal={TagPickerModal}
+        />
+      );
     } else if (currentScreen === 'EditCustomer') {
-      content = renderEditCustomer();
+      content = (
+        <EditCustomerScreen
+          editCustomerName={editCustomerName}
+          setEditCustomerName={setEditCustomerName}
+          editCustomerPhone={editCustomerPhone}
+          setEditCustomerPhone={setEditCustomerPhone}
+          editCustomerTags={editCustomerTags}
+          setEditCustomerTags={setEditCustomerTags}
+          editCustomerTagIds={editCustomerTagIds}
+          setEditCustomerTagIds={setEditCustomerTagIds}
+          editCustomerMemo={editCustomerMemo}
+          setEditCustomerMemo={setEditCustomerMemo}
+          newTag={newTag}
+          setNewTag={setNewTag}
+          selectedCustomerId={selectedCustomerId}
+          allCustomerTags={allCustomerTags}
+          isEditCustomerTagPickerOpen={isEditCustomerTagPickerOpen}
+          setIsEditCustomerTagPickerOpen={setIsEditCustomerTagPickerOpen}
+          CustomerTagPickerModal={CustomerTagPickerModal}
+          setCustomers={setCustomers}
+          setVisits={setVisits}
+          setCurrentScreen={setCurrentScreen}
+          setSelectedCustomerId={setSelectedCustomerId}
+          saveToLocalStorage={saveToLocalStorage}
+        />
+      );
     } else if (currentScreen === 'History') {
-      content = renderHistory();
+      content = (
+        <HistoryScreen
+          visits={visits}
+          customers={customers}
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+          getTodayDateString={getTodayDateString}
+          extractServiceDateFromSummary={extractServiceDateFromSummary}
+          extractServiceDateTimeLabel={extractServiceDateTimeLabel}
+          formatRecordDateTime={formatRecordDateTime}
+          setActiveTab={setActiveTab}
+          setCurrentScreen={setCurrentScreen}
+          setSelectedCustomerId={setSelectedCustomerId}
+          expandedHistoryIds={expandedHistoryIds}
+          setExpandedHistoryIds={setExpandedHistoryIds}
+        />
+      );
     } else if (currentScreen === 'Profile') {
-      content = renderProfile();
+      content = (
+        <ProfileScreen
+          currentScreen={currentScreen}
+          setCurrentScreen={setCurrentScreen}
+          userProfile={userProfile}
+          setUserProfile={setUserProfile}
+          notificationEnabled={notificationEnabled}
+          setNotificationEnabled={setNotificationEnabled}
+          isAutoTaggingEnabled={isAutoTaggingEnabled}
+          setIsAutoTaggingEnabled={setIsAutoTaggingEnabled}
+          editProfileName={editProfileName}
+          setEditProfileName={setEditProfileName}
+          editProfileEmail={editProfileEmail}
+          setEditProfileEmail={setEditProfileEmail}
+          editProfilePhone={editProfilePhone}
+          setEditProfilePhone={setEditProfilePhone}
+        />
+      );
     } else if (currentScreen === 'profile-edit') {
-      content = renderProfileEdit();
+      content = (
+        <ProfileEditScreen
+          editProfileName={editProfileName}
+          setEditProfileName={setEditProfileName}
+          editProfileEmail={editProfileEmail}
+          setEditProfileEmail={setEditProfileEmail}
+          editProfilePhone={editProfilePhone}
+          setEditProfilePhone={setEditProfilePhone}
+          setUserProfile={setUserProfile}
+          setCurrentScreen={setCurrentScreen}
+        />
+      );
     } else if (currentScreen === 'TagSettings') {
-      content = renderTagSettings();
+      content = (
+        <TagSettingsScreen
+          currentScreen={currentScreen}
+          setCurrentScreen={setCurrentScreen}
+          visitTags={visitTags}
+          setVisitTags={setVisitTags}
+          customerTags={customerTags}
+          setCustomerTags={setCustomerTags}
+          tagSettingsMainTab={tagSettingsMainTab}
+          setTagSettingsMainTab={setTagSettingsMainTab}
+          tagSettingsSubTab={tagSettingsSubTab}
+          setTagSettingsSubTab={setTagSettingsSubTab}
+          newManagedTag={newManagedTag}
+          setNewManagedTag={setNewManagedTag}
+          isTagEditing={isTagEditing}
+          setIsTagEditing={setIsTagEditing}
+        />
+      );
     } else {
       content = <div className="p-8 text-center text-red-600">알 수 없는 화면: {String(currentScreen)}</div>;
     }

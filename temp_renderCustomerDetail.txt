@@ -1,0 +1,554 @@
+﻿    const handleCollapseVisits = () => {
+      setVisibleVisitCount(10);
+    };
+
+    // "誘멸린??? "null"???ㅼ젣 怨좉컼 ?뺣낫濡?移섑솚?섎뒗 helper ?⑥닔
+    const overrideCustomerInfoLine = (line, customerInfo) => {
+      if (!line) return line;
+      
+      let updated = line;
+
+      // ?대쫫??誘멸린?щ굹 null濡??섏뼱?덉쑝硫??ㅼ젣 ?대쫫?쇰줈 援먯껜
+      if (customerInfo?.name) {
+        updated = updated.replace(/?대쫫:\s*誘멸린??g, `?대쫫: ${customerInfo.name}`);
+        updated = updated.replace(/?대쫫\s*:\s*誘멸린??g, `?대쫫: ${customerInfo.name}`);
+        updated = updated.replace(/?대쫫:\s*null/gi, `?대쫫: ${customerInfo.name}`);
+        updated = updated.replace(/?대쫫\s*:\s*null/gi, `?대쫫: ${customerInfo.name}`);
+      }
+
+      // ?꾪솕踰덊샇媛 誘멸린?щ굹 null濡??섏뼱?덉쑝硫??ㅼ젣 ?꾪솕踰덊샇濡?援먯껜
+      if (customerInfo?.phone) {
+        updated = updated.replace(/?꾪솕踰덊샇:\s*誘멸린??g, `?꾪솕踰덊샇: ${customerInfo.phone}`);
+        updated = updated.replace(/?꾪솕踰덊샇\s*:\s*誘멸린??g, `?꾪솕踰덊샇: ${customerInfo.phone}`);
+        updated = updated.replace(/?꾪솕踰덊샇:\s*null/gi, `?꾪솕踰덊샇: ${customerInfo.phone}`);
+        updated = updated.replace(/?꾪솕踰덊샇\s*:\s*null/gi, `?꾪솕踰덊샇: ${customerInfo.phone}`);
+      }
+
+      return updated;
+    };
+
+    return (
+      <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
+        {/* Header */}
+        <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
+          <button onClick={() => setCurrentScreen('History')} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
+            <ArrowLeft size={24} />
+          </button>
+          <div className="text-center">
+            <span className="text-xs font-medium" style={{ color: '#232323', opacity: 0.7 }}>怨좉컼 ?곸꽭</span>
+            <h2 className="font-bold text-base mt-1" style={{ color: '#232323' }}>{customer.name}</h2>
+        </div>
+          <button className="p-2" style={{ color: '#232323', opacity: 0.5 }}>
+            <MoreHorizontal size={24} />
+        </button>
+      </header>
+
+        <main className="flex-1 overflow-y-auto p-8 space-y-6 pb-32">
+          {/* 怨좉컼 ?뺣낫 移대뱶 */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 relative">
+            {/* ?몄쭛 踰꾪듉 */}
+            <button
+              onClick={() => {
+                setEditCustomerName(customer.name || '');
+                setEditCustomerPhone(customer.phone || '');
+                setEditCustomerTags([...(customer.tags || [])]);
+                setEditCustomerMemo(customer.memo || '');
+                setNewTag('');
+                
+                // 怨좉컼 ?뱀쭠 ?쒓렇瑜?ID 諛곗뿴濡?蹂?섑븯??濡쒕뱶
+                const customerTags = customer.customerTags || {};
+                const tagLabels = [];
+                Object.values(customerTags).forEach(categoryTags => {
+                  if (Array.isArray(categoryTags)) {
+                    categoryTags.forEach(tag => {
+                      const label = typeof tag === 'string' ? tag : tag.label || tag;
+                      tagLabels.push(label);
+                    });
+                  }
+                });
+                const tagIds = tagLabels
+                  .map(label => {
+                    const tag = allCustomerTags.find(t => t.label === label);
+                    return tag ? tag.id : null;
+                  })
+                  .filter(id => id !== null);
+                setEditCustomerTagIds(tagIds);
+                
+                setCurrentScreen('EditCustomer');
+              }}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
+              style={{ color: '#C9A27A' }}
+              title="?몄쭛"
+            >
+              <Edit size={20} />
+            </button>
+            <div className="flex items-center gap-6 mb-6">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-bold text-2xl" style={{ color: '#232323' }}>{customer.name}</h3>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100" style={{ color: '#232323' }}>
+                    {customer.visitCount}?뚮갑臾?                  </span>
+        </div>
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-center gap-3 font-light" style={{ color: '#232323' }}>
+                    <Phone size={18} style={{ color: '#C9A27A' }} />
+                    <span>{customer.phone}</span>
+                  </div>
+                </div>
+                {/* customerTags ?쒖떆 (二쇱쓽 ?쒓렇媛 留??? */}
+                {(() => {
+                  const customerTags = customer.customerTags || {};
+                  console.log('renderCustomerDetail - customerTags:', customerTags);
+                  const allTags = [];
+                  
+                  // 諛⑸Ц ?잛닔 ?뺤씤 (2 ?댁긽?대㈃ "?좉퇋" ?쒓굅?섍퀬 "湲곗〈" 異붽?)
+                  const visitCount = customer.visitCount || 0;
+                  const shouldReplaceNewWithExisting = visitCount >= 2;
+                  
+                  // 二쇱쓽 ?쒓렇 癒쇱? 異붽?
+                  if (customerTags.caution && customerTags.caution.length > 0) {
+                    customerTags.caution.forEach(tag => {
+                      allTags.push({ tag, type: 'caution' });
+                    });
+                  }
+                  
+                  // ?섎㉧吏 ?쒓렇 異붽?
+                  if (customerTags.trait && customerTags.trait.length > 0) {
+                    customerTags.trait.forEach(tag => {
+                      allTags.push({ tag, type: 'trait' });
+                    });
+                  }
+                  if (customerTags.payment && customerTags.payment.length > 0) {
+                    customerTags.payment.forEach(tag => {
+                      allTags.push({ tag, type: 'payment' });
+                    });
+                  }
+                  if (customerTags.pattern && customerTags.pattern.length > 0) {
+                    customerTags.pattern.forEach(tag => {
+                      // 諛⑸Ц ?잛닔媛 2 ?댁긽?대㈃ "?좉퇋" ?쒓렇???쒖쇅?섍퀬 "湲곗〈" ?쒓렇 異붽?
+                      if (shouldReplaceNewWithExisting && tag === '?좉퇋') {
+                        // "?좉퇋" ?쒓렇??嫄대꼫?곌퀬 "湲곗〈" ?쒓렇媛 ?놁쑝硫?異붽?
+                        if (!customerTags.pattern.includes('湲곗〈')) {
+                          allTags.push({ tag: '湲곗〈', type: 'pattern' });
+                        }
+                      } else {
+                        allTags.push({ tag, type: 'pattern' });
+                      }
+                    });
+                  }
+                  
+                  // 諛⑸Ц ?잛닔媛 2 ?댁긽?닿퀬 "湲곗〈" ?쒓렇媛 ?놁쑝硫?異붽?
+                  if (shouldReplaceNewWithExisting && (!customerTags.pattern || !customerTags.pattern.includes('湲곗〈'))) {
+                    // "?좉퇋" ?쒓렇媛 ?대? ?꾪꽣留곷릺?덈뒗吏 ?뺤씤
+                    const hasNewTag = customerTags.pattern && customerTags.pattern.includes('?좉퇋');
+                    if (!hasNewTag || allTags.find(t => t.tag === '湲곗〈')) {
+                      // ?대? "湲곗〈" ?쒓렇媛 異붽??섏뿀嫄곕굹 "?좉퇋" ?쒓렇媛 ?놁쑝硫?異붽??섏? ?딆쓬
+                    } else {
+                      allTags.push({ tag: '湲곗〈', type: 'pattern' });
+                    }
+                  }
+                  
+                  console.log('renderCustomerDetail - allTags:', allTags);
+                  
+                  if (allTags.length === 0) return null;
+                  
+                  return (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {allTags.map((item, idx) => {
+                        const isCaution = item.type === 'caution';
+                        return (
+                          <span
+                            key={idx}
+                            className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
+                              isCaution 
+                                ? 'bg-red-50 text-red-600 border border-red-100' 
+                                : 'bg-gray-100 text-gray-600'
+                            }`}
+                          >
+                            {isCaution && <span>?좑툘</span>}
+                            {item.tag}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+                {/* 硫붾え */}
+                {customer.memo && customer.memo.trim() && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-sm font-medium mb-2" style={{ color: '#232323', opacity: 0.7 }}>硫붾え</p>
+                    <p className="text-sm font-light leading-relaxed" style={{ color: '#232323' }}>{customer.memo}</p>
+            </div>
+        )}
+              </div>
+            </div>
+          </div>
+
+          {/* 諛⑸Ц ?덉뒪?좊━ */}
+          <div className="space-y-4 pb-24">
+            <h3 className="text-base font-bold" style={{ color: '#232323' }}>諛⑸Ц ?덉뒪?좊━</h3>
+            {customerVisits.length === 0 ? (
+              <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 shadow-sm">
+                <p className="font-light text-base" style={{ color: '#232323', opacity: 0.6 }}>諛⑸Ц 湲곕줉???놁뒿?덈떎</p>
+              </div>
+            ) : (
+              customerVisits.slice(0, visibleVisitCount).map((visit) => {
+                // record + customer瑜??⑹퀜???ъ슜 (customerName, customerPhone 蹂댁젙)
+                const normalizedVisit = normalizeRecordWithCustomer(visit, customer);
+                const safeName = normalizedVisit.customerName || '誘멸린??;
+                const safePhone = normalizedVisit.customerPhone || '誘멸린??;
+
+                // ?쒓컙 ?щ㎎??(HH:mm -> ?ㅼ쟾/?ㅽ썑 HH:mm)
+                const formatTimeDisplay = (timeStr) => {
+                  if (!timeStr) return '';
+                  // HH:mm:ss ?먮뒗 HH:mm ?뺤떇 紐⑤몢 泥섎━
+                  const parts = timeStr.split(':');
+                  const hour = parts[0];
+                  const minute = parts[1] || '00';
+                  const second = parts[2] || '00'; // 珥??ы븿
+                  const hourNum = parseInt(hour);
+                  const period = hourNum >= 12 ? '?ㅽ썑' : '?ㅼ쟾';
+                  const displayHour = hourNum > 12 ? hourNum - 12 : (hourNum === 0 ? 12 : hourNum);
+                  // HH:mm:ss ?뺤떇?대㈃ 珥덈룄 ?쒖떆, ?꾨땲硫?HH:mm留??쒖떆
+                  if (parts.length >= 3 && second !== '00') {
+                    return `${period} ${displayHour}:${minute.padStart(2, '0')}:${second.padStart(2, '0')}`;
+                  }
+                  return `${period} ${displayHour}:${minute.padStart(2, '0')}`;
+                };
+
+                // ?좎쭨/?쒓컙 ?뺣낫 以鍮?                const serviceDateTimeLabel = extractServiceDateTimeLabel(visit);
+                let dateTimeDisplay = '';
+                if (serviceDateTimeLabel) {
+                  // "2025-12-27 17:30 諛⑸Ц/?덉빟" -> "2025.12.27 17:30"
+                  const dateTimeMatch = serviceDateTimeLabel.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
+                  if (dateTimeMatch) {
+                    const [, year, month, day, hour, minute] = dateTimeMatch;
+                    dateTimeDisplay = `${year}.${month}.${day} ${hour}:${minute}`;
+                  } else {
+                    // fallback: recordedAt ?ъ슜
+                    const recordedAt = visit.recordedAt || visit.createdAt || (visit.date && visit.time ? `${visit.date}T${visit.time}:00` : null);
+                    if (recordedAt) {
+                      dateTimeDisplay = formatRecordDateTime(recordedAt);
+                    }
+                  }
+                } else {
+                  // serviceDateTimeLabel???놁쑝硫?recordedAt ?ъ슜
+                  const recordedAt = visit.recordedAt || visit.createdAt || (visit.date && visit.time ? `${visit.date}T${visit.time}:00` : null);
+                  if (recordedAt) {
+                    dateTimeDisplay = formatRecordDateTime(recordedAt);
+                  }
+                }
+
+                // ?쒖닠 ?댁슜 ?붿빟 (怨좉컼 ?대쫫 ?쒓굅)
+                const cleanTitle = (title) => {
+                  if (!title) return title;
+                  let cleaned = title;
+                  // 怨좉컼 ?대쫫 ?쒓굅
+                  if (safeName && safeName !== '誘멸린??) {
+                    cleaned = cleaned.replace(new RegExp(safeName, 'g'), '').trim();
+                  }
+                  // '湲곗〈 怨좉컼', '?좉퇋 怨좉컼' ???쒓굅
+                  cleaned = cleaned.replace(/湲곗〈\s*怨좉컼/gi, '').trim();
+                  cleaned = cleaned.replace(/?좉퇋\s*怨좉컼/gi, '').trim();
+                  // ?곗냽??怨듬갚 ?뺣━
+                  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+                  return cleaned || title || '';
+                };
+
+                const displayTitle = cleanTitle(visit.title || visit.subject || visit.summary || '');
+
+                return (
+                  <div key={visit.id} className="bg-white rounded-xl shadow-sm overflow-hidden relative" style={{ padding: '12px 16px' }}>
+                    <div className="record-card-main flex flex-col relative">
+                      {/* 留??꾩쨪: ?좎쭨/?쒓컙 */}
+                      {dateTimeDisplay && (
+                        <div 
+                          className="mb-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <span className="text-xs font-bold text-[#C9A27A]">
+                            {dateTimeDisplay}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* ??踰덉㎏ 以? ?대쫫, 踰덊샇 */}
+                      <div 
+                        className="flex flex-row items-center justify-start"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {/* ?대쫫 */}
+                        {safeName && safeName !== '誘멸린?? && (
+                          <>
+                            <span className="text-base font-bold text-[#232323]">{safeName}</span>
+                            {/* 踰덊샇 */}
+                            {safePhone && safePhone !== '誘멸린?? && (
+                              <span className="ml-2 text-xs text-gray-400">
+                                / {safePhone}
+                              </span>
+                            )}
+                          </>
+                        )}
+                        {/* ?몄쭛 踰꾪듉 */}
+        <button 
+                          type="button"
+                          className="absolute right-8 top-0 visit-summary-edit-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // ?몄쭛 ?붾㈃?쇰줈 ?대룞 (visit怨?customer ?④퍡 ?꾨떖)
+                            // "怨좉컼 湲곕낯 ?뺣낫" ?뱀뀡??泥?踰덉㎏ 以꾩쓣 蹂댁젙??媛믪쑝濡??낅뜲?댄듃
+                            const sections = normalizedVisit.detail?.sections || [];
+                            const basicInfoSectionIndex = sections.findIndex(
+                              section => section.title && section.title.includes('怨좉컼 湲곕낯 ?뺣낫')
+                            );
+                            
+                            if (basicInfoSectionIndex !== -1 && sections[basicInfoSectionIndex].content.length > 0) {
+                              const firstLine = `?대쫫: ${safeName} / ?꾪솕踰덊샇: ${safePhone}`;
+                              sections[basicInfoSectionIndex] = {
+                                ...sections[basicInfoSectionIndex],
+                                content: [
+                                  firstLine,
+                                  ...sections[basicInfoSectionIndex].content.slice(1)
+                                ]
+                              };
+                            }
+                            
+                            const editData = {
+                              title: normalizedVisit.title,
+                              sections: sections
+                            };
+                            setTempResultData(editData);
+                            setEditingVisit(normalizedVisit);
+                            setEditingCustomer(customer);
+                            
+                            // ?몄쭛 以묒씤 諛⑸Ц???쒓렇瑜?ID 諛곗뿴濡?蹂??                            const visitTagLabels = normalizedVisit.tags || [];
+                            const visitTagIds = visitTagLabels
+                              .map(label => {
+                                const tag = allVisitTags.find(t => t.label === label);
+                                return tag ? tag.id : null;
+                              })
+                              .filter(id => id !== null);
+                            setEditingVisitTagIds(visitTagIds);
+                            
+                            setCurrentScreen('Edit');
+                          }}
+                        >
+                          <Edit size={18} />
+        </button>
+                        {/* ?붿궡???꾩씠肄?(?곗륫 ?? */}
+                        <button 
+                          className="absolute right-0 top-0" 
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
+                          }}
+                        >
+                          {expandedVisitId === visit.id ? (
+                            <ChevronUp size={20} style={{ color: '#C9A27A' }} />
+                          ) : (
+                            <ChevronDown size={20} style={{ color: '#C9A27A' }} />
+                          )}
+                        </button>
+                      </div>
+
+                      {/* ?쒓렇 由ъ뒪?? ?대쫫/踰덊샇 ?꾨옒, ?쒖닠 ?댁슜 ??*/}
+                      {visit.tags && visit.tags.length > 0 && (
+                        <div className="mt-1.5 mb-1.5 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
+                          {visit.tags.map((tag, idx) => (
+                            <span 
+                              key={idx}
+                              className="text-[11px] px-2 py-1 rounded-md"
+                              style={{ 
+                                backgroundColor: '#F2F0E6',
+                                color: '#8C6D46'
+                              }}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* ?꾨옯以? ?쒖닠 ?댁슜 */}
+                      <div 
+                        className="mt-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <div className="text-sm text-[#232323]/80 font-medium truncate">
+                          {displayTitle}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {expandedVisitId === visit.id && normalizedVisit.detail && (
+                      <div className="px-5 pb-5 space-y-5 border-t border-gray-200 pt-5 bg-gray-50">
+                        {normalizedVisit.detail.sections.map((section, idx) => {
+                          // "怨좉컼 湲곕낯 ?뺣낫" ?뱀뀡??泥?踰덉㎏ 以꾩쓣 蹂댁젙??媛믪쑝濡??쒖떆
+                          let displayContent = section.content;
+                          if (section.title && section.title.includes('怨좉컼 湲곕낯 ?뺣낫') && section.content.length > 0) {
+                            const firstLine = section.content[0];
+                            if (firstLine && firstLine.includes('?대쫫:')) {
+                              displayContent = [
+                                `?대쫫: ${safeName} / ?꾪솕踰덊샇: ${safePhone}`,
+                                ...section.content.slice(1)
+                              ];
+                            }
+                          }
+                          
+                          return (
+                            <div key={idx}>
+                              <h5 className="text-base font-bold mb-3" style={{ color: '#232323' }}>
+                                {section.title}
+                              </h5>
+                              <ul className="space-y-2">
+                                {displayContent.map((item, i) => (
+                                  <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
+                                    {overrideCustomerInfoLine(item, customer)}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          );
+                        })}
+                        
+                        {/* 湲곕줉 ?쇱떆 (移대뱶 ?섎떒) */}
+                        {(() => {
+                          const recordedAt = visit.recordedAt || (visit.date && visit.time ? `${visit.date}T${visit.time}:00` : null);
+                          return recordedAt ? (
+                            <div className="visit-detail-footer">
+                              湲곕줉 ?쇱떆: {formatRecordDateTime(recordedAt)}
+                            </div>
+                          ) : null;
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+            
+            {/* ?댁쟾 湲곕줉 ??蹂닿린 / ?묎린 踰꾪듉 */}
+            {(customerVisits.length > visibleVisitCount || visibleVisitCount > 10) && (
+              <div className="flex justify-center mt-4 mb-20 gap-3">
+                {customerVisits.length > visibleVisitCount && (
+                  <button
+                    onClick={handleLoadMoreVisits}
+                    className="px-4 py-2 text-sm rounded-full border border-[#C9A27A] text-[#C9A27A] bg-white/90 shadow-sm hover:bg-[#C9A27A] hover:text-white transition-colors min-w-[180px]"
+                  >
+                    ?댁쟾 湲곕줉 10嫄???蹂닿린
+                  </button>
+                )}
+                {visibleVisitCount > 10 && (
+                  <button
+                    onClick={handleCollapseVisits}
+                    className="px-4 py-2 text-sm rounded-full border border-[#C9A27A] text-[#C9A27A] bg-white/90 shadow-sm hover:bg-[#C9A27A] hover:text-white transition-colors min-w-[180px]"
+                  >
+                    ?묎린
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+      </main>
+      
+        {/* ?섎떒 怨좎젙 踰꾪듉: ??湲곕줉 ?④린湲?*/}
+        <div className="absolute bottom-8 left-8 right-8 z-30">
+          <button 
+            onClick={() => {
+              setSelectedCustomerForRecord(customer);
+              startRecording();
+            }}
+            className="w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-medium text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all"
+            style={{ backgroundColor: '#C9A27A' }}
+          >
+            <Mic size={20} />
+            <span>??怨좉컼???????湲곕줉 ?④린湲?/span>
+        </button>
+        </div>
+    </div>
+  );
+  }; // renderCustomerDetail ?⑥닔 ??- CustomerDetailScreen?쇰줈 ?대룞??
+  const renderEdit = () => {
+    if (!tempResultData) {
+      return (
+        <div className="flex flex-col h-full items-center justify-center" style={{ backgroundColor: '#F2F0E6' }}>
+          <p style={{ color: '#232323' }}>?몄쭛???곗씠?곌? ?놁뒿?덈떎.</p>
+          <button onClick={() => setCurrentScreen('Record')} className="mt-4 font-medium" style={{ color: '#232323' }}>寃곌낵 ?붾㈃?쇰줈 ?뚯븘媛湲?/button>
+      </div>
+      );
+    }
+
+    // ?몄쭛 以묒씤 visit怨?customer ?뺣낫濡??뺢퇋??    const normalizedVisit = editingVisit && editingCustomer 
+      ? normalizeRecordWithCustomer(editingVisit, editingCustomer)
+      : null;
+
+    // ?뱀뀡 ?댁슜 ?낅뜲?댄듃 ?⑥닔
+    const updateSectionContent = (sectionIndex, contentIndex, newValue) => {
+      setTempResultData(prev => {
+        const updated = JSON.parse(JSON.stringify(prev));
+        updated.sections[sectionIndex].content[contentIndex] = newValue;
+        return updated;
+      });
+    };
+
+    // ?뱀뀡??????ぉ 異붽? ?⑥닔
+    const addSectionItem = (sectionIndex) => {
+      setTempResultData(prev => {
+        const updated = JSON.parse(JSON.stringify(prev));
+        updated.sections[sectionIndex].content.push('');
+        return updated;
+      });
+    };
+
+    // ?뱀뀡 ??ぉ ??젣 ?⑥닔
+    const removeSectionItem = (sectionIndex, contentIndex) => {
+      setTempResultData(prev => {
+        const updated = JSON.parse(JSON.stringify(prev));
+        updated.sections[sectionIndex].content.splice(contentIndex, 1);
+        return updated;
+      });
+    };
+
+    // ?쒕ぉ?먯꽌 怨좉컼 ?대쫫怨??좉퇋/湲곗〈 ?뺣낫 ?쒓굅 ?⑥닔
+    const cleanTitle = (title) => {
+      if (!title) return title;
+      let cleaned = title;
+      
+      // ?몄쭛 以묒씤 怨좉컼 ?대쫫 ?쒓굅
+      if (editingCustomer?.name) {
+        const customerName = editingCustomer.name;
+        // ?대쫫 ?⑦꽩 ?쒓굅 (?욌뮘 怨듬갚 ?ы븿)
+        cleaned = cleaned.replace(new RegExp(`\\s*${customerName}\\s*`, 'g'), ' ').trim();
+        // "?뗢뿃??怨좉컼" ?⑦꽩 ?쒓굅
+        cleaned = cleaned.replace(new RegExp(`${customerName}\\s*怨좉컼`, 'g'), '').trim();
+      }
+      
+      // "?좉퇋 怨좉컼", "湲곗〈 怨좉컼" ?⑦꽩 ?쒓굅
+      cleaned = cleaned.replace(/\s*?좉퇋\s*怨좉컼\s*/gi, ' ').trim();
+      cleaned = cleaned.replace(/\s*湲곗〈\s*怨좉컼\s*/gi, ' ').trim();
+      cleaned = cleaned.replace(/\s*?좉퇋\s*/gi, ' ').trim();
+      cleaned = cleaned.replace(/\s*湲곗〈\s*/gi, ' ').trim();
+      
+      // ?곗냽??怨듬갚 ?뺣━
+      cleaned = cleaned.replace(/\s+/g, ' ').trim();
+      
+      return cleaned;
+    };
+
+    // ?쒕ぉ ?낅뜲?댄듃 ?⑥닔
+    const updateTitle = (newTitle) => {
+      // ?낅젰 ?쒖뿉???먮룞?쇰줈 ?뺣━
+      const cleaned = cleanTitle(newTitle);
