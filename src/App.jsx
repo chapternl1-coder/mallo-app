@@ -1981,12 +1981,14 @@ export default function MalloApp() {
   // 태그 매칭은 rawTranscript(원본 텍스트)를 우선 사용, 없으면 요약 텍스트 사용
   useEffect(() => {
     if (!isAutoTaggingEnabled) {
-      // OFF일 경우: 빈 배열로 시작 (사용자가 수동으로 추가)
+      // OFF일 경우: 자동 추천은 하지 않지만, 사용자가 수동으로 추가할 수 있도록 상태는 유지
+      // recommendedTagIds는 초기화하지 않음 (이미 선택된 태그는 유지)
+      // selectedTagIds도 초기화하지 않음 (사용자가 수동으로 선택한 태그 유지)
       setServiceTags([]);
-      setRecommendedTagIds([]);
-      setSelectedTagIds([]);
+      // setRecommendedTagIds([]); // 주석 처리: 수동 선택을 위해 유지
+      // setSelectedTagIds([]); // 주석 처리: 수동 선택을 위해 유지
       setRecommendedCustomerTagIds([]);
-      setSelectedCustomerTagIds([]);
+      // setSelectedCustomerTagIds([]); // 주석 처리: 수동 선택을 위해 유지
       setNewCustomerTagIds([]);
       return;
     }
@@ -3547,27 +3549,30 @@ export default function MalloApp() {
 
           {/* 추천 태그 칩들 */}
           <div className="flex flex-wrap gap-2 mb-4">
-            {recommendedTagIds.length === 0 ? (
+            {(recommendedTagIds.length === 0 && selectedTagIds.length === 0) ? (
               <p className="text-sm" style={{ color: '#232323', opacity: 0.5 }}>
                 추천 태그가 없어요. 필요한 경우 아래에서 직접 추가할 수 있어요.
               </p>
             ) : (
-              recommendedTagIds.map((tagId) => {
+              // recommendedTagIds와 selectedTagIds를 합쳐서 중복 제거
+              [...new Set([...recommendedTagIds, ...selectedTagIds])].map((tagId) => {
                 const tag = allVisitTags.find((t) => t.id === tagId);
                 if (!tag) return null;
 
                 const isSelected = selectedTagIds.includes(tag.id);
+                const isRecommended = recommendedTagIds.includes(tag.id);
 
                 return (
                   <button
                     key={tag.id}
                     type="button"
                     onClick={() => {
-                      setSelectedTagIds((prev) =>
-                        prev.includes(tag.id)
-                          ? prev.filter((id) => id !== tag.id) // OFF
-                          : [...prev, tag.id]                   // ON
-                      );
+                      // 고객 프로필 태그처럼 클릭 시 바로 제거
+                      setSelectedTagIds((prev) => prev.filter((id) => id !== tag.id));
+                      // AI 자동 추천이 OFF일 때는 recommendedTagIds에서도 제거
+                      if (!isAutoTaggingEnabled) {
+                        setRecommendedTagIds((prev) => prev.filter((id) => id !== tag.id));
+                      }
                     }}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                       isSelected 
@@ -3670,7 +3675,16 @@ export default function MalloApp() {
             allVisitTags={allVisitTags}
             selectedTagIds={selectedTagIds}
             onClose={() => setIsTagPickerOpen(false)}
-            onChangeSelected={(nextSelected) => setSelectedTagIds(nextSelected)}
+            onChangeSelected={(nextSelected) => {
+              setSelectedTagIds(nextSelected);
+              // AI 자동 추천이 OFF일 때는 수동으로 선택한 태그를 recommendedTagIds에도 추가
+              if (!isAutoTaggingEnabled) {
+                setRecommendedTagIds((prev) => {
+                  const newRecommended = [...new Set([...prev, ...nextSelected])];
+                  return newRecommended;
+                });
+              }
+            }}
           />
         )}
 
