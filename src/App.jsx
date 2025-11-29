@@ -1144,70 +1144,70 @@ const MOCK_VISITS = {
       summary: '기존 단골 속눈썹 고객 리터치 및 시술 후 관리 안내',
       tags: ['D컬', '11mm', '리터치'],
       detail: {
-        sections: [
+      sections: [
           { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
           { title: '방문·예약 정보', content: ['2025-11-28 15:00 방문'] },
           { title: '시술·관리 상세', content: ['D컬 11mm + 12mm 섞어서 화려한 디자인 시술', '이전 C컬에서 D컬로 변경 요청'] },
           { title: '주의사항·홈 케어', content: ['눈물 많아서 테이핑 주의', '리무버 자극 주의', '11/29 리터치 안내'] },
           { title: '결제 금액', content: ['회원권에서 50,000원 차감'] }
-        ]
-      }
-    },
-    {
+      ]
+    }
+  },
+  {
       id: 2,
       date: '2025-11-15',
       time: '14:30',
       title: '속눈썹 C컬 → D컬 변경',
       summary: '끝이 처진 느낌으로 D컬로 변경, 11/29 리터치 안내',
       detail: {
-        sections: [
+      sections: [
           { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
           { title: '방문·예약 정보', content: ['2025-11-15 14:30 방문'] },
           { title: '현재 상태·고객 고민', content: ['이전 C컬 시술 후 끝이 처지는 느낌', '더 바짝 올라가길 원함'] },
           { title: '시술·관리 상세', content: ['C컬에서 D컬로 변경', '11mm와 12mm 혼합 디자인'] },
           { title: '결제 금액', content: ['60,000원 (카드)'] }
-        ]
-      }
-    },
-    {
+      ]
+    }
+  },
+  {
       id: 3,
       date: '2025-10-30',
       time: '14:00',
       title: '젤네일 제거 + 누드톤 재시술',
       summary: '회사 회의 많아서 튀지 않게, 손톱 길이 짧게 정리',
       detail: {
-        sections: [
+      sections: [
           { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
           { title: '방문·예약 정보', content: ['2025-10-30 14:00 방문'] },
           { title: '시술·관리 상세', content: ['기존 젤 제거', '누드톤 젤네일 재시술', '손톱 길이 짧게 정리'] },
           { title: '결제 금액', content: ['55,000원 (카드)'] }
-        ]
-      }
-    },
-    {
+      ]
+    }
+  },
+  {
       id: 4,
       date: '2025-09-20',
       time: '16:00',
       title: '속눈썹 리터치 및 영양 케어',
       summary: '리터치 진행, 눈물 많아서 테이핑 주의',
       detail: {
-        sections: [
+      sections: [
           { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
           { title: '방문·예약 정보', content: ['2025-09-20 16:00 방문'] },
           { title: '시술·관리 상세', content: ['속눈썹 리터치 진행', '영양 케어 서비스'] },
           { title: '주의사항·홈 케어', content: ['눈물 많아서 테이핑 주의', '리무버 자극 주의'] },
           { title: '결제 금액', content: ['회원권에서 50,000원 차감'] }
-        ]
-      }
-    },
-    {
+      ]
+    }
+  },
+  {
       id: 5,
       date: '2025-08-10',
       time: '15:30',
       title: '젤네일 아트 변경',
       summary: '여름 시즌 맞춰 밝은 컬러로 변경, 손톱 상태 양호',
       detail: {
-        sections: [
+      sections: [
           { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
           { title: '방문·예약 정보', content: ['2025-08-10 15:30 방문'] },
           { title: '시술·관리 상세', content: ['기존 젤 제거', '여름 시즌 밝은 컬러 아트 시술'] },
@@ -1475,6 +1475,7 @@ export default function MalloApp() {
   const [userProfile] = useState({ sectorId: 'beauty', roleTitle: '뷰티샵 원장' });
   const [recordingTime, setRecordingTime] = useState(0);
   const [transcript, setTranscript] = useState('');
+  const [rawTranscript, setRawTranscript] = useState(''); // STT 원본 텍스트 (태그 매칭용)
   const [resultData, setResultData] = useState(null);
   const [showPromptInfo, setShowPromptInfo] = useState(false);
   const [todayRecords, setTodayRecords] = useState([]);
@@ -1484,8 +1485,12 @@ export default function MalloApp() {
   const [editingCustomer, setEditingCustomer] = useState(null); // 편집 중인 customer 정보
   const [editCustomerName, setEditCustomerName] = useState(''); // 고객 정보 편집용
   const [editCustomerPhone, setEditCustomerPhone] = useState(''); // 고객 정보 편집용
-  const [editCustomerTags, setEditCustomerTags] = useState([]); // 고객 정보 편집용
+  const [editCustomerTags, setEditCustomerTags] = useState([]); // 고객 정보 편집용 (레거시, 사용 안 함)
+  const [editCustomerTagIds, setEditCustomerTagIds] = useState([]); // 고객 특징 태그 편집용 (ID 배열)
+  const [isEditCustomerTagPickerOpen, setIsEditCustomerTagPickerOpen] = useState(false); // 고객 특징 태그 선택 모달 오픈 여부
   const [editCustomerMemo, setEditCustomerMemo] = useState(''); // 고객 메모 편집용
+  const [editingVisitTagIds, setEditingVisitTagIds] = useState([]); // 방문 편집용 태그 ID 배열
+  const [isEditingVisitTagPickerOpen, setIsEditingVisitTagPickerOpen] = useState(false); // 방문 태그 선택 모달 오픈 여부
   const [newTag, setNewTag] = useState(''); // 새 태그 입력용
   const [serviceTags, setServiceTags] = useState([]); // 시술 태그 (ResultScreen에서 편집)
   const [newServiceTag, setNewServiceTag] = useState(''); // 새 시술 태그 입력용
@@ -1933,10 +1938,10 @@ export default function MalloApp() {
     setAllCustomerTags(converted);
   }, [customerTags]);
 
-  // 태그 매칭 함수: 요약 텍스트에서 태그 찾기 (정규화된 키워드 매칭)
-  const matchTagsFromSummary = (summary, tags) => {
-    if (!summary || !tags || tags.length === 0) return [];
-    const normSummary = normalize(summary);
+  // 태그 매칭 함수: 원본 텍스트 또는 요약 텍스트에서 태그 찾기 (정규화된 키워드 매칭)
+  const matchTagsFromSummary = (sourceText, tags) => {
+    if (!sourceText || !tags || tags.length === 0) return [];
+    const normSummary = normalize(sourceText);
     
     return tags
       .filter((tag) => {
@@ -1953,31 +1958,35 @@ export default function MalloApp() {
   };
 
   // resultData가 변경될 때마다 태그 자동 추출 (isAutoTaggingEnabled에 따라)
+  // 태그 매칭은 rawTranscript(원본 텍스트)를 우선 사용, 없으면 요약 텍스트 사용
   useEffect(() => {
     if (resultData) {
       if (isAutoTaggingEnabled) {
-        // ON일 경우: 기존처럼 content를 분석해서 태그 자동 생성
-        const allContent = [
-          resultData.title || '',
-          ...(resultData.sections || []).flatMap(section => 
-            (section.content || []).join(' ')
-          )
-        ].join(' ');
+        // 원본 텍스트 우선 사용, 없으면 요약 텍스트 사용
+        const sourceText = rawTranscript || (() => {
+          const allContent = [
+            resultData.title || '',
+            ...(resultData.sections || []).flatMap(section => 
+              (section.content || []).join(' ')
+            )
+          ].join(' ');
+          return allContent;
+        })();
         
-        const extractedTags = extractTagsFromContent(allContent, visitTags);
+        const extractedTags = extractTagsFromContent(sourceText, visitTags);
         setServiceTags(extractedTags);
         
-        // 방문 태그 선택 UI용: 요약에서 태그 매칭
+        // 방문 태그 선택 UI용: 원본 텍스트에서 태그 매칭
         if (allVisitTags.length > 0) {
-          const matched = matchTagsFromSummary(allContent, allVisitTags);
+          const matched = matchTagsFromSummary(sourceText, allVisitTags);
           setRecommendedTagIds(matched);
           // 기본값: 추천된 태그는 전부 ON 상태
           setSelectedTagIds(matched);
         }
         
-        // 고객 특징 태그 선택 UI용: 요약에서 태그 매칭
+        // 고객 특징 태그 선택 UI용: 원본 텍스트에서 태그 매칭
         if (allCustomerTags.length > 0) {
-          const matchedCustomerTags = matchTagsFromSummary(allContent, allCustomerTags);
+          const matchedCustomerTags = matchTagsFromSummary(sourceText, allCustomerTags);
           setRecommendedCustomerTagIds(matchedCustomerTags);
           
           // 기존 고객 태그와 AI가 찾은 태그 병합 (Smart Merge)
@@ -2022,7 +2031,7 @@ export default function MalloApp() {
       setRecommendedTagIds([]);
       setSelectedTagIds([]);
     }
-  }, [resultData, isAutoTaggingEnabled, allVisitTags, allCustomerTags, selectedCustomerForRecord]);
+  }, [resultData, rawTranscript, isAutoTaggingEnabled, allVisitTags, allCustomerTags, selectedCustomerForRecord]);
 
   // 고객 상세 화면 진입 시 방문 기록에서 키워드 감지하여 customerTags 자동 업데이트
   useEffect(() => {
@@ -2361,6 +2370,7 @@ export default function MalloApp() {
     setRecordState('idle');
     setResultData(null);
     setTranscript('');
+    setRawTranscript('');
     setRecordingDate(null);
     audioChunksRef.current = [];
     
@@ -2424,6 +2434,30 @@ export default function MalloApp() {
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
       audioChunksRef.current = [];
 
+      // 녹음 시간이 너무 짧거나 오디오 파일이 너무 작으면 테스트용 더미 데이터로 시술 기록 화면 이동
+      if (recordingTime < 0.5 || audioBlob.size < 1000) {
+        // 테스트를 위해 더미 데이터로 시술 기록 화면으로 이동
+        const dummyResultData = {
+          title: '테스트 시술 기록',
+          sections: [
+            {
+              title: '고객 기본 정보',
+              content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객', '고객 특징: 미기재']
+            },
+            {
+              title: '시술 내용',
+              content: ['테스트를 위한 더미 데이터입니다. 개발용 요약 테스트 박스나 테스트 버튼을 사용해주세요.']
+            }
+          ]
+        };
+        setResultData(dummyResultData);
+        setTranscript('');
+        setRawTranscript('');
+        setIsProcessing(false);
+        setRecordState('result');
+        return;
+      }
+
       // 녹음 완료 시점의 날짜 저장
       setRecordingDate(new Date());
 
@@ -2448,17 +2482,31 @@ export default function MalloApp() {
 
       if (!whisperResponse.ok) {
         const errorData = await whisperResponse.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || `Whisper API 요청 실패: ${whisperResponse.status}`);
+        const errorMessage = errorData.error?.message || '';
+        // "Audio file is too short" 같은 에러는 조용히 처리
+        if (errorMessage.includes('too short') || errorMessage.includes('too short') || recordingTime < 1) {
+          setIsProcessing(false);
+          setRecordState('idle');
+          setCurrentScreen('Home');
+          return;
+        }
+        throw new Error(errorMessage || `Whisper API 요청 실패: ${whisperResponse.status}`);
       }
 
       const whisperData = await whisperResponse.json();
       const transcript = whisperData.text || '';
       
-      if (!transcript.trim()) {
-        throw new Error('녹음 내용을 텍스트로 변환할 수 없습니다. 다시 녹음해주세요.');
+      // 녹음 시간이 너무 짧거나 transcript가 비어있으면 조용히 처리
+      if (!transcript.trim() || recordingTime < 1) {
+        // 에러 메시지 없이 조용히 홈으로 돌아가기
+        setIsProcessing(false);
+        setRecordState('idle');
+        setCurrentScreen('Home');
+        return;
       }
 
       setTranscript(transcript);
+      setRawTranscript(transcript); // 원본 텍스트 저장 (태그 매칭용)
 
       // Step 2: GPT API로 요약
       // ROLE_JSON 생성
@@ -2608,6 +2656,7 @@ export default function MalloApp() {
         
         // transcript도 설정 (태그 분석에 사용될 수 있음)
         setTranscript(testSummaryInput);
+        setRawTranscript(testSummaryInput); // 테스트 입력을 원본처럼 사용
         setRecordingDate(new Date());
       } else {
         throw new Error('API 응답 형식이 올바르지 않습니다.');
@@ -2638,6 +2687,7 @@ export default function MalloApp() {
   const resetFlow = () => {
     setCurrentScreen('Home');
     setTranscript('');
+    setRawTranscript('');
     setResultData(null);
     setRecordingDate(null);
     setSelectedCustomerForRecord(null);
@@ -2845,7 +2895,7 @@ export default function MalloApp() {
                   className="w-full bg-transparent outline-none font-light placeholder-gray-400 text-lg leading-normal"
                   style={{ color: '#232323' }}
                 />
-              </div>
+        </div>
             </div>
 
             {/* 검색 결과 - Absolute Positioning으로 드롭다운 */}
@@ -2958,8 +3008,8 @@ export default function MalloApp() {
               style={{ color: '#232323' }}
             >
               <X size={20} />
-            </button>
-          </header>
+        </button>
+      </header>
 
           {/* 카테고리 탭 */}
           <div className="flex gap-2 px-6 py-4 border-b border-gray-200 overflow-x-auto">
@@ -2989,7 +3039,7 @@ export default function MalloApp() {
               className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A]"
               style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
             />
-          </div>
+        </div>
 
           {/* 태그 리스트 */}
           <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -3002,7 +3052,7 @@ export default function MalloApp() {
                 filteredTags.map((tag) => {
                   const isSelected = selectedTagIds.includes(tag.id);
                   return (
-                    <button
+        <button 
                       key={tag.id}
                       type="button"
                       onClick={() => toggleTag(tag.id)}
@@ -3013,7 +3063,7 @@ export default function MalloApp() {
                       }`}
                     >
                       {tag.label}
-                    </button>
+        </button>
                   );
                 })
               )}
@@ -3152,8 +3202,8 @@ export default function MalloApp() {
             </button>
           </footer>
         </div>
-      </div>
-    );
+    </div>
+  );
   };
 
   const renderRecording = () => (
@@ -3425,67 +3475,6 @@ export default function MalloApp() {
           </section>
         )}
 
-        {/* 태그 편집 영역 */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-          <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>시술 태그</h4>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {serviceTags.map((tag, idx) => (
-              <span
-                key={idx}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
-                style={{ 
-                  backgroundColor: 'rgba(201, 162, 122, 0.1)',
-                  color: '#8C6D46'
-                }}
-              >
-                #{tag}
-                <button
-                  onClick={() => {
-                    setServiceTags(prev => prev.filter((_, i) => i !== idx));
-                  }}
-                  className="ml-1 hover:opacity-70 transition-opacity"
-                  style={{ color: '#8C6D46' }}
-                >
-                  <X size={14} />
-                </button>
-              </span>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newServiceTag}
-              onChange={(e) => setNewServiceTag(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && newServiceTag.trim()) {
-                  const trimmedTag = newServiceTag.trim();
-                  if (!serviceTags.includes(trimmedTag)) {
-                    setServiceTags(prev => [...prev, trimmedTag]);
-                    setNewServiceTag('');
-                  }
-                }
-              }}
-              placeholder="태그 추가 (Enter)"
-              className="flex-1 px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A]"
-              style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
-            />
-            <button
-              onClick={() => {
-                if (newServiceTag.trim()) {
-                  const trimmedTag = newServiceTag.trim();
-                  if (!serviceTags.includes(trimmedTag)) {
-                    setServiceTags(prev => [...prev, trimmedTag]);
-                    setNewServiceTag('');
-                  }
-                }
-              }}
-              className="px-4 py-2 rounded-xl font-medium text-sm border border-[#C9A27A] text-[#C9A27A] hover:bg-[#C9A27A] hover:text-white transition-colors"
-            >
-              + 태그 추가
-            </button>
-          </div>
-        </div>
-
         {/* Section 1: 이번 방문 태그 */}
         <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
           <div className="mb-4">
@@ -3546,30 +3535,33 @@ export default function MalloApp() {
         </section>
 
         {/* Section 2: 고객 프로필 업데이트 */}
-        {selectedCustomerForRecord && (
-          <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-            <div className="mb-4">
-              <h3 className="text-base font-bold mb-2 flex items-center gap-2" style={{ color: '#232323' }}>
-                <span>👤</span>
-                <span>고객 프로필 업데이트</span>
-              </h3>
-              <p className="text-sm" style={{ color: '#232323', opacity: 0.7 }}>
-                고객 정보에 영구적으로 저장됩니다.
+        <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+          <div className="mb-4">
+            <h3 className="text-base font-bold mb-2 flex items-center gap-2" style={{ color: '#232323' }}>
+              <span>👤</span>
+              <span>고객 프로필 업데이트</span>
+            </h3>
+            <p className="text-sm" style={{ color: '#232323', opacity: 0.7 }}>
+              {selectedCustomerForRecord 
+                ? '고객 정보에 영구적으로 저장됩니다.'
+                : '신규 고객으로 저장 시 고객 정보에 영구적으로 저장됩니다.'}
+            </p>
+          </div>
+
+          {/* 고객 태그 칩들 */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {selectedCustomerTagIds.length === 0 ? (
+              <p className="text-sm" style={{ color: '#232323', opacity: 0.5 }}>
+                고객 특징 태그가 없어요. 필요한 경우 아래에서 직접 추가할 수 있어요.
               </p>
-            </div>
+            ) : (
+              selectedCustomerTagIds.map((tagId) => {
+                const tag = allCustomerTags.find((t) => t.id === tagId);
+                if (!tag) return null;
 
-            {/* 고객 태그 칩들 */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              {selectedCustomerTagIds.length === 0 ? (
-                <p className="text-sm" style={{ color: '#232323', opacity: 0.5 }}>
-                  고객 특징 태그가 없어요. 필요한 경우 아래에서 직접 추가할 수 있어요.
-                </p>
-              ) : (
-                selectedCustomerTagIds.map((tagId) => {
-                  const tag = allCustomerTags.find((t) => t.id === tagId);
-                  if (!tag) return null;
-
-                  const isNew = newCustomerTagIds.includes(tag.id);
+                const isNew = selectedCustomerForRecord 
+                  ? newCustomerTagIds.includes(tag.id)
+                  : true; // 신규 고객인 경우 모든 태그를 새 태그로 표시
 
                   return (
                     <button
@@ -3604,16 +3596,15 @@ export default function MalloApp() {
               )}
             </div>
 
-            {/* 고객 태그 더 추가하기 버튼 */}
-            <button
-              type="button"
-              onClick={() => setIsCustomerTagPickerOpen(true)}
-              className="w-full py-2.5 rounded-xl text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              + 태그 더 추가하기
-            </button>
-          </section>
-        )}
+          {/* 고객 태그 더 추가하기 버튼 */}
+          <button
+            type="button"
+            onClick={() => setIsCustomerTagPickerOpen(true)}
+            className="w-full py-2.5 rounded-xl text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            + 태그 더 추가하기
+          </button>
+        </section>
 
         {/* 방문 태그 선택 모달 */}
         {isTagPickerOpen && (
@@ -3876,6 +3867,7 @@ export default function MalloApp() {
                     serviceDate: serviceDate, // 시술/매출 날짜 (AI 파싱 또는 녹음한 날짜)
                     title: cleanTitle(resultData.title),
                     summary: resultData.sections[0]?.content[0] || cleanTitle(resultData.title),
+                    rawTranscript: rawTranscript || transcript, // STT 원본 텍스트 (태그 매칭용)
                     detail: {
                       sections: resultData.sections
                     },
@@ -4172,6 +4164,7 @@ export default function MalloApp() {
                     serviceDate: serviceDate, // 시술/매출 날짜 (AI 파싱 또는 녹음한 날짜)
                     title: cleanTitle(resultData.title),
                     summary: resultData.sections[0]?.content[0] || cleanTitle(resultData.title),
+                    rawTranscript: rawTranscript || transcript, // STT 원본 텍스트 (태그 매칭용)
                     detail: {
                       sections: resultData.sections
                     },
@@ -4208,6 +4201,7 @@ export default function MalloApp() {
                 // 저장 후 상태 초기화
                 setResultData(null);
                 setTranscript('');
+                setRawTranscript('');
                 setRecordingDate(null);
                 setSelectedCustomerForRecord(null);
                 setTempName('');
@@ -4375,6 +4369,26 @@ export default function MalloApp() {
                 setEditCustomerTags([...(customer.tags || [])]);
                 setEditCustomerMemo(customer.memo || '');
                 setNewTag('');
+                
+                // 고객 특징 태그를 ID 배열로 변환하여 로드
+                const customerTags = customer.customerTags || {};
+                const tagLabels = [];
+                Object.values(customerTags).forEach(categoryTags => {
+                  if (Array.isArray(categoryTags)) {
+                    categoryTags.forEach(tag => {
+                      const label = typeof tag === 'string' ? tag : tag.label || tag;
+                      tagLabels.push(label);
+                    });
+                  }
+                });
+                const tagIds = tagLabels
+                  .map(label => {
+                    const tag = allCustomerTags.find(t => t.label === label);
+                    return tag ? tag.id : null;
+                  })
+                  .filter(id => id !== null);
+                setEditCustomerTagIds(tagIds);
+                
                 setCurrentScreen('EditCustomer');
               }}
               className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
@@ -4384,12 +4398,11 @@ export default function MalloApp() {
               <Edit size={20} />
             </button>
             <div className="flex items-center gap-6 mb-6">
-              <div className="text-7xl">{customer.avatar}</div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <h3 className="font-bold text-2xl" style={{ color: '#232323' }}>{customer.name}</h3>
                   <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100" style={{ color: '#232323' }}>
-                    {customer.visitCount}회
+                    {customer.visitCount}회방문
                   </span>
                 </div>
                 <div className="space-y-3 mb-4">
@@ -4458,8 +4471,8 @@ export default function MalloApp() {
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <p className="text-sm font-medium mb-2" style={{ color: '#232323', opacity: 0.7 }}>메모</p>
                     <p className="text-sm font-light leading-relaxed" style={{ color: '#232323' }}>{customer.memo}</p>
-                  </div>
-                )}
+            </div>
+        )}
               </div>
             </div>
           </div>
@@ -4609,6 +4622,17 @@ export default function MalloApp() {
                             setTempResultData(editData);
                             setEditingVisit(normalizedVisit);
                             setEditingCustomer(customer);
+                            
+                            // 편집 중인 방문의 태그를 ID 배열로 변환
+                            const visitTagLabels = normalizedVisit.tags || [];
+                            const visitTagIds = visitTagLabels
+                              .map(label => {
+                                const tag = allVisitTags.find(t => t.label === label);
+                                return tag ? tag.id : null;
+                              })
+                              .filter(id => id !== null);
+                            setEditingVisitTagIds(visitTagIds);
+                            
                             setCurrentScreen('Edit');
                           }}
                         >
@@ -4633,7 +4657,7 @@ export default function MalloApp() {
 
                       {/* 태그 리스트: 이름/번호 아래, 시술 내용 위 */}
                       {visit.tags && visit.tags.length > 0 && (
-                        <div className="mt-1.5 mb-1.5 max-h-[50px] overflow-hidden flex flex-wrap gap-1.5">
+                        <div className="mt-1.5 mb-1.5 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
                           {visit.tags.map((tag, idx) => (
                             <span 
                               key={idx}
@@ -4852,6 +4876,15 @@ export default function MalloApp() {
       
       if (editingVisit && editingCustomer && currentNormalizedVisit) {
         const customerId = editingCustomer.id;
+        
+        // 편집된 태그를 label 배열로 변환
+        const editedTagLabels = editingVisitTagIds
+          .map(id => {
+            const tag = allVisitTags.find(t => t.id === id);
+            return tag ? tag.label : null;
+          })
+          .filter(label => label !== null);
+        
         setVisits(prev => {
           const updated = { ...prev };
           if (updated[customerId]) {
@@ -4861,6 +4894,7 @@ export default function MalloApp() {
                     ...v, 
                     customerName: currentNormalizedVisit.customerName,
                     customerPhone: currentNormalizedVisit.customerPhone,
+                    tags: editedTagLabels, // 태그 업데이트
                     detail: {
                       sections: cleanedData.sections
                     }
@@ -4875,6 +4909,7 @@ export default function MalloApp() {
       setTempResultData(null);
       setEditingVisit(null);
       setEditingCustomer(null);
+      setEditingVisitTagIds([]);
       
       // 결과 화면으로 복귀 (Record 화면의 result 상태)
       // 편집 화면에서 온 경우 CustomerDetail로 돌아가기
@@ -4894,6 +4929,7 @@ export default function MalloApp() {
               setTempResultData(null);
               setEditingVisit(null);
               setEditingCustomer(null);
+              setEditingVisitTagIds([]);
               // 편집 화면에서 온 경우 CustomerDetail로 돌아가기
               if (editingVisit) {
                 setCurrentScreen('CustomerDetail');
@@ -4931,6 +4967,59 @@ export default function MalloApp() {
             />
       </div>
 
+          {/* 시술 태그 편집 섹션 */}
+          {editingVisit && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+              <div className="mb-4">
+                <h4 className="text-base font-bold mb-2" style={{ color: '#232323' }}>
+                  시술 태그
+                </h4>
+                <p className="text-sm" style={{ color: '#232323', opacity: 0.7 }}>
+                  이번 방문에 적용된 시술 태그를 편집할 수 있습니다.
+                </p>
+    </div>
+
+              {/* 태그 칩들 */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {editingVisitTagIds.length === 0 ? (
+                  <p className="text-sm" style={{ color: '#232323', opacity: 0.5 }}>
+                    태그가 없어요. 아래 버튼에서 추가할 수 있어요.
+                  </p>
+                ) : (
+                  editingVisitTagIds.map((tagId) => {
+                    const tag = allVisitTags.find((t) => t.id === tagId);
+                    if (!tag) return null;
+
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => {
+                          setEditingVisitTagIds((prev) =>
+                            prev.filter((id) => id !== tag.id)
+                          );
+                        }}
+                        className="px-3 py-1.5 rounded-full text-sm font-medium transition-all bg-[#C9A27A] text-white shadow-sm hover:opacity-80 flex items-center gap-1"
+                      >
+                        {tag.label}
+                        <X size={14} />
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* 태그 더 추가하기 버튼 */}
+              <button
+                type="button"
+                onClick={() => setIsEditingVisitTagPickerOpen(true)}
+                className="w-full py-2.5 rounded-xl text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                + 태그 더 추가하기
+              </button>
+            </div>
+          )}
+
           {/* 섹션 편집 */}
           {tempResultData.sections.map((section, sectionIndex) => (
               <div key={sectionIndex} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
@@ -4960,8 +5049,8 @@ export default function MalloApp() {
                       // 보호되지 않은 섹션: 항목이 2개 이상이면 삭제 버튼 표시
                       showDeleteButton = section.content.length > 1;
                     }
-                    
-                    return (
+
+  return (
                       <div key={contentIndex} className="flex gap-2 relative">
                         <textarea
                           value={item}
@@ -4980,7 +5069,7 @@ export default function MalloApp() {
                             <Minus size={16} />
                           </button>
                         )}
-    </div>
+      </div>
   );
                   })}
                 </div>
@@ -5031,6 +5120,7 @@ export default function MalloApp() {
                     setTempResultData(null);
                     setEditingVisit(null);
                     setEditingCustomer(null);
+                    setEditingVisitTagIds([]);
                     
                     // CustomerDetail 화면으로 돌아가기
                     setSelectedCustomerId(customerId);
@@ -5045,6 +5135,16 @@ export default function MalloApp() {
             </div>
           )}
         </main>
+
+        {/* 방문 편집용 태그 선택 모달 */}
+        {isEditingVisitTagPickerOpen && (
+          <TagPickerModal
+            allVisitTags={allVisitTags}
+            selectedTagIds={editingVisitTagIds}
+            onClose={() => setIsEditingVisitTagPickerOpen(false)}
+            onChangeSelected={(nextSelected) => setEditingVisitTagIds(nextSelected)}
+          />
+        )}
     </div>
     );
   };
@@ -5056,6 +5156,26 @@ export default function MalloApp() {
         return;
       }
 
+      // 편집된 고객 특징 태그를 카테고리별로 분류
+      const updatedCustomerTags = {
+        caution: [],
+        trait: [],
+        payment: [],
+        pattern: []
+      };
+      
+      editCustomerTagIds.forEach(tagId => {
+        const tag = allCustomerTags.find(t => t.id === tagId);
+        if (tag) {
+          const category = tag.category;
+          if (updatedCustomerTags[category]) {
+            updatedCustomerTags[category] = [...updatedCustomerTags[category], tag.label];
+          } else {
+            updatedCustomerTags[category] = [tag.label];
+          }
+        }
+      });
+
       // 고객 정보 업데이트
       setCustomers(prev => {
         const updated = prev.map(c => {
@@ -5064,7 +5184,8 @@ export default function MalloApp() {
               ...c,
               name: editCustomerName.trim(),
               phone: editCustomerPhone.trim() || null,
-              tags: editCustomerTags.filter(tag => tag.trim() !== ''),
+              tags: editCustomerTags.filter(tag => tag.trim() !== ''), // 레거시 태그 유지
+              customerTags: updatedCustomerTags, // 고객 특징 태그 업데이트
               memo: editCustomerMemo.trim() || null
             };
           }
@@ -5094,6 +5215,7 @@ export default function MalloApp() {
       setEditCustomerName('');
       setEditCustomerPhone('');
       setEditCustomerTags([]);
+      setEditCustomerTagIds([]);
       setEditCustomerMemo('');
       setNewTag('');
       setCurrentScreen('CustomerDetail');
@@ -5103,6 +5225,7 @@ export default function MalloApp() {
       setEditCustomerName('');
       setEditCustomerPhone('');
       setEditCustomerTags([]);
+      setEditCustomerTagIds([]);
       setEditCustomerMemo('');
       setNewTag('');
       setCurrentScreen('CustomerDetail');
@@ -5168,52 +5291,60 @@ export default function MalloApp() {
             />
           </div>
 
-          {/* 태그 */}
+          {/* 고객 특징 태그 */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-            <label className="block text-sm font-bold mb-3" style={{ color: '#232323' }}>태그</label>
-            <div className="flex flex-col gap-2 mb-3">
-              <input
-                type="text"
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addTag();
-                  }
-                }}
-                className="w-full px-4 py-2 rounded-2xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
-                style={{ color: '#232323', height: '40px' }}
-                placeholder="태그를 입력하고 Enter"
-              />
-              <button
-                onClick={addTag}
-                className="w-full px-4 py-2 rounded-2xl font-medium text-white transition-all h-10 flex items-center justify-center"
-                style={{ backgroundColor: '#C9A27A' }}
-              >
-                추가
-              </button>
+            <div className="mb-4">
+              <label className="block text-sm font-bold mb-2" style={{ color: '#232323' }}>고객 특징 태그</label>
+              <p className="text-sm" style={{ color: '#232323', opacity: 0.7 }}>
+                고객의 특징을 태그로 관리할 수 있습니다.
+              </p>
             </div>
-            {editCustomerTags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {editCustomerTags.map((tag, idx) => (
-                  <span 
-                    key={idx} 
-                    className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 flex items-center gap-2"
-                    style={{ color: '#232323' }}
-                  >
-                    {tag}
+
+            {/* 태그 칩들 */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {editCustomerTagIds.length === 0 ? (
+                <p className="text-sm" style={{ color: '#232323', opacity: 0.5 }}>
+                  태그가 없어요. 아래 버튼에서 추가할 수 있어요.
+                </p>
+              ) : (
+                editCustomerTagIds.map((tagId) => {
+                  const tag = allCustomerTags.find((t) => t.id === tagId);
+                  if (!tag) return null;
+
+                  // 주의 태그만 빨간색, 나머지는 회색
+                  const isCaution = tag.category === 'caution';
+
+                  return (
                     <button
-                      onClick={() => removeTag(idx)}
-                      className="hover:bg-gray-200 rounded-full p-0.5 transition-colors"
-                      style={{ color: '#232323' }}
+                      key={tag.id}
+                      type="button"
+                      onClick={() => {
+                        setEditCustomerTagIds((prev) =>
+                          prev.filter((id) => id !== tag.id)
+                        );
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border flex items-center gap-1 ${
+                        isCaution 
+                          ? 'bg-red-50 text-red-700 border-red-200'
+                          : 'bg-gray-100 text-gray-600 border-gray-200'
+                      }`}
                     >
-                      ×
+                      {tag.label}
+                      <X size={14} />
                     </button>
-                  </span>
-                ))}
-              </div>
-            )}
+                  );
+                })
+              )}
+            </div>
+
+            {/* 태그 더 추가하기 버튼 */}
+            <button
+              type="button"
+              onClick={() => setIsEditCustomerTagPickerOpen(true)}
+              className="w-full py-2.5 rounded-xl text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              + 태그 더 추가하기
+            </button>
           </div>
 
           {/* 메모 */}
@@ -5250,6 +5381,7 @@ export default function MalloApp() {
                   setEditCustomerName('');
                   setEditCustomerPhone('');
                   setEditCustomerTags([]);
+                  setEditCustomerTagIds([]);
                   setEditCustomerMemo('');
                   setNewTag('');
                   
@@ -5265,7 +5397,17 @@ export default function MalloApp() {
             </button>
           </div>
         </main>
-      </div>
+
+        {/* 고객 특징 태그 선택 모달 */}
+        {isEditCustomerTagPickerOpen && (
+          <CustomerTagPickerModal
+            allCustomerTags={allCustomerTags}
+            selectedTagIds={editCustomerTagIds}
+            onClose={() => setIsEditCustomerTagPickerOpen(false)}
+            onChangeSelected={(nextSelected) => setEditCustomerTagIds(nextSelected)}
+          />
+        )}
+    </div>
     );
   };
 
@@ -5370,8 +5512,8 @@ export default function MalloApp() {
               className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#F2F0E6] flex items-center justify-center">
-                  <Tag size={20} style={{ color: '#C9A27A' }} />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm" style={{ backgroundColor: '#C9A27A' }}>
+                  <Tag size={20} className="text-white" />
                 </div>
                 <span className="text-sm font-medium" style={{ color: '#232323' }}>시술 태그/키워드 관리</span>
               </div>
@@ -5527,7 +5669,6 @@ export default function MalloApp() {
     const handleAddTag = () => {
       if (newManagedTag.trim()) {
         const trimmedLabel = newManagedTag.trim().replace(/^#/, '');
-        const keywords = parseKeywords(newManagedTagKeywords);
         
         // 현재 카테고리의 태그 개수 확인
         const currentCategoryTags = tagSettingsMainTab === 'visit' 
@@ -5577,7 +5718,7 @@ export default function MalloApp() {
         const newTag = {
           id: `${tagSettingsSubTab}-${Date.now()}`,
           label: trimmedLabel,
-          keywords: keywords
+          keywords: [] // 키워드 기능 제거
         };
         
         if (tagSettingsMainTab === 'visit') {
@@ -5601,8 +5742,7 @@ export default function MalloApp() {
         }
         
         setNewManagedTag('');
-        setNewManagedTagKeywords('');
-        console.log('[태그 추가] 태그 추가 완료:', trimmedLabel, '키워드:', keywords, '카테고리:', tagSettingsSubTab);
+        console.log('[태그 추가] 태그 추가 완료:', trimmedLabel, '카테고리:', tagSettingsSubTab);
       }
     };
 
@@ -5745,22 +5885,6 @@ export default function MalloApp() {
               >
                 추가
               </button>
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-2" style={{ color: '#232323', opacity: 0.6 }}>
-                검색 키워드 (선택, 쉼표로 구분)
-              </label>
-              <input
-                type="text"
-                value={newManagedTagKeywords}
-                onChange={(e) => setNewManagedTagKeywords(e.target.value)}
-                placeholder="예: 글루알러지, 글루 알레르기, 본드 알러지"
-                className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A] transition-all text-sm"
-                style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
-              />
-              <p className="text-xs mt-1" style={{ color: '#232323', opacity: 0.5 }}>
-                다양한 표현을 등록하면 AI가 더 정확하게 태그를 찾을 수 있어요.
-              </p>
             </div>
           </div>
 
