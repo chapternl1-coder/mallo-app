@@ -1866,6 +1866,24 @@ export default function MalloApp() {
       .trim();
   };
 
+  // 자동 어근 키워드 생성 함수
+  const generateAutoKeywords = (normalizedLabel) => {
+    const len = normalizedLabel.length;
+    const results = new Set();
+
+    // 너무 짧은 단어는 건드리지 않는다.
+    if (len >= 3) {
+      // 마지막 글자 하나 뗀 버전
+      results.add(normalizedLabel.slice(0, len - 1));
+    }
+    if (len >= 4) {
+      // 마지막 글자 두 개 뗀 버전
+      results.add(normalizedLabel.slice(0, len - 2));
+    }
+
+    return Array.from(results);
+  };
+
   // 키워드 파싱 함수: 쉼표로 구분된 문자열을 배열로 변환
   const parseKeywords = (input) => {
     if (!input || typeof input !== 'string') return [];
@@ -1938,7 +1956,7 @@ export default function MalloApp() {
     setAllCustomerTags(converted);
   }, [customerTags]);
 
-  // 태그 매칭 함수: 원본 텍스트 또는 요약 텍스트에서 태그 찾기 (정규화된 키워드 매칭)
+  // 태그 매칭 함수: 원본 텍스트 또는 요약 텍스트에서 태그 찾기 (정규화된 키워드 매칭 + 어근 매칭)
   const matchTagsFromSummary = (sourceText, tags) => {
     if (!sourceText || !tags || tags.length === 0) return [];
     
@@ -1956,15 +1974,27 @@ export default function MalloApp() {
     
     const matched = tags
       .filter((tag) => {
-        // label + keywords 전부를 후보 키로 사용
-        const keys = [tag.label, ...(tag.keywords || [])];
-        
-        const isMatched = keys.some((key) => {
-          const normKey = normalize(key);
-          if (!normKey || normKey.length === 0) return false;
+        // 1) 기본 키(라벨 + 수동 키워드)
+        const baseKeys = [tag.label, ...(tag.keywords || [])];
+
+        // 2) 기본 키들을 정규화
+        const normalizedKeys = baseKeys
+          .map((key) => normalize(key))
+          .filter((k) => k.length > 0);
+
+        // 3) 각 키에서 자동으로 어근 키워드를 생성
+        const autoKeys = normalizedKeys
+          .flatMap((nk) => generateAutoKeywords(nk))
+          .filter((k) => k.length > 0);
+
+        // 4) 최종적으로 비교에 사용할 모든 키
+        const allKeys = [...normalizedKeys, ...autoKeys];
+
+        // 5) 요약/원본 안에 어느 하나라도 포함되면 매칭
+        const isMatched = allKeys.some((normKey) => {
           const found = normSummary.includes(normKey);
           if (found) {
-            console.log('[태그 매칭] 매칭 성공:', tag.label, '-> 키워드:', key, '-> 정규화:', normKey);
+            console.log('[태그 매칭] 매칭 성공:', tag.label, '-> 키워드:', normKey, '(어근 포함)');
           }
           return found;
         });
