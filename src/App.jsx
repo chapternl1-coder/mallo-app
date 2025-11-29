@@ -787,26 +787,65 @@ const BEAUTY_THEME = {
   accentBg: '#FFFFFF'
 };
 
-// Mock 데이터
+// --- MOCK DATA (태그 시스템 v1 적용) ---
 const MOCK_CUSTOMERS = [
-  // 김씨 4명
   {
     id: 1,
     name: '김민지',
     phone: '010-1234-5678',
-    visitCount: 15,
+    visitCount: 5,
     lastVisit: '2025-11-28',
     avatar: '👩',
-    tags: ['#통증민감', '#인그로운']
+    // 1. 고객 레벨 태그 (프로필 상단용)
+    customerTags: {
+      caution: ['글루알러지'], // 빨간색 경고 태그
+      trait: ['대화선호'],
+      payment: ['법인카드'],
+      pattern: []
+    },
+    history: [
+      {
+        id: 101,
+        date: '2025.11.28 15:00',
+        // 2. 방문 레벨 태그 (히스토리 카드용)
+        tags: ['속눈썹연장', 'D컬', '11mm', '리터치'], 
+        content: '속눈썹 D컬 11mm로 리터치 진행함. 글루 알러지 있어서 저자극 글루 사용.'
+      },
+      {
+        id: 102,
+        date: '2025.11.15 14:30',
+        tags: ['속눈썹연장', 'C컬', '제거'],
+        content: '기존 C컬 제거 후 D컬로 변경 원하셔서 상담 진행.'
+      },
+      {
+        id: 103,
+        date: '2025.10.30 14:00',
+        tags: ['젤네일', '이달의아트', '제거'],
+        content: '젤네일 제거하고 누드톤으로 깔끔하게 재시술.'
+      }
+    ]
   },
   {
     id: 2,
-    name: '김민지',
-    phone: '010-6789-0123',
-    visitCount: 7,
-    lastVisit: '2025-01-16',
-    avatar: '👩',
-    tags: ['#웨딩준비', '#이달의아트']
+    name: '이나영',
+    phone: '010-9876-5432',
+    visitCount: 2,
+    lastVisit: '2025-11-20',
+    avatar: '👱‍♀️',
+    customerTags: {
+      caution: [],
+      trait: ['조용히'],
+      payment: [],
+      pattern: ['퇴근후']
+    },
+    history: [
+      {
+        id: 201,
+        date: '2025.11.20 19:00',
+        tags: ['젤네일', '그라데이션'],
+        content: '퇴근 후 방문. 차분한 그라데이션 네일 시술.'
+      }
+    ]
   },
   {
     id: 3,
@@ -815,7 +854,13 @@ const MOCK_CUSTOMERS = [
     visitCount: 12,
     lastVisit: '2025-01-10',
     avatar: '👱‍♀️',
-    tags: ['#단골', '#수다쟁이', '#이달의아트']
+    tags: ['#단골', '#수다쟁이', '#이달의아트'],
+    customerTags: {
+      caution: [],
+      trait: ['수다쟁이'],
+      payment: [],
+      pattern: ['단골']
+    }
   },
   {
     id: 4,
@@ -824,9 +869,14 @@ const MOCK_CUSTOMERS = [
     visitCount: 18,
     lastVisit: '2025-01-18',
     avatar: '👩‍🦰',
-    tags: ['#단골', '#조용한거선호', '#리터치']
+    tags: ['#단골', '#조용한거선호', '#리터치'],
+    customerTags: {
+      caution: [],
+      trait: ['조용한거선호'],
+      payment: [],
+      pattern: ['단골']
+    }
   },
-  // 이씨 5명
   {
     id: 5,
     name: '이수진',
@@ -834,7 +884,13 @@ const MOCK_CUSTOMERS = [
     visitCount: 3,
     lastVisit: '2025-01-14',
     avatar: '👱‍♀️',
-    tags: ['#단골', '#리터치']
+    tags: ['#단골', '#리터치'],
+    customerTags: {
+      caution: [],
+      trait: [],
+      payment: [],
+      pattern: ['단골']
+    }
   },
   {
     id: 6,
@@ -843,7 +899,13 @@ const MOCK_CUSTOMERS = [
     visitCount: 9,
     lastVisit: '2025-01-12',
     avatar: '👩',
-    tags: ['#웨딩준비', '#인그로운']
+    tags: ['#웨딩준비', '#인그로운'],
+    customerTags: {
+      caution: [],
+      trait: [],
+      payment: [],
+      pattern: []
+    }
   },
   {
     id: 7,
@@ -852,7 +914,13 @@ const MOCK_CUSTOMERS = [
     visitCount: 15,
     lastVisit: '2025-01-11',
     avatar: '👩‍🦰',
-    tags: ['#단골', '#수다쟁이', '#이달의아트']
+    tags: ['#단골', '#수다쟁이', '#이달의아트'],
+    customerTags: {
+      caution: [],
+      trait: ['수다쟁이'],
+      payment: [],
+      pattern: ['단골']
+    }
   },
   {
     id: 8,
@@ -861,7 +929,13 @@ const MOCK_CUSTOMERS = [
     visitCount: 4,
     lastVisit: '2025-01-09',
     avatar: '👩‍🦱',
-    tags: ['#왁싱']
+    tags: ['#왁싱'],
+    customerTags: {
+      caution: [],
+      trait: [],
+      payment: [],
+      pattern: []
+    }
   },
   {
     id: 9,
@@ -870,9 +944,14 @@ const MOCK_CUSTOMERS = [
     visitCount: 11,
     lastVisit: '2025-01-08',
     avatar: '👱‍♀️',
-    tags: ['#단골', '#속눈썹연장', '#조용한거선호']
+    tags: ['#단골', '#속눈썹연장', '#조용한거선호'],
+    customerTags: {
+      caution: [],
+      trait: ['조용한거선호'],
+      payment: [],
+      pattern: ['단골']
+    }
   },
-  // 박씨
   {
     id: 10,
     name: '박지은',
@@ -880,7 +959,13 @@ const MOCK_CUSTOMERS = [
     visitCount: 8,
     lastVisit: '2025-01-13',
     avatar: '👩‍🦰',
-    tags: ['#염색']
+    tags: ['#염색'],
+    customerTags: {
+      caution: [],
+      trait: [],
+      payment: [],
+      pattern: []
+    }
   },
   {
     id: 11,
@@ -889,9 +974,14 @@ const MOCK_CUSTOMERS = [
     visitCount: 6,
     lastVisit: '2025-01-07',
     avatar: '👩',
-    tags: ['#리터치', '#인그로운']
+    tags: ['#리터치', '#인그로운'],
+    customerTags: {
+      caution: [],
+      trait: [],
+      payment: [],
+      pattern: []
+    }
   },
-  // 최씨
   {
     id: 12,
     name: '최혜진',
@@ -899,7 +989,13 @@ const MOCK_CUSTOMERS = [
     visitCount: 2,
     lastVisit: '2025-01-12',
     avatar: '👩‍🦱',
-    tags: ['#왁싱']
+    tags: ['#왁싱'],
+    customerTags: {
+      caution: [],
+      trait: [],
+      payment: [],
+      pattern: []
+    }
   },
   {
     id: 13,
@@ -908,9 +1004,14 @@ const MOCK_CUSTOMERS = [
     visitCount: 20,
     lastVisit: '2025-01-17',
     avatar: '👩',
-    tags: ['#단골', '#수다쟁이', '#이달의아트', '#웨딩준비']
+    tags: ['#단골', '#수다쟁이', '#이달의아트', '#웨딩준비'],
+    customerTags: {
+      caution: [],
+      trait: ['수다쟁이'],
+      payment: [],
+      pattern: ['단골']
+    }
   },
-  // 정씨
   {
     id: 14,
     name: '정수빈',
@@ -918,7 +1019,13 @@ const MOCK_CUSTOMERS = [
     visitCount: 1,
     lastVisit: '2024-12-15',
     avatar: '👱‍♀️',
-    tags: ['#왁싱']
+    tags: ['#왁싱'],
+    customerTags: {
+      caution: [],
+      trait: [],
+      payment: [],
+      pattern: []
+    }
   },
   {
     id: 15,
@@ -927,9 +1034,14 @@ const MOCK_CUSTOMERS = [
     visitCount: 12,
     lastVisit: '2025-01-11',
     avatar: '👱',
-    tags: ['#단골', '#네일']
+    tags: ['#단골', '#네일'],
+    customerTags: {
+      caution: [],
+      trait: [],
+      payment: [],
+      pattern: ['단골']
+    }
   },
-  // 강씨
   {
     id: 16,
     name: '강나영',
@@ -937,9 +1049,14 @@ const MOCK_CUSTOMERS = [
     visitCount: 4,
     lastVisit: '2024-11-20',
     avatar: '👱‍♀️',
-    tags: ['#쿨톤', '#짧은손톱']
+    tags: ['#쿨톤', '#짧은손톱'],
+    customerTags: {
+      caution: [],
+      trait: [],
+      payment: [],
+      pattern: []
+    }
   },
-  // 조씨
   {
     id: 17,
     name: '조은지',
@@ -947,9 +1064,14 @@ const MOCK_CUSTOMERS = [
     visitCount: 9,
     lastVisit: '2024-10-05',
     avatar: '👩‍🦰',
-    tags: ['#속눈썹연장', '#단골']
+    tags: ['#속눈썹연장', '#단골'],
+    customerTags: {
+      caution: [],
+      trait: [],
+      payment: [],
+      pattern: ['단골']
+    }
   },
-  // 윤씨
   {
     id: 18,
     name: '윤서연',
@@ -957,9 +1079,14 @@ const MOCK_CUSTOMERS = [
     visitCount: 6,
     lastVisit: '2024-09-18',
     avatar: '👩‍🦱',
-    tags: ['#리터치', '#인그로운']
+    tags: ['#리터치', '#인그로운'],
+    customerTags: {
+      caution: [],
+      trait: [],
+      payment: [],
+      pattern: []
+    }
   },
-  // 한씨
   {
     id: 19,
     name: '한지민',
@@ -967,9 +1094,14 @@ const MOCK_CUSTOMERS = [
     visitCount: 15,
     lastVisit: '2025-01-17',
     avatar: '👩',
-    tags: ['#단골', '#웨딩준비', '#이달의아트']
+    tags: ['#단골', '#웨딩준비', '#이달의아트'],
+    customerTags: {
+      caution: [],
+      trait: [],
+      payment: [],
+      pattern: ['단골']
+    }
   },
-  // 오씨
   {
     id: 20,
     name: '오수아',
@@ -977,7 +1109,13 @@ const MOCK_CUSTOMERS = [
     visitCount: 3,
     lastVisit: '2024-08-22',
     avatar: '👱‍♀️',
-    tags: ['#왁싱']
+    tags: ['#왁싱'],
+    customerTags: {
+      caution: [],
+      trait: [],
+      payment: [],
+      pattern: []
+    }
   },
   {
     id: 21,
@@ -986,7 +1124,13 @@ const MOCK_CUSTOMERS = [
     visitCount: 0,
     lastVisit: null,
     avatar: '👩',
-    tags: []
+    tags: [],
+    customerTags: {
+      caution: [],
+      trait: [],
+      payment: [],
+      pattern: []
+    }
   }
 ];
 
@@ -998,6 +1142,7 @@ const MOCK_VISITS = {
       time: '15:00',
       title: '속눈썹 D컬 리터치',
       summary: '기존 단골 속눈썹 고객 리터치 및 시술 후 관리 안내',
+      tags: ['D컬', '11mm', '리터치'],
       detail: {
         sections: [
           { title: '고객 기본 정보', content: ['이름: 김민지 / 전화번호: 010-1234-5678', '신규/기존 구분: 기존 고객(단골)'] },
@@ -1345,15 +1490,25 @@ export default function MalloApp() {
   const [serviceTags, setServiceTags] = useState([]); // 시술 태그 (ResultScreen에서 편집)
   const [newServiceTag, setNewServiceTag] = useState(''); // 새 시술 태그 입력용
   const [isAutoTaggingEnabled, setIsAutoTaggingEnabled] = useState(true); // AI 태그 자동 추천 설정 상태
-  // 시술 태그 관리 목록 (카테고리별)
-  const [managedTags, setManagedTags] = useState({
-    procedure: ['속눈썹연장', '젤네일', '페디큐어'], // 시술
-    design: ['D컬', 'C컬', '이달의아트', '그라데이션'], // 디자인/스타일
-    care: ['영양', '랩핑', '제거'], // 케어/관리
-    caution: ['글루알러지', '임산부', '눈물많음'] // 주의사항
+  // 시술 태그 관리 목록 (방문용)
+  const [visitTags, setVisitTags] = useState({
+    procedure: ['속눈썹연장', '젤네일', '페디큐어'],
+    design: ['D컬', 'C컬', '이달의아트', '그라데이션'],
+    care: ['영양', '랩핑', '제거']
   });
+  
+  // 고객 특징 태그 관리 목록 (고객용)
+  const [customerTags, setCustomerTags] = useState({
+    trait: ['수다쟁이', '조용함', '친절함'],
+    payment: ['회원권', '현금결제', '카드결제'],
+    pattern: ['단골', '신규', '비정기'],
+    caution: ['글루알러지', '임산부', '눈물많음']
+  });
+  
   const [newManagedTag, setNewManagedTag] = useState(''); // 태그 관리 화면에서 새 태그 입력용
-  const [tagSettingsActiveTab, setTagSettingsActiveTab] = useState('procedure'); // 태그 설정 화면의 활성 탭
+  const [tagSettingsMainTab, setTagSettingsMainTab] = useState('visit'); // 대분류 탭: 'visit' | 'customer'
+  const [tagSettingsSubTab, setTagSettingsSubTab] = useState('procedure'); // 소분류 탭
+  const [isTagEditing, setIsTagEditing] = useState(false); // 태그 편집 모드
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [recordingDate, setRecordingDate] = useState(null);
@@ -1424,14 +1579,31 @@ export default function MalloApp() {
   };
 
   // 태그 추출 함수 (content에서 키워드 매칭)
-  const extractTagsFromContent = (content) => {
+  const extractTagsFromContent = (content, managedTags = null) => {
     if (!content) return [];
     const tags = [];
     // 한국어와 영문 대소문자 모두 처리
     const contentLower = content.toLowerCase();
     const contentOriginal = content;
     
-    // 키워드 매핑 (다양한 변형 포함)
+    // visitTags에서 등록된 모든 태그 가져오기
+    const allManagedTags = [];
+    const tagsToSearch = managedTags || visitTags;
+    if (tagsToSearch) {
+      Object.values(tagsToSearch).forEach(categoryTags => {
+        if (Array.isArray(categoryTags)) {
+          categoryTags.forEach(tagObj => {
+            if (typeof tagObj === 'object' && tagObj.label) {
+              allManagedTags.push(tagObj.label);
+            } else if (typeof tagObj === 'string') {
+              allManagedTags.push(tagObj);
+            }
+          });
+        }
+      });
+    }
+    
+    // 기본 키워드 매핑 (하드코딩된 키워드 - 호환성 유지)
     const keywordMap = {
       'D컬': ['d컬', '디컬', 'd 컬', 'D컬', '디 컬'],
       'C컬': ['c컬', '씨컬', 'c 컬', 'C컬', '씨 컬'],
@@ -1444,15 +1616,27 @@ export default function MalloApp() {
       '회원권': ['회원권', '멤버십', '멤버']
     };
     
+    // 등록된 태그들을 키워드로 매칭
+    allManagedTags.forEach(tagLabel => {
+      // 태그 라벨 자체가 포함되어 있는지 확인
+      if (contentLower.includes(tagLabel.toLowerCase()) || contentOriginal.includes(tagLabel)) {
+        if (!tags.includes(tagLabel)) {
+          tags.push(tagLabel);
+        }
+      }
+    });
+    
+    // 기본 키워드 매핑도 확인 (등록된 태그와 중복되지 않는 경우만)
     Object.keys(keywordMap).forEach(tag => {
-      const keywords = keywordMap[tag];
-      // 소문자 변환된 텍스트와 원본 텍스트 모두 확인
-      const found = keywords.some(keyword => {
-        const keywordLower = keyword.toLowerCase();
-        return contentLower.includes(keywordLower) || contentOriginal.includes(keyword);
-      });
-      if (found) {
-        tags.push(tag);
+      if (!tags.includes(tag)) {
+        const keywords = keywordMap[tag];
+        const found = keywords.some(keyword => {
+          const keywordLower = keyword.toLowerCase();
+          return contentLower.includes(keywordLower) || contentOriginal.includes(keyword);
+        });
+        if (found) {
+          tags.push(tag);
+        }
       }
     });
     
@@ -1538,15 +1722,30 @@ export default function MalloApp() {
   // 초기값은 localStorage에서 불러오거나, 없으면 MOCK 데이터 사용
   const [customers, setCustomers] = useState(() => {
     const loadedCustomers = loadFromLocalStorage('mallo_customers', MOCK_CUSTOMERS);
-    // "#신규" 태그 제거
+    // "#신규" 태그 제거 및 customerTags 기본 구조 추가
     return loadedCustomers.map(customer => ({
       ...customer,
-      tags: (customer.tags || []).filter(tag => tag !== '#신규')
+      tags: (customer.tags || []).filter(tag => tag !== '#신규'),
+      customerTags: customer.customerTags || {
+        caution: [],
+        trait: [],
+        payment: [],
+        pattern: []
+      }
     }));
   });
-  const [visits, setVisits] = useState(() => 
-    loadFromLocalStorage('mallo_visits', MOCK_VISITS)
-  );
+  const [visits, setVisits] = useState(() => {
+    const loadedVisits = loadFromLocalStorage('mallo_visits', MOCK_VISITS);
+    // 모든 방문 기록에 tags 필드가 없으면 빈 배열로 초기화
+    const normalizedVisits = {};
+    Object.keys(loadedVisits).forEach(customerId => {
+      normalizedVisits[customerId] = (loadedVisits[customerId] || []).map(visit => ({
+        ...visit,
+        tags: visit.tags || []
+      }));
+    });
+    return normalizedVisits;
+  });
   
   // 편집 화면용 임시 데이터
   const [tempResultData, setTempResultData] = useState(null);
@@ -1573,7 +1772,7 @@ export default function MalloApp() {
           )
         ].join(' ');
         
-        const extractedTags = extractTagsFromContent(allContent);
+        const extractedTags = extractTagsFromContent(allContent, visitTags);
         setServiceTags(extractedTags);
       } else {
         // OFF일 경우: 빈 배열로 시작 (사용자가 수동으로 추가)
@@ -1584,47 +1783,83 @@ export default function MalloApp() {
     }
   }, [resultData, isAutoTaggingEnabled]);
 
-  // 컴포넌트 마운트 시 MOCK_CUSTOMERS의 김민지, 이다혜 데이터를 localStorage에 강제 업데이트
+  // 컴포넌트 마운트 시 MOCK_CUSTOMERS 데이터를 localStorage에 강제 업데이트
   useEffect(() => {
-    // 김민지 데이터 업데이트
-    const mockKimMinji = MOCK_CUSTOMERS.find(c => c.id === 1 && c.phone === '010-1234-5678');
-    if (mockKimMinji) {
-      setCustomers(prev => {
-        const updated = prev.map(c => 
-          c.id === 1 && c.phone === '010-1234-5678' 
-            ? { ...mockKimMinji, tags: (mockKimMinji.tags || []).filter(tag => tag !== '#신규') }
-            : c
-        );
-        // 김민지가 없으면 추가
-        if (!updated.find(c => c.id === 1 && c.phone === '010-1234-5678')) {
-          updated.push({ ...mockKimMinji, tags: (mockKimMinji.tags || []).filter(tag => tag !== '#신규') });
+    // MOCK_CUSTOMERS의 모든 고객 데이터를 강제로 적용
+    setCustomers(prev => {
+      // MOCK_CUSTOMERS를 기준으로 새 배열 생성 (기존 데이터와 병합)
+      const updated = [];
+      
+      // 먼저 MOCK_CUSTOMERS 데이터 추가
+      MOCK_CUSTOMERS.forEach(mockCustomer => {
+        updated.push({
+          ...mockCustomer,
+          tags: (mockCustomer.tags || []).filter(tag => tag !== '#신규'),
+          customerTags: mockCustomer.customerTags || {
+            caution: [],
+            trait: [],
+            payment: [],
+            pattern: []
+          }
+        });
+      });
+      
+      // 기존 customers에서 MOCK_CUSTOMERS에 없는 고객들 추가 (customerTags 기본 구조 포함)
+      prev.forEach(existingCustomer => {
+        const existsInMock = MOCK_CUSTOMERS.some(mock => mock.id === existingCustomer.id);
+        if (!existsInMock) {
+          updated.push({
+            ...existingCustomer,
+            customerTags: existingCustomer.customerTags || {
+              caution: [],
+              trait: [],
+              payment: [],
+              pattern: []
+            }
+          });
         }
-        return updated;
       });
-    }
-    // 이다혜 데이터 업데이트 - id 21인 고객을 무조건 이다혜로 교체
-    const mockLeeDaHye = MOCK_CUSTOMERS.find(c => c.id === 21 && c.phone === '010-1357-8024');
-    if (mockLeeDaHye) {
-      setCustomers(prev => {
-        // id 21인 모든 고객을 제거하고 이다혜로 교체
-        const filtered = prev.filter(c => c.id !== 21);
-        // 이다혜 추가
-        filtered.push({ ...mockLeeDaHye, tags: (mockLeeDaHye.tags || []).filter(tag => tag !== '#신규') });
-        return filtered;
-      });
-    }
-    // MOCK_VISITS의 김민지 방문 기록도 강제 업데이트
-    if (MOCK_VISITS[1]) {
+      
+      return updated;
+    });
+
+    // MOCK_CUSTOMERS의 history를 visits 형식으로 변환
+    const historyToVisits = {};
+    MOCK_CUSTOMERS.forEach(customer => {
+      if (customer.history && customer.history.length > 0) {
+        historyToVisits[customer.id] = customer.history.map((h, idx) => {
+          // date 형식 변환: "2025.11.28 15:00" -> "2025-11-28", "15:00"
+          const dateMatch = h.date.match(/(\d{4})\.(\d{2})\.(\d{2})\s+(\d{2}):(\d{2})/);
+          let dateStr = '';
+          let timeStr = '';
+          if (dateMatch) {
+            const [, year, month, day, hour, minute] = dateMatch;
+            dateStr = `${year}-${month}-${day}`;
+            timeStr = `${hour}:${minute}`;
+          }
+          
+          return {
+            id: h.id || Date.now() + idx,
+            date: dateStr,
+            time: timeStr,
+            title: h.content || '',
+            summary: h.content || '',
+            tags: h.tags || [],
+            detail: {
+              sections: [
+                { title: '시술 내용', content: [h.content || ''] }
+              ]
+            }
+          };
+        });
+      }
+    });
+
+    // visits 업데이트
+    if (Object.keys(historyToVisits).length > 0) {
       setVisits(prev => ({
         ...prev,
-        1: MOCK_VISITS[1]
-      }));
-    }
-    // MOCK_VISITS의 이다혜 방문 기록도 강제 업데이트
-    if (MOCK_VISITS[21]) {
-      setVisits(prev => ({
-        ...prev,
-        21: MOCK_VISITS[21]
+        ...historyToVisits
       }));
     }
   }, []); // 컴포넌트 마운트 시 한 번만 실행
@@ -2612,7 +2847,7 @@ export default function MalloApp() {
                     detail: {
                       sections: resultData.sections
                     },
-                    serviceTags: serviceTags || [] // 시술 태그
+                    tags: serviceTags || [] // 시술 태그 (방문 히스토리 카드에 표시용)
                   };
                   
                   console.log('[기존 고객 저장] 저장되는 newVisit 객체:', JSON.stringify(newVisit, null, 2));
@@ -2625,12 +2860,56 @@ export default function MalloApp() {
                     [customerId]: [newVisit, ...(prev[customerId] || [])]
                   }));
                   
-                  // 고객의 방문 횟수 업데이트
-                  setCustomers(prev => prev.map(c => 
-                    c.id === customerId 
-                      ? { ...c, visitCount: c.visitCount + 1, lastVisit: dateStr }
-                      : c
-                  ));
+                  // "신규" 키워드 감지 (resultData에서)
+                  const detectNewCustomer = () => {
+                    const allContent = [
+                      resultData.title || '',
+                      ...(resultData.sections || []).flatMap(section => 
+                        (section.content || []).join(' ')
+                      )
+                    ].join(' ').toLowerCase();
+                    
+                    // "신규 고객", "신규 손님", "신규 회원" 등 감지
+                    return /신규\s*(고객|손님|회원|손님)/i.test(allContent) || 
+                           /신규/gi.test(allContent);
+                  };
+                  
+                  const isNewCustomer = detectNewCustomer();
+                  
+                  // 고객의 방문 횟수 및 customerTags 업데이트
+                  setCustomers(prev => prev.map(c => {
+                    if (c.id === customerId) {
+                      const updatedCustomer = { 
+                        ...c, 
+                        visitCount: c.visitCount + 1, 
+                        lastVisit: dateStr 
+                      };
+                      
+                      // customerTags가 없으면 기본 구조 생성
+                      if (!updatedCustomer.customerTags) {
+                        updatedCustomer.customerTags = {
+                          caution: [],
+                          trait: [],
+                          payment: [],
+                          pattern: []
+                        };
+                      }
+                      
+                      // "신규" 키워드가 감지되면 pattern에 추가 (중복 방지)
+                      if (isNewCustomer) {
+                        const patternTags = updatedCustomer.customerTags.pattern || [];
+                        if (!patternTags.includes('신규')) {
+                          updatedCustomer.customerTags = {
+                            ...updatedCustomer.customerTags,
+                            pattern: [...patternTags, '신규']
+                          };
+                        }
+                      }
+                      
+                      return updatedCustomer;
+                    }
+                    return c;
+                  }));
                   
                   // CustomerDetail로 이동
                   setSelectedCustomerId(customerId);
@@ -2692,6 +2971,22 @@ export default function MalloApp() {
                   // 새로운 고객 ID 생성 (기존 최대 ID + 1)
                   const newCustomerId = Math.max(...customers.map(c => c.id), 0) + 1;
                   
+                  // "신규" 키워드 감지 (resultData에서)
+                  const detectNewCustomer = () => {
+                    const allContent = [
+                      resultData.title || '',
+                      ...(resultData.sections || []).flatMap(section => 
+                        (section.content || []).join(' ')
+                      )
+                    ].join(' ').toLowerCase();
+                    
+                    // "신규 고객", "신규 손님", "신규 회원" 등 감지
+                    return /신규\s*(고객|손님|회원|손님)/i.test(allContent) || 
+                           /신규/gi.test(allContent);
+                  };
+                  
+                  const isNewCustomer = detectNewCustomer();
+                  
                   // 새로운 고객 생성
                   const newCustomer = {
                     id: newCustomerId,
@@ -2700,7 +2995,13 @@ export default function MalloApp() {
                     visitCount: 1,
                     lastVisit: dateStr,
                     avatar: '👤',
-                    tags: []
+                    tags: [],
+                    customerTags: {
+                      caution: [],
+                      trait: [],
+                      payment: [],
+                      pattern: isNewCustomer ? ['신규'] : []
+                    }
                   };
                   
                   // title에서 고객 이름과 '신규 고객' 텍스트 제거
@@ -2732,7 +3033,7 @@ export default function MalloApp() {
                     detail: {
                       sections: resultData.sections
                     },
-                    serviceTags: serviceTags || [] // 시술 태그
+                    tags: serviceTags || [] // 시술 태그 (방문 히스토리 카드에 표시용)
                   };
                   
                   console.log('[신규 고객 저장] 저장되는 newVisit 객체:', JSON.stringify(newVisit, null, 2));
@@ -2808,7 +3109,16 @@ export default function MalloApp() {
       const mockCustomer = MOCK_CUSTOMERS.find(c => c.id === selectedCustomerId);
       if (mockCustomer) {
         console.log('MOCK_CUSTOMERS에서 찾은 고객:', mockCustomer);
-        customer = { ...mockCustomer, tags: (mockCustomer.tags || []).filter(tag => tag !== '#신규') };
+        customer = { 
+          ...mockCustomer, 
+          tags: (mockCustomer.tags || []).filter(tag => tag !== '#신규'),
+          customerTags: mockCustomer.customerTags || {
+            caution: [],
+            trait: [],
+            payment: [],
+            pattern: []
+          }
+        };
         // customers 배열에 추가 (useEffect로 처리)
         setTimeout(() => {
           setCustomers(prev => {
@@ -2821,8 +3131,24 @@ export default function MalloApp() {
       }
     }
     
+    // customerTags가 없으면 기본 구조 추가
+    if (customer && !customer.customerTags) {
+      customer = {
+        ...customer,
+        customerTags: {
+          caution: [],
+          trait: [],
+          payment: [],
+          pattern: []
+        }
+      };
+    }
+    
     console.log('renderCustomerDetail - 최종 찾은 고객:', customer);
+    console.log('renderCustomerDetail - customer.customerTags:', customer?.customerTags);
     const customerVisits = visits[selectedCustomerId] || [];
+    console.log('renderCustomerDetail - customerVisits:', customerVisits);
+    console.log('renderCustomerDetail - 첫 번째 방문 tags:', customerVisits[0]?.tags);
 
     if (!customer) {
       return (
@@ -2906,27 +3232,73 @@ export default function MalloApp() {
             <div className="flex items-center gap-6 mb-6">
               <div className="text-7xl">{customer.avatar}</div>
               <div className="flex-1">
-                <h3 className="font-bold text-2xl mb-4" style={{ color: '#232323' }}>{customer.name}</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-bold text-2xl" style={{ color: '#232323' }}>{customer.name}</h3>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100" style={{ color: '#232323' }}>
+                    {customer.visitCount}회
+                  </span>
+                </div>
                 <div className="space-y-3 mb-4">
                   <div className="flex items-center gap-3 font-light" style={{ color: '#232323' }}>
                     <Phone size={18} style={{ color: '#C9A27A' }} />
                     <span>{customer.phone}</span>
                   </div>
-                  <div className="flex items-center gap-3 font-light" style={{ color: '#232323' }}>
-                    <Calendar size={18} style={{ color: '#C9A27A' }} />
-                    <span>방문 {customer.visitCount}회</span>
-                  </div>
                 </div>
-                {/* 태그 */}
-                {customer.tags && customer.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {customer.tags.map((tag, idx) => (
-                      <span key={idx} className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100" style={{ color: '#232323' }}>
-                        {tag}
-                      </span>
-                    ))}
-            </div>
-        )}
+                {/* customerTags 표시 (주의 태그가 맨 앞) */}
+                {(() => {
+                  const customerTags = customer.customerTags || {};
+                  console.log('renderCustomerDetail - customerTags:', customerTags);
+                  const allTags = [];
+                  
+                  // 주의 태그 먼저 추가
+                  if (customerTags.caution && customerTags.caution.length > 0) {
+                    customerTags.caution.forEach(tag => {
+                      allTags.push({ tag, type: 'caution' });
+                    });
+                  }
+                  
+                  // 나머지 태그 추가
+                  if (customerTags.trait && customerTags.trait.length > 0) {
+                    customerTags.trait.forEach(tag => {
+                      allTags.push({ tag, type: 'trait' });
+                    });
+                  }
+                  if (customerTags.payment && customerTags.payment.length > 0) {
+                    customerTags.payment.forEach(tag => {
+                      allTags.push({ tag, type: 'payment' });
+                    });
+                  }
+                  if (customerTags.pattern && customerTags.pattern.length > 0) {
+                    customerTags.pattern.forEach(tag => {
+                      allTags.push({ tag, type: 'pattern' });
+                    });
+                  }
+                  
+                  console.log('renderCustomerDetail - allTags:', allTags);
+                  
+                  if (allTags.length === 0) return null;
+                  
+                  return (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {allTags.map((item, idx) => {
+                        const isCaution = item.type === 'caution';
+                        return (
+                          <span
+                            key={idx}
+                            className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
+                              isCaution 
+                                ? 'bg-red-50 text-red-600 border border-red-100' 
+                                : 'bg-gray-100 text-gray-600'
+                            }`}
+                          >
+                            {isCaution && <span>⚠️</span>}
+                            {item.tag}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
                 {/* 메모 */}
                 {customer.memo && customer.memo.trim() && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
@@ -3104,6 +3476,24 @@ export default function MalloApp() {
                           )}
                         </button>
                       </div>
+
+                      {/* 태그 리스트: 이름/번호 아래, 시술 내용 위 */}
+                      {visit.tags && visit.tags.length > 0 && (
+                        <div className="mt-1.5 mb-1.5 max-h-[50px] overflow-hidden flex flex-wrap gap-1.5">
+                          {visit.tags.map((tag, idx) => (
+                            <span 
+                              key={idx}
+                              className="text-[11px] px-2 py-1 rounded-md"
+                              style={{ 
+                                backgroundColor: '#F2F0E6',
+                                color: '#8C6D46'
+                              }}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
 
                       {/* 아랫줄: 시술 내용 */}
                       <div 
@@ -3449,6 +3839,57 @@ export default function MalloApp() {
                 </button>
               </div>
           ))}
+          
+          {/* 전체 삭제 버튼 (editingVisit이 있을 때만 표시, 스크롤 끝에만 표시) */}
+          {editingVisit && editingCustomer && (
+            <div className="flex justify-center p-6 mt-5">
+              <button 
+                onClick={() => {
+                  if (window.confirm('이 방문 기록을 삭제하시겠습니까?\n삭제된 기록은 복구할 수 없습니다.')) {
+                    const customerId = editingCustomer.id;
+                    const visitId = editingVisit.id;
+                    
+                    // 방문 기록 삭제 및 고객 방문 횟수 업데이트
+                    setVisits(prev => {
+                      const updated = { ...prev };
+                      if (updated[customerId]) {
+                        const remainingVisits = updated[customerId].filter(v => v.id !== visitId);
+                        updated[customerId] = remainingVisits.length > 0 ? remainingVisits : [];
+                        
+                        // 고객의 방문 횟수 업데이트
+                        setCustomers(prevCustomers => prevCustomers.map(c => {
+                          if (c.id === customerId) {
+                            return {
+                              ...c,
+                              visitCount: remainingVisits.length,
+                              lastVisit: remainingVisits.length > 0 
+                                ? remainingVisits[0].date 
+                                : null
+                            };
+                          }
+                          return c;
+                        }));
+                      }
+                      return updated;
+                    });
+                    
+                    // 상태 초기화
+                    setTempResultData(null);
+                    setEditingVisit(null);
+                    setEditingCustomer(null);
+                    
+                    // CustomerDetail 화면으로 돌아가기
+                    setSelectedCustomerId(customerId);
+                    setCurrentScreen('CustomerDetail');
+                  }
+                }}
+                className="px-6 py-2.5 rounded-xl text-sm font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all"
+                style={{ backgroundColor: '#EF4444' }}
+              >
+                전체 삭제
+              </button>
+            </div>
+          )}
         </main>
     </div>
     );
@@ -3632,6 +4073,42 @@ export default function MalloApp() {
               placeholder="고객에 대한 중요한 메모를 입력하세요"
               rows={4}
             />
+          </div>
+          
+          {/* 고객 삭제 버튼 (스크롤 끝에만 표시) */}
+          <div className="flex justify-center p-6 mt-5">
+            <button 
+              onClick={() => {
+                if (window.confirm(`정말로 "${editCustomerName}" 고객을 삭제하시겠습니까?\n고객 정보와 모든 방문 기록이 삭제되며 복구할 수 없습니다.`)) {
+                  const customerId = selectedCustomerId;
+                  
+                  // 고객 삭제
+                  setCustomers(prev => prev.filter(c => c.id !== customerId));
+                  
+                  // 해당 고객의 방문 기록 삭제
+                  setVisits(prev => {
+                    const updated = { ...prev };
+                    delete updated[customerId];
+                    return updated;
+                  });
+                  
+                  // 상태 초기화
+                  setEditCustomerName('');
+                  setEditCustomerPhone('');
+                  setEditCustomerTags([]);
+                  setEditCustomerMemo('');
+                  setNewTag('');
+                  
+                  // History 화면으로 이동
+                  setSelectedCustomerId(null);
+                  setCurrentScreen('History');
+                }
+              }}
+              className="px-6 py-2.5 rounded-xl text-sm font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all"
+              style={{ backgroundColor: '#EF4444' }}
+            >
+              고객 삭제
+            </button>
           </div>
         </main>
       </div>
@@ -3850,27 +4327,65 @@ export default function MalloApp() {
   };
 
   const renderTagSettings = () => {
-    // 카테고리 정보
-    const categories = {
-      procedure: { label: '시술', placeholder: "'시술' 태그 입력..." },
-      design: { label: '디자인', placeholder: "'디자인' 태그 입력..." },
-      care: { label: '케어', placeholder: "'케어' 태그 입력..." },
-      caution: { label: '주의사항', placeholder: "'주의사항' 태그 입력..." }
+    // 대분류 탭 정보
+    const mainTabs = {
+      visit: { label: '🧴 시술 태그 관리', icon: '🧴' },
+      customer: { label: '👤 고객 특징 관리', icon: '👤' }
     };
 
+    // 소분류 탭 정보
+    const visitSubTabs = {
+      procedure: { label: '시술', placeholder: '시술 태그 입력…' },
+      design: { label: '디자인', placeholder: '디자인 태그 입력…' },
+      care: { label: '케어', placeholder: '케어 태그 입력…' }
+    };
+
+    const customerSubTabs = {
+      trait: { label: '성향', placeholder: '성향 태그 입력…' },
+      payment: { label: '결제·예약', placeholder: '결제·예약 태그 입력…' },
+      pattern: { label: '방문패턴', placeholder: '방문패턴 태그 입력…' },
+      caution: { label: '⚠️주의', placeholder: '주의 태그 입력…' }
+    };
+
+    // 현재 선택된 대분류에 따른 소분류 탭
+    const currentSubTabs = tagSettingsMainTab === 'visit' ? visitSubTabs : customerSubTabs;
+    
     // 현재 선택된 카테고리의 태그 목록
-    const currentTags = managedTags[tagSettingsActiveTab] || [];
-    const currentCategory = categories[tagSettingsActiveTab];
+    const currentTags = tagSettingsMainTab === 'visit' 
+      ? visitTags[tagSettingsSubTab] || []
+      : customerTags[tagSettingsSubTab] || [];
+    
+    const currentSubTab = currentSubTabs[tagSettingsSubTab];
+    const isCautionTab = tagSettingsSubTab === 'caution';
+
+    // 대분류 탭 변경 시 소분류 탭 초기화
+    const handleMainTabChange = (newMainTab) => {
+      setTagSettingsMainTab(newMainTab);
+      // 대분류 변경 시 첫 번째 소분류로 초기화
+      if (newMainTab === 'visit') {
+        setTagSettingsSubTab('procedure');
+      } else {
+        setTagSettingsSubTab('trait');
+      }
+    };
 
     // 태그 추가 함수
     const handleAddTag = () => {
       if (newManagedTag.trim()) {
-        const trimmedTag = newManagedTag.trim();
-        if (!currentTags.includes(trimmedTag)) {
-          setManagedTags(prev => ({
-            ...prev,
-            [tagSettingsActiveTab]: [...(prev[tagSettingsActiveTab] || []), trimmedTag]
-          }));
+        const trimmedLabel = newManagedTag.trim().replace(/^#/, '');
+        // 중복 체크 (같은 카테고리 내에서)
+        if (!currentTags.includes(trimmedLabel)) {
+          if (tagSettingsMainTab === 'visit') {
+            setVisitTags(prev => ({
+              ...prev,
+              [tagSettingsSubTab]: [...(prev[tagSettingsSubTab] || []), trimmedLabel]
+            }));
+          } else {
+            setCustomerTags(prev => ({
+              ...prev,
+              [tagSettingsSubTab]: [...(prev[tagSettingsSubTab] || []), trimmedLabel]
+            }));
+          }
           setNewManagedTag('');
         }
       }
@@ -3878,10 +4393,17 @@ export default function MalloApp() {
 
     // 태그 삭제 함수
     const handleDeleteTag = (tagIndex) => {
-      setManagedTags(prev => ({
-        ...prev,
-        [tagSettingsActiveTab]: prev[tagSettingsActiveTab].filter((_, i) => i !== tagIndex)
-      }));
+      if (tagSettingsMainTab === 'visit') {
+        setVisitTags(prev => ({
+          ...prev,
+          [tagSettingsSubTab]: prev[tagSettingsSubTab].filter((_, i) => i !== tagIndex)
+        }));
+      } else {
+        setCustomerTags(prev => ({
+          ...prev,
+          [tagSettingsSubTab]: prev[tagSettingsSubTab].filter((_, i) => i !== tagIndex)
+        }));
+      }
     };
 
     return (
@@ -3896,7 +4418,16 @@ export default function MalloApp() {
             <ArrowLeft size={24} />
           </button>
           <h2 className="font-bold text-base" style={{ color: '#232323' }}>시술 태그 관리</h2>
-          <div className="w-10"></div> {/* 오른쪽 공간 맞추기 */}
+          <button
+            onClick={() => setIsTagEditing(!isTagEditing)}
+            className="px-4 py-2 text-sm font-medium rounded-xl transition-colors"
+            style={{ 
+              color: '#C9A27A',
+              backgroundColor: isTagEditing ? 'rgba(201, 162, 122, 0.1)' : 'transparent'
+            }}
+          >
+            {isTagEditing ? '완료' : '편집'}
+          </button>
         </header>
 
         {/* 내용 영역 */}
@@ -3904,34 +4435,60 @@ export default function MalloApp() {
           {/* 설명 텍스트 */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
             <p className="text-sm font-light leading-relaxed" style={{ color: '#232323', opacity: 0.7 }}>
-              시술 태그를 카테고리별로 등록해두면, 녹음 결과에서 자동으로 태그가 추출됩니다.
+              시술 태그를 미리 등록해두면,<br/>
+              녹음 후 결과 화면에서 빠르게 태그를 선택할 수 있어요.
             </p>
           </div>
 
-          {/* 카테고리 탭 */}
+          {/* Level 1 탭 (대분류) */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="flex border-b border-gray-200">
-              {Object.keys(categories).map((categoryKey) => {
-                const isActive = tagSettingsActiveTab === categoryKey;
+            <div className="flex">
+              {Object.keys(mainTabs).map((mainTabKey) => {
+                const isActive = tagSettingsMainTab === mainTabKey;
                 return (
                   <button
-                    key={categoryKey}
-                    onClick={() => setTagSettingsActiveTab(categoryKey)}
-                    className={`flex-1 px-4 py-4 text-sm font-medium transition-colors relative ${
+                    key={mainTabKey}
+                    onClick={() => handleMainTabChange(mainTabKey)}
+                    className={`flex-1 px-4 py-4 text-sm font-medium transition-colors ${
                       isActive ? '' : 'hover:bg-gray-50'
                     }`}
                     style={{ 
-                      color: isActive ? '#232323' : 'rgba(35, 35, 35, 0.5)',
-                      fontWeight: isActive ? 'bold' : 'normal'
+                      color: isActive ? '#8C6D46' : 'rgba(35, 35, 35, 0.4)',
+                      fontWeight: isActive ? 'bold' : 'normal',
+                      backgroundColor: isActive ? 'rgba(201, 162, 122, 0.08)' : 'transparent'
                     }}
                   >
-                    {categories[categoryKey].label}
-                    {isActive && (
-                      <div 
-                        className="absolute bottom-0 left-0 right-0 h-0.5"
-                        style={{ backgroundColor: '#C9A27A' }}
-                      />
-                    )}
+                    {mainTabs[mainTabKey].label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Level 2 탭 (소분류) */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="flex">
+              {Object.keys(currentSubTabs).map((subTabKey) => {
+                const isActive = tagSettingsSubTab === subTabKey;
+                const isCaution = subTabKey === 'caution';
+                return (
+                  <button
+                    key={subTabKey}
+                    onClick={() => setTagSettingsSubTab(subTabKey)}
+                    className={`flex-1 px-4 py-4 text-sm font-medium transition-colors ${
+                      isActive ? '' : 'hover:bg-gray-50'
+                    }`}
+                    style={{ 
+                      color: isActive 
+                        ? (isCaution ? '#DC2626' : '#8C6D46')
+                        : 'rgba(35, 35, 35, 0.4)',
+                      fontWeight: isActive ? 'bold' : 'normal',
+                      backgroundColor: isActive 
+                        ? (isCaution ? 'rgba(220, 38, 38, 0.08)' : 'rgba(201, 162, 122, 0.08)')
+                        : 'transparent'
+                    }}
+                  >
+                    {currentSubTabs[subTabKey].label}
                   </button>
                 );
               })}
@@ -3953,7 +4510,7 @@ export default function MalloApp() {
                     handleAddTag();
                   }
                 }}
-                placeholder={currentCategory.placeholder}
+                placeholder={currentSubTab.placeholder}
                 className="flex-1 px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A] transition-all"
                 style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
               />
@@ -3970,33 +4527,39 @@ export default function MalloApp() {
           {/* 태그 클라우드 */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
             <h3 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
-              {currentCategory.label} 태그 ({currentTags.length}개)
+              {currentSubTab.label} 태그 ({currentTags.length}개)
             </h3>
             {currentTags.length === 0 ? (
               <p className="text-sm font-light text-center py-8" style={{ color: '#232323', opacity: 0.5 }}>
                 등록된 태그가 없습니다.
               </p>
             ) : (
-              <div className="flex flex-wrap gap-3">
-                {currentTags.map((tag, idx) => (
-                  <span
-                    key={idx}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium"
-                    style={{ 
-                      backgroundColor: 'rgba(201, 162, 122, 0.1)',
-                      color: '#8C6D46'
-                    }}
-                  >
-                    #{tag}
-                    <button
-                      onClick={() => handleDeleteTag(idx)}
-                      className="ml-1 hover:opacity-70 transition-opacity"
-                      style={{ color: '#8C6D46' }}
+              <div className="flex flex-wrap gap-2">
+                {currentTags.map((tag, idx) => {
+                  const displayLabel = tag.replace(/^#/, '');
+                  return (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium"
+                      style={{ 
+                        backgroundColor: isCautionTab ? '#FEF2F2' : '#F7F5F0',
+                        color: isCautionTab ? '#DC2626' : '#4A4A4A',
+                        border: isCautionTab ? '1px solid #FECACA' : 'none'
+                      }}
                     >
-                      <X size={16} />
-                    </button>
-                  </span>
-                ))}
+                      {displayLabel}
+                      {isTagEditing && (
+                        <button
+                          onClick={() => handleDeleteTag(idx)}
+                          className="ml-1 hover:opacity-70 transition-opacity"
+                          style={{ color: isCautionTab ? '#DC2626' : '#B8A08A' }}
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </span>
+                  );
+                })}
               </div>
             )}
           </div>
