@@ -1490,12 +1490,80 @@ export default function MalloApp() {
   const [serviceTags, setServiceTags] = useState([]); // 시술 태그 (ResultScreen에서 편집)
   const [newServiceTag, setNewServiceTag] = useState(''); // 새 시술 태그 입력용
   const [isAutoTaggingEnabled, setIsAutoTaggingEnabled] = useState(true); // AI 태그 자동 추천 설정 상태
-  // 시술 태그 관리 목록 (방문용)
-  const [visitTags, setVisitTags] = useState({
-    procedure: ['속눈썹연장', '젤네일', '페디큐어'],
-    design: ['D컬', 'C컬', '이달의아트', '그라데이션'],
-    care: ['영양', '랩핑', '제거']
-  });
+  // 문자열 배열을 객체 형태로 변환하는 마이그레이션 함수
+  const migrateTagsToObjects = (tags) => {
+    if (!tags || typeof tags !== 'object') return tags;
+    
+    const migrated = {};
+    Object.keys(tags).forEach(category => {
+      const categoryTags = tags[category];
+      if (Array.isArray(categoryTags)) {
+        migrated[category] = categoryTags.map((tag, index) => {
+          // 이미 객체인 경우 그대로 사용
+          if (typeof tag === 'object' && tag.label) {
+            return tag;
+          }
+          // 문자열인 경우 객체로 변환
+          if (typeof tag === 'string') {
+            return {
+              id: `${category}-${Date.now()}-${index}`,
+              label: tag,
+              keywords: []
+            };
+          }
+          return tag;
+        });
+      } else {
+        migrated[category] = categoryTags;
+      }
+    });
+    
+    return migrated;
+  };
+
+  // localStorage에서 초기값 로드하는 함수 (useState 초기값으로 사용)
+  const loadInitialVisitTags = () => {
+    try {
+      const saved = localStorage.getItem('visitTags');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const migrated = migrateTagsToObjects(parsed);
+        console.log('[초기값] visitTags 불러옴:', migrated);
+        return migrated;
+      }
+    } catch (error) {
+      console.error('[초기값] visitTags 로드 실패:', error);
+    }
+    return migrateTagsToObjects({
+      procedure: ['속눈썹연장', '젤네일', '페디큐어'],
+      design: ['D컬', 'C컬', '이달의아트', '그라데이션'],
+      care: ['영양', '랩핑', '제거']
+    });
+  };
+
+  const loadInitialCustomerTags = () => {
+    try {
+      const saved = localStorage.getItem('customerTags');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const migrated = migrateTagsToObjects(parsed);
+        console.log('[초기값] customerTags 불러옴:', migrated);
+        console.log('[초기값] customerTags - caution 태그 개수:', migrated.caution?.length || 0);
+        return migrated;
+      }
+    } catch (error) {
+      console.error('[초기값] customerTags 로드 실패:', error);
+    }
+    return migrateTagsToObjects({
+      trait: ['수다쟁이', '조용함', '친절함'],
+      payment: ['회원권', '현금결제', '카드결제'],
+      pattern: ['단골', '신규', '비정기'],
+      caution: ['글루알러지', '임산부', '눈물많음']
+    });
+  };
+  
+  // 시술 태그 관리 목록 (방문용) - 함수로 초기값 설정하여 localStorage에서 먼저 로드
+  const [visitTags, setVisitTags] = useState(loadInitialVisitTags);
   
   // 방문 태그 선택 UI용 상태
   // visitTags를 객체 배열로 변환한 전체 태그 리스트
@@ -1507,15 +1575,28 @@ export default function MalloApp() {
   // 태그 선택 바텀시트/모달 오픈 여부
   const [isTagPickerOpen, setIsTagPickerOpen] = useState(false);
   
-  // 고객 특징 태그 관리 목록 (고객용)
-  const [customerTags, setCustomerTags] = useState({
-    trait: ['수다쟁이', '조용함', '친절함'],
-    payment: ['회원권', '현금결제', '카드결제'],
-    pattern: ['단골', '신규', '비정기'],
-    caution: ['글루알러지', '임산부', '눈물많음']
-  });
+  // 개발용 플래그 및 테스트 상태
+  const DEV_MODE = true; // 나중에 false로 바꾸면 통째로 안 보이게 하기 쉽도록
+  const [testSummaryInput, setTestSummaryInput] = useState('');
+  const [isTestingSummary, setIsTestingSummary] = useState(false);
+  
+  // 고객 특징 태그 관리용 상태
+  // customerTags를 객체 배열로 변환한 전체 태그 리스트
+  const [allCustomerTags, setAllCustomerTags] = useState([]);
+  // AI가 요약에서 찾아낸 고객 특징 태그들의 id
+  const [recommendedCustomerTagIds, setRecommendedCustomerTagIds] = useState([]);
+  // 기존 고객 태그 + AI가 찾은 태그를 병합한 최종 태그들의 id
+  const [selectedCustomerTagIds, setSelectedCustomerTagIds] = useState([]);
+  // 새로 추가된 고객 태그 ID들 (시각적 구분용)
+  const [newCustomerTagIds, setNewCustomerTagIds] = useState([]);
+  // 고객 태그 선택 바텀시트/모달 오픈 여부
+  const [isCustomerTagPickerOpen, setIsCustomerTagPickerOpen] = useState(false);
+  
+  // 고객 특징 태그 관리 목록 (고객용) - 함수로 초기값 설정하여 localStorage에서 먼저 로드
+  const [customerTags, setCustomerTags] = useState(loadInitialCustomerTags);
   
   const [newManagedTag, setNewManagedTag] = useState(''); // 태그 관리 화면에서 새 태그 입력용
+  const [newManagedTagKeywords, setNewManagedTagKeywords] = useState(''); // 태그 키워드 입력용
   const [tagSettingsMainTab, setTagSettingsMainTab] = useState('visit'); // 대분류 탭: 'visit' | 'customer'
   const [tagSettingsSubTab, setTagSettingsSubTab] = useState('procedure'); // 소분류 탭
   const [isTagEditing, setIsTagEditing] = useState(false); // 태그 편집 모드
@@ -1770,6 +1851,25 @@ export default function MalloApp() {
     saveToLocalStorage('mallo_visits', visits);
   }, [visits]);
 
+  // 문자열 정규화 함수: 공백, 특수문자 제거하여 비교
+  const normalize = (text) => {
+    if (!text || typeof text !== 'string') return '';
+    return text
+      .toLowerCase()
+      .replace(/\s+/g, '')      // 모든 공백 제거
+      .replace(/[#\-,.]/g, '')  // #, -, , . 같은 기호 제거
+      .trim();
+  };
+
+  // 키워드 파싱 함수: 쉼표로 구분된 문자열을 배열로 변환
+  const parseKeywords = (input) => {
+    if (!input || typeof input !== 'string') return [];
+    return input
+      .split(',')
+      .map((kw) => kw.trim())
+      .filter((kw) => kw.length > 0);
+  };
+
   // visitTags를 객체 배열로 변환하는 함수
   const convertVisitTagsToArray = (tags) => {
     const result = [];
@@ -1780,13 +1880,15 @@ export default function MalloApp() {
           result.push({
             id: label.id || `${category}-${index}`,
             label: label.label,
-            category: category
+            category: category,
+            keywords: label.keywords || []
           });
         } else {
           result.push({
             id: `${category}-${index}-${label}`,
             label: label,
-            category: category
+            category: category,
+            keywords: []
           });
         }
       });
@@ -1800,15 +1902,52 @@ export default function MalloApp() {
     setAllVisitTags(converted);
   }, [visitTags]);
 
-  // 태그 매칭 함수: 요약 텍스트에서 태그 찾기
+  // customerTags를 객체 배열로 변환하는 함수
+  const convertCustomerTagsToArray = (tags) => {
+    const result = [];
+    Object.keys(tags).forEach(category => {
+      tags[category].forEach((label, index) => {
+        if (typeof label === 'object' && label.label) {
+          result.push({
+            id: label.id || `${category}-${index}`,
+            label: label.label,
+            category: category,
+            keywords: label.keywords || []
+          });
+        } else {
+          result.push({
+            id: `${category}-${index}-${label}`,
+            label: label,
+            category: category,
+            keywords: []
+          });
+        }
+      });
+    });
+    return result;
+  };
+
+  // customerTags가 변경될 때 allCustomerTags 업데이트
+  useEffect(() => {
+    const converted = convertCustomerTagsToArray(customerTags);
+    setAllCustomerTags(converted);
+  }, [customerTags]);
+
+  // 태그 매칭 함수: 요약 텍스트에서 태그 찾기 (정규화된 키워드 매칭)
   const matchTagsFromSummary = (summary, tags) => {
     if (!summary || !tags || tags.length === 0) return [];
-    const lower = summary.toLowerCase();
+    const normSummary = normalize(summary);
     
     return tags
       .filter((tag) => {
-        const label = tag.label.toLowerCase();
-        return lower.includes(label);
+        // label + keywords 전부를 후보 키로 사용
+        const keys = [tag.label, ...(tag.keywords || [])];
+        
+        return keys.some((key) => {
+          const normKey = normalize(key);
+          if (!normKey) return false;
+          return normSummary.includes(normKey);
+        });
       })
       .map((tag) => tag.id);
   };
@@ -1835,6 +1974,43 @@ export default function MalloApp() {
           // 기본값: 추천된 태그는 전부 ON 상태
           setSelectedTagIds(matched);
         }
+        
+        // 고객 특징 태그 선택 UI용: 요약에서 태그 매칭
+        if (allCustomerTags.length > 0) {
+          const matchedCustomerTags = matchTagsFromSummary(allContent, allCustomerTags);
+          setRecommendedCustomerTagIds(matchedCustomerTags);
+          
+          // 기존 고객 태그와 AI가 찾은 태그 병합 (Smart Merge)
+          if (selectedCustomerForRecord) {
+            const existingCustomerTags = selectedCustomerForRecord.customerTags || {};
+            const existingTagLabels = [];
+            Object.values(existingCustomerTags).forEach(categoryTags => {
+              if (Array.isArray(categoryTags)) {
+                categoryTags.forEach(tag => {
+                  const label = typeof tag === 'string' ? tag : tag.label || tag;
+                  existingTagLabels.push(label);
+                });
+              }
+            });
+            
+            // 기존 태그 ID 찾기
+            const existingTagIds = allCustomerTags
+              .filter(tag => existingTagLabels.includes(tag.label))
+              .map(tag => tag.id);
+            
+            // AI가 찾은 새 태그 ID 찾기
+            const newTagIds = matchedCustomerTags.filter(id => !existingTagIds.includes(id));
+            
+            // 병합: 기존 태그 + AI가 찾은 새 태그 (중복 제거)
+            const mergedTagIds = [...new Set([...existingTagIds, ...matchedCustomerTags])];
+            setSelectedCustomerTagIds(mergedTagIds);
+            setNewCustomerTagIds(newTagIds);
+          } else {
+            // 신규 고객인 경우 AI가 찾은 태그만 사용
+            setSelectedCustomerTagIds(matchedCustomerTags);
+            setNewCustomerTagIds(matchedCustomerTags);
+          }
+        }
       } else {
         // OFF일 경우: 빈 배열로 시작 (사용자가 수동으로 추가)
         setServiceTags([]);
@@ -1846,7 +2022,144 @@ export default function MalloApp() {
       setRecommendedTagIds([]);
       setSelectedTagIds([]);
     }
-  }, [resultData, isAutoTaggingEnabled, allVisitTags]);
+  }, [resultData, isAutoTaggingEnabled, allVisitTags, allCustomerTags, selectedCustomerForRecord]);
+
+  // 고객 상세 화면 진입 시 방문 기록에서 키워드 감지하여 customerTags 자동 업데이트
+  useEffect(() => {
+    if (currentScreen === 'CustomerDetail' && selectedCustomerId) {
+      const customer = customers.find(c => c.id === selectedCustomerId);
+      const customerVisits = visits[selectedCustomerId] || [];
+      
+      if (customer && customerVisits.length > 0) {
+        // 모든 방문 기록의 텍스트를 수집
+        const allVisitContent = customerVisits
+          .map(visit => {
+            // content, summary, title 필드 확인
+            const content = visit.content || visit.summary || visit.title || '';
+            // detail.sections의 모든 content 수집
+            const detailContent = visit.detail?.sections?.flatMap(s => {
+              if (Array.isArray(s.content)) {
+                return s.content;
+              }
+              return s.content ? [s.content] : [];
+            }).join(' ') || '';
+            return `${content} ${detailContent}`;
+          })
+          .join(' ')
+          .toLowerCase();
+        
+        console.log('[고객 태그 자동 감지] 고객 ID:', selectedCustomerId);
+        console.log('[고객 태그 자동 감지] 방문 기록 수:', customerVisits.length);
+        console.log('[고객 태그 자동 감지] 수집된 텍스트:', allVisitContent);
+        console.log('[고객 태그 자동 감지] "임산부" 포함 여부:', allVisitContent.includes('임산부'));
+        
+        const currentCustomerTags = customer.customerTags || {
+          caution: [],
+          trait: [],
+          payment: [],
+          pattern: []
+        };
+        
+        console.log('[고객 태그 자동 감지] 현재 customerTags:', currentCustomerTags);
+        
+        const updatedCustomerTags = { ...currentCustomerTags };
+        let needsUpdate = false;
+        
+        // "임산부" 키워드 감지
+        if (allVisitContent.includes('임산부')) {
+          const cautionTags = updatedCustomerTags.caution || [];
+          if (!cautionTags.includes('임산부')) {
+            updatedCustomerTags.caution = [...cautionTags, '임산부'];
+            needsUpdate = true;
+            console.log('[고객 태그 자동 감지] "임산부" 태그 추가됨');
+          }
+        }
+        
+        // "글루알러지" 키워드 감지
+        if (allVisitContent.includes('글루알러지') || allVisitContent.includes('글루 알러지')) {
+          const cautionTags = updatedCustomerTags.caution || [];
+          if (!cautionTags.includes('글루알러지')) {
+            updatedCustomerTags.caution = [...cautionTags, '글루알러지'];
+            needsUpdate = true;
+            console.log('[고객 태그 자동 감지] "글루알러지" 태그 추가됨');
+          }
+        }
+        
+        // "눈물많음" 또는 "눈물 많음" 키워드 감지
+        if (allVisitContent.includes('눈물많음') || allVisitContent.includes('눈물 많음') || allVisitContent.includes('눈물이 많')) {
+          const cautionTags = updatedCustomerTags.caution || [];
+          if (!cautionTags.includes('눈물많음')) {
+            updatedCustomerTags.caution = [...cautionTags, '눈물많음'];
+            needsUpdate = true;
+            console.log('[고객 태그 자동 감지] "눈물많음" 태그 추가됨');
+          }
+        }
+        
+        // 업데이트가 필요하면 customer 상태 업데이트
+        if (needsUpdate) {
+          console.log('[고객 태그 자동 감지] 업데이트된 customerTags:', updatedCustomerTags);
+          setCustomers(prev => prev.map(c => 
+            c.id === customer.id ? { ...c, customerTags: updatedCustomerTags } : c
+          ));
+        } else {
+          console.log('[고객 태그 자동 감지] 업데이트 불필요 (이미 태그가 있거나 키워드 없음)');
+        }
+      }
+    }
+  }, [currentScreen, selectedCustomerId, customers, visits]);
+
+  // visitTags 변경 시 localStorage에 저장
+  useEffect(() => {
+    try {
+      localStorage.setItem('visitTags', JSON.stringify(visitTags));
+      console.log('[localStorage] visitTags 저장됨:', visitTags);
+    } catch (error) {
+      console.error('[localStorage] visitTags 저장 실패:', error);
+    }
+  }, [visitTags]);
+
+  // customerTags 변경 시 localStorage에 저장
+  useEffect(() => {
+    try {
+      localStorage.setItem('customerTags', JSON.stringify(customerTags));
+      console.log('[localStorage] customerTags 저장됨:', customerTags);
+    } catch (error) {
+      console.error('[localStorage] customerTags 저장 실패:', error);
+    }
+  }, [customerTags]);
+
+  // 컴포넌트 마운트 시 마이그레이션이 필요하면 localStorage에 저장
+  useEffect(() => {
+    try {
+      // 현재 상태를 localStorage에 저장 (마이그레이션된 형태로)
+      const currentVisitTags = visitTags;
+      const savedVisitTags = localStorage.getItem('visitTags');
+      if (savedVisitTags) {
+        const parsed = JSON.parse(savedVisitTags);
+        const migrated = migrateTagsToObjects(parsed);
+        // 마이그레이션이 발생했다면 다시 저장
+        if (JSON.stringify(parsed) !== JSON.stringify(migrated)) {
+          localStorage.setItem('visitTags', JSON.stringify(migrated));
+          console.log('[localStorage] visitTags 마이그레이션 완료 및 저장');
+        }
+      }
+      
+      const currentCustomerTags = customerTags;
+      const savedCustomerTags = localStorage.getItem('customerTags');
+      if (savedCustomerTags) {
+        const parsed = JSON.parse(savedCustomerTags);
+        const migrated = migrateTagsToObjects(parsed);
+        // 마이그레이션이 발생했다면 다시 저장
+        if (JSON.stringify(parsed) !== JSON.stringify(migrated)) {
+          localStorage.setItem('customerTags', JSON.stringify(migrated));
+          console.log('[localStorage] customerTags 마이그레이션 완료 및 저장');
+          console.log('[localStorage] customerTags - caution 태그 개수:', migrated.caution?.length || 0);
+        }
+      }
+    } catch (error) {
+      console.error('[localStorage] 태그 데이터 마이그레이션 실패:', error);
+    }
+  }, []); // 컴포넌트 마운트 시 한 번만 실행
 
   // 컴포넌트 마운트 시 MOCK_CUSTOMERS 데이터를 localStorage에 강제 업데이트
   useEffect(() => {
@@ -2055,6 +2368,30 @@ export default function MalloApp() {
     setCurrentScreen('Home');
   };
 
+  // 요약 텍스트가 확정됐을 때 공통으로 쓰는 함수
+  const handleSummaryResult = (summaryData) => {
+    // resultData 설정
+    setResultData(summaryData);
+    
+    // AI가 추출한 고객 정보가 있으면 자동으로 채우기 (null 값 방어)
+    if (summaryData.customerInfo) {
+      const extractedName = summaryData.customerInfo.name;
+      const extractedPhone = summaryData.customerInfo.phone;
+      
+      // null이 아니고 빈 문자열이 아닐 때만 설정
+      if (extractedName && extractedName !== 'null' && extractedName.trim() !== '') {
+        setTempName(extractedName.trim());
+      }
+      if (extractedPhone && extractedPhone !== 'null' && extractedPhone.trim() !== '') {
+        setTempPhone(extractedPhone.trim());
+      }
+    }
+    
+    // resultData가 설정되면 Record 화면에서 result 상태로 표시됨
+    // (resultData 변경 시 useEffect가 자동으로 태그 추출 및 상태 업데이트 수행)
+    setRecordState('result');
+  };
+
   const stopRecording = async () => {
     clearInterval(timerRef.current);
     
@@ -2181,24 +2518,8 @@ export default function MalloApp() {
       
       // 결과 데이터 구조 검증 및 설정
       if (parsedResult.title && parsedResult.sections && Array.isArray(parsedResult.sections)) {
-        setResultData(parsedResult);
-        
-        // AI가 추출한 고객 정보가 있으면 자동으로 채우기 (null 값 방어)
-        if (parsedResult.customerInfo) {
-          const extractedName = parsedResult.customerInfo.name;
-          const extractedPhone = parsedResult.customerInfo.phone;
-          
-          // null이 아니고 빈 문자열이 아닐 때만 설정
-          if (extractedName && extractedName !== 'null' && extractedName.trim() !== '') {
-            setTempName(extractedName.trim());
-          }
-          if (extractedPhone && extractedPhone !== 'null' && extractedPhone.trim() !== '') {
-            setTempPhone(extractedPhone.trim());
-          }
-        }
-        
-        // resultData가 설정되면 Record 화면에서 result 상태로 표시됨
-        setRecordState('result');
+        // 공통 요약 처리 함수 호출
+        handleSummaryResult(parsedResult);
       } else {
         throw new Error('API 응답 형식이 올바르지 않습니다.');
       }
@@ -2211,6 +2532,91 @@ export default function MalloApp() {
     } finally {
       // 처리 완료 후 상태 초기화
       setIsProcessing(false);
+    }
+  };
+
+  // 텍스트 기반 요약 테스트용 핸들러
+  const handleTestSummarize = async () => {
+    if (!testSummaryInput.trim()) return;
+
+    setIsTestingSummary(true);
+    try {
+      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+      if (!apiKey) {
+        throw new Error('OpenAI API 키가 설정되지 않았습니다. .env 파일에 VITE_OPENAI_API_KEY를 추가해주세요.');
+      }
+
+      // Step 1: GPT API로 요약 생성 (음성 녹음과 동일한 프로세스)
+      const sectorMap = {
+        'beauty': '뷰티/샵',
+        'pt': '헬스/PT',
+        'construction': '현장/건설',
+        'sales': '영업/세일즈',
+        'general': '사무/지식노동'
+      };
+
+      const roleJson = {
+        role_guess: '뷰티샵 원장',
+        sector: '뷰티/샵',
+        confidence: 1.0,
+        need_user_confirmation: false,
+        reason_short: '뷰티샵 원장님 전용 앱'
+      };
+
+      const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: SYSTEM_PROMPT
+            },
+            {
+              role: 'user',
+              content: `[역할 추론 결과(JSON)]\n${JSON.stringify(roleJson)}\n\n{TODAY}: ${getTodayDate()}\n\n[원문 텍스트]\n${testSummaryInput}`
+            }
+          ],
+          temperature: 0.7,
+          response_format: { type: 'json_object' }
+        })
+      });
+
+      if (!gptResponse.ok) {
+        const errorData = await gptResponse.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || `GPT API 요청 실패: ${gptResponse.status}`);
+      }
+
+      const gptData = await gptResponse.json();
+      const content = gptData.choices[0]?.message?.content;
+      
+      if (!content) {
+        throw new Error('GPT API 응답에 내용이 없습니다.');
+      }
+
+      // JSON 파싱
+      const parsedResult = JSON.parse(content);
+      
+      // 결과 데이터 구조 검증 및 설정
+      if (parsedResult.title && parsedResult.sections && Array.isArray(parsedResult.sections)) {
+        // 공통 요약 처리 함수 호출
+        handleSummaryResult(parsedResult);
+        
+        // transcript도 설정 (태그 분석에 사용될 수 있음)
+        setTranscript(testSummaryInput);
+        setRecordingDate(new Date());
+      } else {
+        throw new Error('API 응답 형식이 올바르지 않습니다.');
+      }
+    } catch (e) {
+      console.error("테스트 요약 실패", e);
+      alert(`테스트 요약 실패: ${e.message}`);
+    } finally {
+      setIsTestingSummary(false);
     }
   };
 
@@ -2505,6 +2911,128 @@ export default function MalloApp() {
       </main>
     </div>
   );
+  };
+
+  // 고객 태그 선택 모달 컴포넌트
+  const CustomerTagPickerModal = ({ allCustomerTags, selectedTagIds, onClose, onChangeSelected }) => {
+    const [activeCategory, setActiveCategory] = useState('all');
+    const [search, setSearch] = useState('');
+
+    const categoryLabels = {
+      'all': '전체',
+      'trait': '성향',
+      'payment': '결제·예약',
+      'pattern': '방문패턴',
+      'caution': '주의'
+    };
+
+    const filteredTags = allCustomerTags.filter((tag) => {
+      if (activeCategory !== 'all' && tag.category !== activeCategory) return false;
+      if (!search) return true;
+      return tag.label.toLowerCase().includes(search.toLowerCase());
+    });
+
+    const toggleTag = (tagId) => {
+      onChangeSelected(
+        selectedTagIds.includes(tagId)
+          ? selectedTagIds.filter((id) => id !== tagId)
+          : [...selectedTagIds, tagId]
+      );
+    };
+
+    return (
+      <div 
+        className="fixed inset-0 z-50 flex items-end justify-center"
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+        onClick={onClose}
+      >
+        <div 
+          className="bg-white rounded-t-3xl w-full max-w-md max-h-[80vh] flex flex-col shadow-lg"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <header className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 className="text-lg font-bold" style={{ color: '#232323' }}>고객 태그 추가</h3>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              style={{ color: '#232323' }}
+            >
+              <X size={20} />
+            </button>
+          </header>
+
+          {/* 카테고리 탭 */}
+          <div className="flex gap-2 px-6 py-4 border-b border-gray-200 overflow-x-auto">
+            {['all', 'trait', 'payment', 'pattern', 'caution'].map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setActiveCategory(cat)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                  activeCategory === cat
+                    ? 'bg-[#C9A27A] text-white'
+                    : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                {categoryLabels[cat]}
+              </button>
+            ))}
+          </div>
+
+          {/* 검색 */}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <input
+              type="text"
+              placeholder="태그 검색…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A]"
+              style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
+            />
+          </div>
+
+          {/* 태그 리스트 */}
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div className="flex flex-wrap gap-2">
+              {filteredTags.length === 0 ? (
+                <p className="text-sm w-full text-center" style={{ color: '#232323', opacity: 0.5 }}>
+                  해당 조건에 맞는 태그가 없어요.
+                </p>
+              ) : (
+                filteredTags.map((tag) => {
+                  const isSelected = selectedTagIds.includes(tag.id);
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => toggleTag(tag.id)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                        isSelected
+                          ? 'bg-[#C9A27A] text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-600 border border-gray-200'
+                      }`}
+                    >
+                      {tag.label}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          <footer className="px-6 py-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full py-3 rounded-xl font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all"
+              style={{ backgroundColor: '#C9A27A' }}
+            >
+              완료
+            </button>
+          </footer>
+        </div>
+      </div>
+    );
   };
 
   // 태그 선택 모달 컴포넌트
@@ -2863,6 +3391,40 @@ export default function MalloApp() {
           </div>
         </div>
 
+        {/* 개발용 요약 테스트 박스 */}
+        {DEV_MODE && (
+          <section className="bg-white rounded-2xl border-2 border-dashed border-gray-300 shadow-sm p-5">
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-bold px-2 py-1 rounded bg-yellow-100 text-yellow-800">DEV</span>
+                <span className="text-base font-bold" style={{ color: '#232323' }}>개발용 요약 테스트</span>
+              </div>
+              <p className="text-sm" style={{ color: '#232323', opacity: 0.7 }}>
+                음성 대신 텍스트를 입력해서 요약·태그 흐름을 테스트할 수 있어요.
+              </p>
+            </div>
+
+            <textarea
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A] mb-3 resize-none"
+              placeholder="여기에 고객에게 말할 내용을 두서없이 적어보고, 아래 버튼을 눌러 테스트하세요."
+              value={testSummaryInput}
+              onChange={(e) => setTestSummaryInput(e.target.value)}
+              rows={4}
+              style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
+            />
+
+            <button
+              type="button"
+              className="w-full py-3 rounded-xl font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleTestSummarize}
+              disabled={isTestingSummary || !testSummaryInput.trim()}
+              style={{ backgroundColor: '#C9A27A' }}
+            >
+              {isTestingSummary ? "요약 테스트 중..." : "이 텍스트로 요약 테스트"}
+            </button>
+          </section>
+        )}
+
         {/* 태그 편집 영역 */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
           <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>시술 태그</h4>
@@ -2924,12 +3486,15 @@ export default function MalloApp() {
           </div>
         </div>
 
-        {/* 방문 태그 선택 UI */}
+        {/* Section 1: 이번 방문 태그 */}
         <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
           <div className="mb-4">
-            <h3 className="text-base font-bold mb-2" style={{ color: '#232323' }}>방문 태그 (선택사항)</h3>
+            <h3 className="text-base font-bold mb-2 flex items-center gap-2" style={{ color: '#232323' }}>
+              <span>🧴</span>
+              <span>이번 방문 태그</span>
+            </h3>
             <p className="text-sm" style={{ color: '#232323', opacity: 0.7 }}>
-              AI가 요약에서 태그 후보를 찾아봤어요. 필요한 것만 남겨주세요.
+              이번 시술 기록에 저장됩니다.
             </p>
           </div>
 
@@ -2980,13 +3545,115 @@ export default function MalloApp() {
           </button>
         </section>
 
-        {/* 태그 선택 모달 */}
+        {/* Section 2: 고객 프로필 업데이트 */}
+        {selectedCustomerForRecord && (
+          <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+            <div className="mb-4">
+              <h3 className="text-base font-bold mb-2 flex items-center gap-2" style={{ color: '#232323' }}>
+                <span>👤</span>
+                <span>고객 프로필 업데이트</span>
+              </h3>
+              <p className="text-sm" style={{ color: '#232323', opacity: 0.7 }}>
+                고객 정보에 영구적으로 저장됩니다.
+              </p>
+            </div>
+
+            {/* 고객 태그 칩들 */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {selectedCustomerTagIds.length === 0 ? (
+                <p className="text-sm" style={{ color: '#232323', opacity: 0.5 }}>
+                  고객 특징 태그가 없어요. 필요한 경우 아래에서 직접 추가할 수 있어요.
+                </p>
+              ) : (
+                selectedCustomerTagIds.map((tagId) => {
+                  const tag = allCustomerTags.find((t) => t.id === tagId);
+                  if (!tag) return null;
+
+                  const isNew = newCustomerTagIds.includes(tag.id);
+
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCustomerTagIds((prev) =>
+                          prev.includes(tag.id)
+                            ? prev.filter((id) => id !== tag.id) // OFF
+                            : [...prev, tag.id]                   // ON
+                        );
+                        // 새 태그 목록에서도 제거
+                        if (isNew) {
+                          setNewCustomerTagIds((prev) => prev.filter((id) => id !== tag.id));
+                        }
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1 ${
+                        isNew
+                          ? 'bg-green-50 text-green-700 border border-green-200' // 새로 추가된 태그
+                          : 'bg-gray-100 text-gray-600 border border-gray-200'    // 기존 태그
+                      }`}
+                    >
+                      {tag.label}
+                      {isNew && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-200 text-green-800 font-bold">
+                          New
+                        </span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            {/* 고객 태그 더 추가하기 버튼 */}
+            <button
+              type="button"
+              onClick={() => setIsCustomerTagPickerOpen(true)}
+              className="w-full py-2.5 rounded-xl text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              + 태그 더 추가하기
+            </button>
+          </section>
+        )}
+
+        {/* 방문 태그 선택 모달 */}
         {isTagPickerOpen && (
           <TagPickerModal
             allVisitTags={allVisitTags}
             selectedTagIds={selectedTagIds}
             onClose={() => setIsTagPickerOpen(false)}
             onChangeSelected={(nextSelected) => setSelectedTagIds(nextSelected)}
+          />
+        )}
+
+        {/* 고객 태그 선택 모달 */}
+        {isCustomerTagPickerOpen && (
+          <CustomerTagPickerModal
+            allCustomerTags={allCustomerTags}
+            selectedTagIds={selectedCustomerTagIds}
+            onClose={() => setIsCustomerTagPickerOpen(false)}
+            onChangeSelected={(nextSelected) => {
+              setSelectedCustomerTagIds(nextSelected);
+              // 새로 추가된 태그 업데이트 (기존 고객 태그와 비교)
+              if (selectedCustomerForRecord) {
+                const existingCustomerTags = selectedCustomerForRecord.customerTags || {};
+                const existingTagLabels = [];
+                Object.values(existingCustomerTags).forEach(categoryTags => {
+                  if (Array.isArray(categoryTags)) {
+                    categoryTags.forEach(tag => {
+                      const label = typeof tag === 'string' ? tag : tag.label || tag;
+                      existingTagLabels.push(label);
+                    });
+                  }
+                });
+                
+                const existingTagIds = allCustomerTags
+                  .filter(tag => existingTagLabels.includes(tag.label))
+                  .map(tag => tag.id);
+                
+                const newTagIds = nextSelected.filter(id => !existingTagIds.includes(id));
+                setNewCustomerTagIds(newTagIds);
+              }
+            }}
           />
         )}
 
@@ -3028,7 +3695,7 @@ export default function MalloApp() {
           </div>
         )}
 
-        {/* Fixed Action Bar - 2개 버튼 나란히 배치 (화면 하단 고정) */}
+        {/* Fixed Action Bar - 3개 버튼 나란히 배치 (화면 하단 고정) */}
         <div className="absolute bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 px-8 py-4 shadow-lg" style={{ backgroundColor: '#F2F0E6' }}>
           <div className="flex gap-3">
             {/* 편집 버튼 */}
@@ -3041,10 +3708,123 @@ export default function MalloApp() {
                 }
               }}
               className="flex items-center justify-center gap-2 py-4 rounded-2xl font-medium bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
-              style={{ color: '#232323', width: '35%' }}
+              style={{ color: '#232323', width: '30%' }}
             >
               <Edit size={18} style={{ color: '#C9A27A' }} />
               <span>편집</span>
+            </button>
+            
+            {/* 테스트 버튼 */}
+            <button
+              onClick={() => {
+                // 테스트 시나리오 데이터
+                const TEST_SCENARIOS = [
+                  {
+                    summary: "속눈썹 D컬 11mm로 연장 리터치 진행함. 글루 알러지 있어서 예민하심.",
+                    sections: [
+                      {
+                        title: '고객 기본 정보',
+                        content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
+                      },
+                      {
+                        title: '시술 내용',
+                        content: ['속눈썹 D컬 11mm로 연장 리터치 진행함. 글루 알러지 있어서 예민하심.']
+                      },
+                      {
+                        title: '주의사항',
+                        content: ['글루 알러지 있으므로 저자극 제품 사용']
+                      }
+                    ]
+                  },
+                  {
+                    summary: "기존 젤네일 제거하고 이달의아트로 변경. 현금영수증 해드렸음.",
+                    sections: [
+                      {
+                        title: '고객 기본 정보',
+                        content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
+                      },
+                      {
+                        title: '시술 내용',
+                        content: ['기존 젤네일 제거하고 이달의아트로 변경. 현금영수증 해드렸음.']
+                      },
+                      {
+                        title: '결제 금액',
+                        content: ['현금영수증 발급 완료']
+                      }
+                    ]
+                  },
+                  {
+                    summary: "오늘은 케어만 받고 가심. 손톱이 많이 상해서 영양제 듬뿍 발라드림.",
+                    sections: [
+                      {
+                        title: '고객 기본 정보',
+                        content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
+                      },
+                      {
+                        title: '시술 내용',
+                        content: ['오늘은 케어만 받고 가심. 손톱이 많이 상해서 영양제 듬뿍 발라드림.']
+                      },
+                      {
+                        title: '시술 후 상태',
+                        content: ['손톱 상태 개선을 위해 영양 케어 강화']
+                      }
+                    ]
+                  },
+                  {
+                    summary: "눈물이 많으셔서 시술 중간에 자주 쉬었음. 다음엔 C컬 말고 J컬로 하고 싶다고 하심.",
+                    sections: [
+                      {
+                        title: '고객 기본 정보',
+                        content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
+                      },
+                      {
+                        title: '시술 내용',
+                        content: ['눈물이 많으셔서 시술 중간에 자주 쉬었음. 다음엔 C컬 말고 J컬로 하고 싶다고 하심.']
+                      },
+                      {
+                        title: '주의사항',
+                        content: ['눈물이 많으므로 시술 시 주의 필요']
+                      }
+                    ]
+                  },
+                  {
+                    summary: "이번 고객님은 임산부셔서 조심스럽게 시술했습니다. 기존 젤네일 제거하고, 이달의아트로 변경하셨어요. 결제는 현금영수증 해드렸습니다.",
+                    sections: [
+                      {
+                        title: '고객 기본 정보',
+                        content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
+                      },
+                      {
+                        title: '시술 내용',
+                        content: ['이번 고객님은 임산부셔서 조심스럽게 시술했습니다. 기존 젤네일 제거하고, 이달의아트로 변경하셨어요. 결제는 현금영수증 해드렸습니다.']
+                      },
+                      {
+                        title: '주의사항',
+                        content: ['임산부 고객이므로 조심스럽게 시술 진행']
+                      }
+                    ]
+                  }
+                ];
+                
+                // 랜덤으로 시나리오 선택
+                const randomIndex = Math.floor(Math.random() * TEST_SCENARIOS.length);
+                const selectedScenario = TEST_SCENARIOS[randomIndex];
+                
+                const testResultData = {
+                  title: selectedScenario.summary,
+                  sections: selectedScenario.sections
+                };
+                
+                setResultData(testResultData);
+                
+                // 태그 재분석을 위해 useEffect가 실행되도록 함
+                // resultData가 변경되면 자동으로 태그 분석이 실행됨
+              }}
+              className="flex items-center justify-center gap-2 py-4 rounded-2xl font-medium bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
+              style={{ color: '#232323', width: '30%' }}
+            >
+              <span>🧪</span>
+              <span>테스트</span>
             </button>
             
             {/* 저장하기 버튼 */}
@@ -3139,37 +3919,84 @@ export default function MalloApp() {
                   
                   const isNewCustomer = detectNewCustomer();
                   
+                  // 고객 태그 업데이트: selectedCustomerTagIds를 카테고리별로 분류
+                  const updatedCustomerTags = { ...selectedCustomerForRecord.customerTags || {
+                    caution: [],
+                    trait: [],
+                    payment: [],
+                    pattern: []
+                  }};
+                  
+                  // selectedCustomerTagIds를 카테고리별로 분류
+                  selectedCustomerTagIds.forEach(tagId => {
+                    const tag = allCustomerTags.find(t => t.id === tagId);
+                    if (tag) {
+                      const category = tag.category;
+                      if (updatedCustomerTags[category]) {
+                        // 중복 제거를 위해 Set 사용
+                        const existingLabels = new Set(
+                          updatedCustomerTags[category].map(t => 
+                            typeof t === 'string' ? t : t.label || t
+                          )
+                        );
+                        if (!existingLabels.has(tag.label)) {
+                          updatedCustomerTags[category] = [...updatedCustomerTags[category], tag.label];
+                        }
+                      } else {
+                        updatedCustomerTags[category] = [tag.label];
+                      }
+                    }
+                  });
+                  
+                  // "신규" 키워드가 감지되면 pattern에 추가 (중복 방지)
+                  if (isNewCustomer) {
+                    const patternTags = updatedCustomerTags.pattern || [];
+                    if (!patternTags.includes('신규')) {
+                      updatedCustomerTags.pattern = [...patternTags, '신규'];
+                    }
+                  }
+                  
+                  // 특정 키워드 감지하여 customerTags에 자동 추가
+                  const allContent = [
+                    resultData.title || '',
+                    ...(resultData.sections || []).flatMap(section => 
+                      (section.content || []).join(' ')
+                    )
+                  ].join(' ').toLowerCase();
+                  
+                  // "임산부" 키워드 감지
+                  if (allContent.includes('임산부')) {
+                    const cautionTags = updatedCustomerTags.caution || [];
+                    if (!cautionTags.includes('임산부')) {
+                      updatedCustomerTags.caution = [...cautionTags, '임산부'];
+                    }
+                  }
+                  
+                  // "글루알러지" 키워드 감지
+                  if (allContent.includes('글루알러지') || allContent.includes('글루 알러지')) {
+                    const cautionTags = updatedCustomerTags.caution || [];
+                    if (!cautionTags.includes('글루알러지')) {
+                      updatedCustomerTags.caution = [...cautionTags, '글루알러지'];
+                    }
+                  }
+                  
+                  // "눈물많음" 또는 "눈물 많음" 키워드 감지
+                  if (allContent.includes('눈물많음') || allContent.includes('눈물 많음') || allContent.includes('눈물이 많')) {
+                    const cautionTags = updatedCustomerTags.caution || [];
+                    if (!cautionTags.includes('눈물많음')) {
+                      updatedCustomerTags.caution = [...cautionTags, '눈물많음'];
+                    }
+                  }
+                  
                   // 고객의 방문 횟수 및 customerTags 업데이트
                   setCustomers(prev => prev.map(c => {
                     if (c.id === customerId) {
-                      const updatedCustomer = { 
+                      return { 
                         ...c, 
                         visitCount: c.visitCount + 1, 
-                        lastVisit: dateStr 
+                        lastVisit: dateStr,
+                        customerTags: updatedCustomerTags
                       };
-                      
-                      // customerTags가 없으면 기본 구조 생성
-                      if (!updatedCustomer.customerTags) {
-                        updatedCustomer.customerTags = {
-                          caution: [],
-                          trait: [],
-                          payment: [],
-                          pattern: []
-                        };
-                      }
-                      
-                      // "신규" 키워드가 감지되면 pattern에 추가 (중복 방지)
-                      if (isNewCustomer) {
-                        const patternTags = updatedCustomer.customerTags.pattern || [];
-                        if (!patternTags.includes('신규')) {
-                          updatedCustomer.customerTags = {
-                            ...updatedCustomer.customerTags,
-                            pattern: [...patternTags, '신규']
-                          };
-                        }
-                      }
-                      
-                      return updatedCustomer;
                     }
                     return c;
                   }));
@@ -3250,6 +4077,63 @@ export default function MalloApp() {
                   
                   const isNewCustomer = detectNewCustomer();
                   
+                  // 신규 고객 태그 업데이트: selectedCustomerTagIds를 카테고리별로 분류
+                  const newCustomerTags = {
+                    caution: [],
+                    trait: [],
+                    payment: [],
+                    pattern: []
+                  };
+                  
+                  // selectedCustomerTagIds를 카테고리별로 분류
+                  selectedCustomerTagIds.forEach(tagId => {
+                    const tag = allCustomerTags.find(t => t.id === tagId);
+                    if (tag) {
+                      const category = tag.category;
+                      if (newCustomerTags[category]) {
+                        newCustomerTags[category] = [...newCustomerTags[category], tag.label];
+                      } else {
+                        newCustomerTags[category] = [tag.label];
+                      }
+                    }
+                  });
+                  
+                  // "신규" 키워드가 감지되면 pattern에 추가
+                  if (isNewCustomer) {
+                    if (!newCustomerTags.pattern.includes('신규')) {
+                      newCustomerTags.pattern = [...newCustomerTags.pattern, '신규'];
+                    }
+                  }
+                  
+                  // 특정 키워드 감지하여 customerTags에 자동 추가
+                  const allContent = [
+                    resultData.title || '',
+                    ...(resultData.sections || []).flatMap(section => 
+                      (section.content || []).join(' ')
+                    )
+                  ].join(' ').toLowerCase();
+                  
+                  // "임산부" 키워드 감지
+                  if (allContent.includes('임산부')) {
+                    if (!newCustomerTags.caution.includes('임산부')) {
+                      newCustomerTags.caution = [...newCustomerTags.caution, '임산부'];
+                    }
+                  }
+                  
+                  // "글루알러지" 키워드 감지
+                  if (allContent.includes('글루알러지') || allContent.includes('글루 알러지')) {
+                    if (!newCustomerTags.caution.includes('글루알러지')) {
+                      newCustomerTags.caution = [...newCustomerTags.caution, '글루알러지'];
+                    }
+                  }
+                  
+                  // "눈물많음" 또는 "눈물 많음" 키워드 감지
+                  if (allContent.includes('눈물많음') || allContent.includes('눈물 많음') || allContent.includes('눈물이 많')) {
+                    if (!newCustomerTags.caution.includes('눈물많음')) {
+                      newCustomerTags.caution = [...newCustomerTags.caution, '눈물많음'];
+                    }
+                  }
+                  
                   // 새로운 고객 생성
                   const newCustomer = {
                     id: newCustomerId,
@@ -3259,12 +4143,7 @@ export default function MalloApp() {
                     lastVisit: dateStr,
                     avatar: '👤',
                     tags: [],
-                    customerTags: {
-                      caution: [],
-                      trait: [],
-                      payment: [],
-                      pattern: isNewCustomer ? ['신규'] : []
-                    }
+                    customerTags: newCustomerTags
                   };
                   
                   // title에서 고객 이름과 '신규 고객' 텍스트 제거
@@ -3418,9 +4297,10 @@ export default function MalloApp() {
       };
     }
     
+    const customerVisits = visits[selectedCustomerId] || [];
+    
     console.log('renderCustomerDetail - 최종 찾은 고객:', customer);
     console.log('renderCustomerDetail - customer.customerTags:', customer?.customerTags);
-    const customerVisits = visits[selectedCustomerId] || [];
     console.log('renderCustomerDetail - customerVisits:', customerVisits);
     console.log('renderCustomerDetail - 첫 번째 방문 tags:', customerVisits[0]?.tags);
 
@@ -4624,10 +5504,10 @@ export default function MalloApp() {
     // 현재 선택된 대분류에 따른 소분류 탭
     const currentSubTabs = tagSettingsMainTab === 'visit' ? visitSubTabs : customerSubTabs;
     
-    // 현재 선택된 카테고리의 태그 목록
+    // 현재 선택된 카테고리의 태그 목록 (문자열과 객체 모두 처리)
     const currentTags = tagSettingsMainTab === 'visit' 
-      ? visitTags[tagSettingsSubTab] || []
-      : customerTags[tagSettingsSubTab] || [];
+      ? (visitTags[tagSettingsSubTab] || [])
+      : (customerTags[tagSettingsSubTab] || []);
     
     const currentSubTab = currentSubTabs[tagSettingsSubTab];
     const isCautionTab = tagSettingsSubTab === 'caution';
@@ -4647,21 +5527,82 @@ export default function MalloApp() {
     const handleAddTag = () => {
       if (newManagedTag.trim()) {
         const trimmedLabel = newManagedTag.trim().replace(/^#/, '');
-        // 중복 체크 (같은 카테고리 내에서)
-        if (!currentTags.includes(trimmedLabel)) {
-          if (tagSettingsMainTab === 'visit') {
-            setVisitTags(prev => ({
-              ...prev,
-              [tagSettingsSubTab]: [...(prev[tagSettingsSubTab] || []), trimmedLabel]
-            }));
-          } else {
-            setCustomerTags(prev => ({
-              ...prev,
-              [tagSettingsSubTab]: [...(prev[tagSettingsSubTab] || []), trimmedLabel]
-            }));
-          }
-          setNewManagedTag('');
+        const keywords = parseKeywords(newManagedTagKeywords);
+        
+        // 현재 카테고리의 태그 개수 확인
+        const currentCategoryTags = tagSettingsMainTab === 'visit' 
+          ? (visitTags[tagSettingsSubTab] || [])
+          : (customerTags[tagSettingsSubTab] || []);
+        
+        // 최대 50개 제한 확인
+        if (currentCategoryTags.length >= 50) {
+          alert(`각 카테고리마다 최대 50개까지 추가할 수 있습니다.\n현재 ${currentCategoryTags.length}개의 태그가 등록되어 있습니다.`);
+          return;
         }
+        
+        // 모든 태그를 배열로 변환하여 중복 체크
+        const allTags = tagSettingsMainTab === 'visit' 
+          ? convertVisitTagsToArray(visitTags)
+          : convertCustomerTagsToArray(customerTags);
+        
+        // normalize를 사용한 중복 체크
+        const normalizedNew = normalize(trimmedLabel);
+        const existing = allTags.find((tag) => {
+          const keys = [tag.label, ...(tag.keywords || [])];
+          return keys.some((k) => normalize(k) === normalizedNew);
+        });
+        
+        if (existing) {
+          // 이미 비슷한 태그가 있는 경우
+          alert(`"${trimmedLabel}"와 비슷한 태그 "${existing.label}"가 이미 등록되어 있습니다.`);
+          return;
+        }
+        
+        // 같은 카테고리 내에서 정확히 같은 label이 있는지 확인
+        const hasExactMatch = currentCategoryTags.some(tag => {
+          if (typeof tag === 'string') {
+            return tag === trimmedLabel;
+          } else if (typeof tag === 'object' && tag.label) {
+            return tag.label === trimmedLabel;
+          }
+          return false;
+        });
+        
+        if (hasExactMatch) {
+          alert(`"${trimmedLabel}" 태그는 이미 등록되어 있습니다.`);
+          return;
+        }
+        
+        // 새 태그 객체 생성
+        const newTag = {
+          id: `${tagSettingsSubTab}-${Date.now()}`,
+          label: trimmedLabel,
+          keywords: keywords
+        };
+        
+        if (tagSettingsMainTab === 'visit') {
+          setVisitTags(prev => {
+            const updated = {
+              ...prev,
+              [tagSettingsSubTab]: [...(prev[tagSettingsSubTab] || []), newTag]
+            };
+            console.log('[태그 추가] visitTags 업데이트:', updated);
+            return updated;
+          });
+        } else {
+          setCustomerTags(prev => {
+            const updated = {
+              ...prev,
+              [tagSettingsSubTab]: [...(prev[tagSettingsSubTab] || []), newTag]
+            };
+            console.log('[태그 추가] customerTags 업데이트:', updated);
+            return updated;
+          });
+        }
+        
+        setNewManagedTag('');
+        setNewManagedTagKeywords('');
+        console.log('[태그 추가] 태그 추가 완료:', trimmedLabel, '키워드:', keywords, '카테고리:', tagSettingsSubTab);
       }
     };
 
@@ -4779,8 +5720,8 @@ export default function MalloApp() {
           </div>
 
           {/* 태그 입력 영역 */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
-            <label className="block text-sm font-medium mb-3" style={{ color: '#232323' }}>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 space-y-3">
+            <label className="block text-sm font-medium" style={{ color: '#232323' }}>
               새 태그 추가
             </label>
             <div className="flex gap-2">
@@ -4805,6 +5746,22 @@ export default function MalloApp() {
                 추가
               </button>
             </div>
+            <div>
+              <label className="block text-xs font-medium mb-2" style={{ color: '#232323', opacity: 0.6 }}>
+                검색 키워드 (선택, 쉼표로 구분)
+              </label>
+              <input
+                type="text"
+                value={newManagedTagKeywords}
+                onChange={(e) => setNewManagedTagKeywords(e.target.value)}
+                placeholder="예: 글루알러지, 글루 알레르기, 본드 알러지"
+                className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A] transition-all text-sm"
+                style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
+              />
+              <p className="text-xs mt-1" style={{ color: '#232323', opacity: 0.5 }}>
+                다양한 표현을 등록하면 AI가 더 정확하게 태그를 찾을 수 있어요.
+              </p>
+            </div>
           </div>
 
           {/* 태그 클라우드 */}
@@ -4819,7 +5776,10 @@ export default function MalloApp() {
             ) : (
               <div className="flex flex-wrap gap-2">
                 {currentTags.map((tag, idx) => {
-                  const displayLabel = tag.replace(/^#/, '');
+                  // 문자열인 경우와 객체인 경우 모두 처리
+                  const tagLabel = typeof tag === 'string' ? tag : (tag.label || tag);
+                  const tagKeywords = typeof tag === 'object' && tag.keywords ? tag.keywords : [];
+                  const displayLabel = tagLabel.replace(/^#/, '');
                   return (
                     <span
                       key={idx}
