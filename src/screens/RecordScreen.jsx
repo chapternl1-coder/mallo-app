@@ -273,59 +273,151 @@ function RecordScreen({
       <main className="flex-1 overflow-y-auto p-8 space-y-5 pb-32" style={{ backgroundColor: '#F2F0E6' }}>
         {/* 고객 정보 표시 - selectedCustomerForRecord가 있으면 카드, 없으면 입력창 */}
         {selectedCustomerForRecord ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
-            <div className="flex items-center gap-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200" style={{ padding: '12px 16px' }}>
+            <div className="flex items-center gap-4 mb-1.5">
               <div className="text-4xl">{selectedCustomerForRecord.avatar}</div>
               <div className="flex-1">
-                <h3 className="font-bold text-lg mb-1" style={{ color: '#232323' }}>{selectedCustomerForRecord.name}</h3>
-                <div className="flex items-center gap-2 text-sm font-light" style={{ color: '#232323', opacity: 0.7 }}>
-                  <Phone size={14} style={{ color: '#C9A27A' }} />
+                <h3 className="font-bold text-base mb-0.5" style={{ color: '#232323' }}>{selectedCustomerForRecord.name}</h3>
+                <div className="flex items-center gap-2 text-xs" style={{ color: '#8C8C8C' }}>
+                  <Phone size={12} style={{ color: '#C9A27A' }} />
                   <span>{selectedCustomerForRecord.phone}</span>
                 </div>
               </div>
             </div>
+            
+            {/* 시술 태그 표시 - 히스토리 카드처럼 */}
+            {(() => {
+              const allTagIds = [...new Set([...(recommendedTagIds || []), ...(selectedTagIds || [])])];
+              
+              // 디버깅 로그
+              console.log('[태그 표시] recommendedTagIds:', recommendedTagIds);
+              console.log('[태그 표시] selectedTagIds:', selectedTagIds);
+              console.log('[태그 표시] allVisitTags:', allVisitTags);
+              console.log('[태그 표시] serviceTags:', serviceTags);
+              console.log('[태그 표시] allTagIds:', allTagIds);
+              
+              const validTags = allTagIds
+                .map((tagId) => {
+                  const tag = allVisitTags.find((t) => t.id === tagId);
+                  return tag ? tag.label : null;
+                })
+                .filter((label) => label !== null);
+              
+              // serviceTags도 추가 (문자열 배열인 경우)
+              const serviceTagLabels = (serviceTags || []).filter(tag => typeof tag === 'string');
+              const allTagLabels = [...new Set([...validTags, ...serviceTagLabels])];
+              
+              console.log('[태그 표시] validTags:', validTags);
+              console.log('[태그 표시] serviceTagLabels:', serviceTagLabels);
+              console.log('[태그 표시] 최종 allTagLabels:', allTagLabels);
+              
+              if (allTagLabels.length === 0) return null;
+              
+              return (
+                <div className="mt-1.5 mb-1.5 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
+                  {allTagLabels.map((tagLabel, idx) => (
+                    <span 
+                      key={idx}
+                      className="text-[11px] px-2 py-1 rounded-md"
+                      style={{ 
+                        backgroundColor: '#F2F0E6',
+                        color: '#8C6D46'
+                      }}
+                    >
+                      {tagLabel}
+                    </span>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         ) : (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 space-y-4">
-            <label className="block text-sm font-medium mb-2" style={{ color: '#232323' }}>신규 고객 정보</label>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200" style={{ padding: '12px 16px' }}>
+            <label className="block text-sm font-medium mb-3" style={{ color: '#232323' }}>신규 고객 정보</label>
             
             {/* 이름 입력 */}
-            <div>
-              <label className="block text-xs font-medium mb-2" style={{ color: '#232323', opacity: 0.7 }}>이름</label>
+            <div className="mb-3">
+              <label className="block text-xs font-medium mb-1.5" style={{ color: '#232323', opacity: 0.7 }}>이름</label>
               <input
                 ref={nameInputRef}
                 type="text"
                 value={tempName || ''}
                 onChange={(e) => setTempName(e.target.value)}
                 placeholder={!tempName ? "이름 입력" : ""}
-                className={`w-full px-4 py-3 rounded-2xl border focus:ring-1 outline-none transition-all ${
+                className={`w-full px-3 py-2 rounded-xl border focus:ring-1 outline-none transition-all text-sm ${
                   !tempName ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#C9A27A] focus:ring-[#C9A27A]'
                 }`}
                 style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
               />
               {!tempName && (
-                <p className="text-xs mt-2" style={{ color: '#EF4444' }}>* 이름은 필수입니다</p>
+                <p className="text-xs mt-1.5" style={{ color: '#EF4444' }}>* 이름은 필수입니다</p>
               )}
             </div>
             
             {/* 전화번호 입력 */}
-            <div>
-              <label className="block text-xs font-medium mb-2" style={{ color: '#232323', opacity: 0.7 }}>전화번호</label>
+            <div className="mb-1.5">
+              <label className="block text-xs font-medium mb-1.5" style={{ color: '#232323', opacity: 0.7 }}>전화번호</label>
               <input
                 ref={phoneInputRef}
                 type="tel"
                 value={tempPhone || ''}
                 onChange={handlePhoneChange}
                 placeholder={!tempPhone ? "010-1234-5678" : ""}
-                className={`w-full px-4 py-3 rounded-2xl border focus:ring-1 outline-none transition-all ${
+                className={`w-full px-3 py-2 rounded-xl border focus:ring-1 outline-none transition-all text-sm ${
                   !tempPhone ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#C9A27A] focus:ring-[#C9A27A]'
                 }`}
                 style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
               />
               {!tempPhone && (
-                <p className="text-xs mt-2" style={{ color: '#EF4444' }}>* 전화번호는 필수입니다</p>
+                <p className="text-xs mt-1.5" style={{ color: '#EF4444' }}>* 전화번호는 필수입니다</p>
               )}
             </div>
+            
+            {/* 시술 태그 표시 - 히스토리 카드처럼 */}
+            {(() => {
+              const allTagIds = [...new Set([...(recommendedTagIds || []), ...(selectedTagIds || [])])];
+              
+              // 디버깅 로그
+              console.log('[태그 표시] recommendedTagIds:', recommendedTagIds);
+              console.log('[태그 표시] selectedTagIds:', selectedTagIds);
+              console.log('[태그 표시] allVisitTags:', allVisitTags);
+              console.log('[태그 표시] serviceTags:', serviceTags);
+              console.log('[태그 표시] allTagIds:', allTagIds);
+              
+              const validTags = allTagIds
+                .map((tagId) => {
+                  const tag = allVisitTags.find((t) => t.id === tagId);
+                  return tag ? tag.label : null;
+                })
+                .filter((label) => label !== null);
+              
+              // serviceTags도 추가 (문자열 배열인 경우)
+              const serviceTagLabels = (serviceTags || []).filter(tag => typeof tag === 'string');
+              const allTagLabels = [...new Set([...validTags, ...serviceTagLabels])];
+              
+              console.log('[태그 표시] validTags:', validTags);
+              console.log('[태그 표시] serviceTagLabels:', serviceTagLabels);
+              console.log('[태그 표시] 최종 allTagLabels:', allTagLabels);
+              
+              if (allTagLabels.length === 0) return null;
+              
+              return (
+                <div className="mt-1.5 mb-1.5 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
+                  {allTagLabels.map((tagLabel, idx) => (
+                    <span 
+                      key={idx}
+                      className="text-[11px] px-2 py-1 rounded-md"
+                      style={{ 
+                        backgroundColor: '#F2F0E6',
+                        color: '#8C6D46'
+                      }}
+                    >
+                      {tagLabel}
+                    </span>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         )}
 

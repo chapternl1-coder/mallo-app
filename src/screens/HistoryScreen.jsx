@@ -395,6 +395,24 @@ function HistoryScreen({
                       </button>
                     </div>
 
+                    {/* 태그 리스트: 이름/번호 아래, 시술 내용 위 */}
+                    {record.tags && record.tags.length > 0 && (
+                      <div className="mt-1.5 mb-1.5 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
+                        {record.tags.map((tag, idx) => (
+                          <span 
+                            key={idx}
+                            className="text-[11px] px-2 py-1 rounded-md"
+                            style={{ 
+                              backgroundColor: '#F2F0E6',
+                              color: '#8C6D46'
+                            }}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
                     {/* 아랫줄: 시술 내용 */}
                     <div 
                       className="mt-1"

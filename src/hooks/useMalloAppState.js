@@ -258,13 +258,27 @@ export default function useMalloAppState() {
       const matched = matchTagsFromSummary(sourceText, allVisitTags);
       console.log('[방문 태그 자동 선택] 원본 텍스트:', sourceText?.substring(0, 100));
       console.log('[방문 태그 자동 선택] 매칭된 태그 ID:', matched);
-      const matchedTagLabels = matched.map(id => {
+      
+      // extractTagsFromContent로 추출한 태그도 ID로 변환하여 추가
+      const extractedTagIds = extractedTags
+        .map(tagLabel => {
+          const tag = allVisitTags.find(t => t.label === tagLabel);
+          return tag ? tag.id : null;
+        })
+        .filter(id => id !== null);
+      
+      // 두 방법으로 찾은 태그 ID를 합침
+      const allMatchedTagIds = [...new Set([...matched, ...extractedTagIds])];
+      
+      const matchedTagLabels = allMatchedTagIds.map(id => {
         const tag = allVisitTags.find(t => t.id === id);
         return tag ? tag.label : id;
       });
       console.log('[방문 태그 자동 선택] 매칭된 태그 라벨:', matchedTagLabels);
-      setRecommendedTagIds(matched);
-      setSelectedTagIds(matched);
+      console.log('[방문 태그 자동 선택] extractTagsFromContent로 추출한 태그:', extractedTags);
+      console.log('[방문 태그 자동 선택] 최종 태그 ID:', allMatchedTagIds);
+      setRecommendedTagIds(allMatchedTagIds);
+      setSelectedTagIds(allMatchedTagIds);
     }
     
     if (allCustomerTags.length > 0) {
