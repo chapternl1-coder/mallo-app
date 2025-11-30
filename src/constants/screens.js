@@ -10,5 +10,6 @@ export const SCREENS = {
   TAG_SETTINGS: 'TagSettings',
   HISTORY: 'History',
   RESERVATION: 'Reservation',
+  CONTACT_IMPORT: 'ContactImport',
 };
 

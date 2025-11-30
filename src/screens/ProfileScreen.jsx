@@ -148,6 +148,22 @@ function ProfileScreen({
             <ChevronRight size={18} style={{ color: '#A7A196' }} />
           </button>
 
+          {/* 고객 데이터 관리 */}
+          <button
+            onClick={() => {
+              setCurrentScreen(SCREENS.CONTACT_IMPORT);
+            }}
+            className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#F2F0E6] flex items-center justify-center">
+                <span className="text-xl">👥</span>
+              </div>
+              <span className="text-sm font-medium" style={{ color: '#232323' }}>고객 데이터 관리</span>
+            </div>
+            <ChevronRight size={18} style={{ color: '#A7A196' }} />
+          </button>
+
           {/* 도움말 / 문의하기 */}
           <button
             onClick={() => {
