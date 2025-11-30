@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, X } from 'lucide-react';
+import { SCREENS } from '../constants/screens';
 
 function EditCustomerScreen({
   editCustomerName,
@@ -93,7 +94,7 @@ function EditCustomerScreen({
     setEditCustomerTagIds([]);
     setEditCustomerMemo('');
     setNewTag('');
-    setCurrentScreen('CustomerDetail');
+    setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
   };
 
   const handleCancel = () => {
@@ -103,7 +104,7 @@ function EditCustomerScreen({
     setEditCustomerTagIds([]);
     setEditCustomerMemo('');
     setNewTag('');
-    setCurrentScreen('CustomerDetail');
+    setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
   };
 
   return (
@@ -251,7 +252,7 @@ function EditCustomerScreen({
                 
                 // History 화면으로 이동
                 setSelectedCustomerId(null);
-                setCurrentScreen('History');
+                setCurrentScreen(SCREENS.HISTORY);
               }
             }}
             className="px-6 py-2.5 rounded-xl text-sm font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all"
@@ -276,4 +277,5 @@ function EditCustomerScreen({
 }
 
 export default EditCustomerScreen;
+
 

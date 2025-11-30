@@ -1,5 +1,6 @@
 import React from 'react';
 import { Scissors, Mail, Lock } from 'lucide-react';
+import { SCREENS } from '../constants/screens';
 
 function LoginScreen({
   email,
@@ -15,7 +16,7 @@ function LoginScreen({
     if (email && password) {
       setIsLoggedIn(true);
       setActiveTab('Home');
-      setCurrentScreen('Home');
+      setCurrentScreen(SCREENS.HOME);
     } else {
       alert('이메일과 비밀번호를 입력해주세요.');
     }
@@ -83,4 +84,5 @@ function LoginScreen({
 }
 
 export default LoginScreen;
+
 

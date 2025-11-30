@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowLeft, X, Minus } from 'lucide-react';
+import { SCREENS } from '../constants/screens';
 
 function EditScreen({
   tempResultData,
@@ -25,7 +26,7 @@ function EditScreen({
     return (
       <div className="flex flex-col h-full items-center justify-center" style={{ backgroundColor: '#F2F0E6' }}>
         <p style={{ color: '#232323' }}>편집할 데이터가 없습니다.</p>
-        <button onClick={() => setCurrentScreen('Record')} className="mt-4 font-medium" style={{ color: '#232323' }}>결과 화면으로 돌아가기</button>
+        <button onClick={() => setCurrentScreen(SCREENS.RECORD)} className="mt-4 font-medium" style={{ color: '#232323' }}>결과 화면으로 돌아가기</button>
       </div>
     );
   }
@@ -157,9 +158,9 @@ function EditScreen({
     // 결과 화면으로 복귀 (Record 화면의 result 상태)
     // 편집 화면에서 온 경우 CustomerDetail로 돌아가기
     if (editingVisit) {
-      setCurrentScreen('CustomerDetail');
+      setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
     } else {
-      setCurrentScreen('Record');
+      setCurrentScreen(SCREENS.RECORD);
     }
   };
 
@@ -175,9 +176,9 @@ function EditScreen({
             setEditingVisitTagIds([]);
             // 편집 화면에서 온 경우 CustomerDetail로 돌아가기
             if (editingVisit) {
-              setCurrentScreen('CustomerDetail');
+              setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
             } else {
-              setCurrentScreen('Record');
+              setCurrentScreen(SCREENS.RECORD);
             }
           }} 
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
@@ -367,7 +368,7 @@ function EditScreen({
                   
                   // CustomerDetail 화면으로 돌아가기
                   setSelectedCustomerId(customerId);
-                  setCurrentScreen('CustomerDetail');
+                  setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
                 }
               }}
               className="px-6 py-2.5 rounded-xl text-sm font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all"

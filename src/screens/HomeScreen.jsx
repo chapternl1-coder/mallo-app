@@ -1,5 +1,6 @@
 import React from 'react';
 import { Mic, Scissors, ChevronRight } from 'lucide-react';
+import { SCREENS } from '../constants/screens';
 
 function HomeScreen({
   currentScreen,
@@ -45,16 +46,18 @@ function HomeScreen({
           <h2 className="text-xl font-bold" style={{ color: '#232323' }}>원장님, 안녕하세요!</h2>
           <span className="text-sm font-light mt-1" style={{ color: '#232323', opacity: 0.6 }}>{todayStr}</span>
         </div>
-        <button 
-          onClick={() => {
-            setActiveTab('History');
-            setCurrentScreen('History');
-          }}
-          className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-md hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: '#C9A27A' }}
-        >
-          <Scissors size={20} className="text-white" />
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => {
+              setActiveTab('History');
+              setCurrentScreen(SCREENS.HISTORY);
+            }}
+            className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-md hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: '#C9A27A' }}
+          >
+            <Scissors size={20} className="text-white" />
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 overflow-y-auto flex flex-col items-center justify-start p-8 space-y-12 pb-20 relative">
@@ -84,7 +87,7 @@ function HomeScreen({
                       e.stopPropagation();
                       console.log('선택된 고객:', customer.name, customer.id, customer.phone);
                       setSelectedCustomerId(customer.id);
-                      setCurrentScreen('CustomerDetail');
+                      setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
                     }}
                     className="bg-white rounded-xl p-4 hover:bg-gray-50 transition-all cursor-pointer border border-transparent hover:border-gray-200"
                   >
@@ -139,4 +142,5 @@ function HomeScreen({
 }
 
 export default HomeScreen;
+
 

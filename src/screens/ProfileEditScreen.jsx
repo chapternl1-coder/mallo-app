@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowLeft, Camera } from 'lucide-react';
+import { SCREENS } from '../constants/screens';
 
 function ProfileEditScreen({
   editProfileName,
@@ -18,7 +19,7 @@ function ProfileEditScreen({
       email: editProfileEmail.trim(),
       phone: editProfilePhone.trim()
     }));
-    setCurrentScreen('Profile');
+    setCurrentScreen(SCREENS.PROFILE);
   };
 
   return (
@@ -26,7 +27,7 @@ function ProfileEditScreen({
       {/* 헤더 */}
       <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
         <button 
-          onClick={() => setCurrentScreen('Profile')} 
+          onClick={() => setCurrentScreen(SCREENS.PROFILE)} 
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
           style={{ color: '#232323' }}
         >
@@ -111,4 +112,5 @@ function ProfileEditScreen({
 }
 
 export default ProfileEditScreen;
+
 

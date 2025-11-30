@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatRecordDateTime } from '../utils/date';
+import { SCREENS } from '../constants/screens';
 
 function HistoryScreen({
   allRecords,
@@ -117,7 +118,7 @@ function HistoryScreen({
         <button 
           onClick={() => {
             setActiveTab('Home');
-            setCurrentScreen('Home');
+            setCurrentScreen(SCREENS.HOME);
           }}
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
           style={{ color: textColor }}
@@ -322,7 +323,7 @@ function HistoryScreen({
               const handleCustomerClick = (record) => {
                 if (!record || !record.customerId) return;
                 setSelectedCustomerId(record.customerId);
-                setCurrentScreen('CustomerDetail');
+                setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
               };
 
               // 기록 상세 펼치기/접기 핸들러

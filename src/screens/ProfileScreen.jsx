@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowLeft, Edit, ChevronRight } from 'lucide-react';
+import { SCREENS } from '../constants/screens';
 
 function ProfileScreen({ 
   currentScreen, 
@@ -22,7 +23,7 @@ function ProfileScreen({
       {/* 헤더 */}
       <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
         <button 
-          onClick={() => setCurrentScreen('Home')} 
+          onClick={() => setCurrentScreen(SCREENS.HOME)} 
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
           style={{ color: '#232323' }}
         >
@@ -38,7 +39,7 @@ function ProfileScreen({
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 relative">
           <button
             onClick={() => {
-              setCurrentScreen('profile-edit');
+              setCurrentScreen(SCREENS.PROFILE_EDIT);
             }}
             className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-xl transition-colors"
             style={{ color: '#C9A27A' }}
@@ -82,7 +83,7 @@ function ProfileScreen({
           {/* 시술 태그/키워드 관리 */}
           <button
             onClick={() => {
-              setCurrentScreen('TagSettings');
+              setCurrentScreen(SCREENS.TAG_SETTINGS);
             }}
             className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
           >
@@ -198,4 +199,5 @@ function ProfileScreen({
 }
 
 export default ProfileScreen;
+
 

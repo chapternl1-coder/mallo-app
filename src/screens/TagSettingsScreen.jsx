@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowLeft, X } from 'lucide-react';
+import { SCREENS } from '../constants/screens';
 
 // 헬퍼 함수들
 const normalize = (text) => {
@@ -219,7 +220,7 @@ function TagSettingsScreen({
       {/* 헤더 */}
       <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
         <button 
-          onClick={() => setCurrentScreen('Profile')} 
+          onClick={() => setCurrentScreen(SCREENS.PROFILE)} 
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
           style={{ color: '#232323' }}
         >
@@ -389,4 +390,5 @@ function TagSettingsScreen({
 }
 
 export default TagSettingsScreen;
+
 

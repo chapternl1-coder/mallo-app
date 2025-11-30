@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft, MoreHorizontal, Phone, Edit, Mic, ChevronUp, ChevronDown } from 'lucide-react';
 import { formatRecordDateTime, formatServiceDateTimeLabel } from '../utils/date';
+import { SCREENS } from '../constants/screens';
 
 function CustomerDetailScreen({
   currentScreen,
@@ -86,7 +87,7 @@ function CustomerDetailScreen({
     return (
       <div className="flex flex-col h-full items-center justify-center" style={{ backgroundColor: '#F2F0E6' }}>
         <p style={{ color: '#232323' }}>고객 정보를 찾을 수 없습니다.</p>
-        <button onClick={() => setCurrentScreen('History')} className="mt-4 font-medium" style={{ color: '#232323' }}>히스토리로 돌아가기</button>
+        <button onClick={() => setCurrentScreen(SCREENS.HISTORY)} className="mt-4 font-medium" style={{ color: '#232323' }}>히스토리로 돌아가기</button>
       </div>
     );
   }
@@ -130,7 +131,7 @@ function CustomerDetailScreen({
     <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
       {/* Header */}
       <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
-        <button onClick={() => setCurrentScreen('History')} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
+        <button onClick={() => setCurrentScreen(SCREENS.HISTORY)} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
           <ArrowLeft size={24} />
         </button>
         <div className="text-center">
@@ -173,7 +174,7 @@ function CustomerDetailScreen({
                 .filter(id => id !== null);
               setEditCustomerTagIds(tagIds);
               
-              setCurrentScreen('EditCustomer');
+              setCurrentScreen(SCREENS.EDIT_CUSTOMER);
             }}
             className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
             style={{ color: '#C9A27A' }}
@@ -422,7 +423,7 @@ function CustomerDetailScreen({
                             .filter(id => id !== null);
                           setEditingVisitTagIds(visitTagIds);
                           
-                          setCurrentScreen('Edit');
+                          setCurrentScreen(SCREENS.EDIT);
                         }}
                       >
                         <Edit size={18} />
@@ -567,4 +568,5 @@ function CustomerDetailScreen({
 }
 
 export default CustomerDetailScreen;
+
 

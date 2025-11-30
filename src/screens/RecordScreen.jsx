@@ -1,5 +1,6 @@
 import React from 'react';
 import { Square, Scissors, ArrowLeft, MoreHorizontal, Phone, Edit, ChevronRight } from 'lucide-react';
+import { SCREENS } from '../constants/screens';
 
 // WaveBars 컴포넌트
 const WaveBars = () => (
@@ -593,7 +594,7 @@ function RecordScreen({
             onClick={() => {
               if (resultData) {
                 setTempResultData(JSON.parse(JSON.stringify(resultData)));
-                setCurrentScreen('Edit');
+                setCurrentScreen(SCREENS.EDIT);
               }
             }}
             className="flex items-center justify-center gap-2 py-4 rounded-2xl font-medium bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
@@ -851,7 +852,7 @@ function RecordScreen({
                 }));
                 
                 setSelectedCustomerId(customerId);
-                setCurrentScreen('CustomerDetail');
+                setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
               } else {
                 // 신규 고객인 경우 이름 필수 검증
                 if (!tempName || !tempName.trim()) {
@@ -1001,7 +1002,7 @@ function RecordScreen({
                 }));
                 
                 setSelectedCustomerId(newCustomerId);
-                setCurrentScreen('CustomerDetail');
+                setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
               }
               
               // 저장 후 상태 초기화
