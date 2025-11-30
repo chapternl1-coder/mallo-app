@@ -28,7 +28,7 @@ function ProfileEditScreen({
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
       {/* 헤더 */}
-      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm h-[100px]">
+      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
         <button 
           onClick={() => setCurrentScreen(SCREENS.PROFILE)} 
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
@@ -37,11 +37,11 @@ function ProfileEditScreen({
           <ArrowLeft size={24} />
         </button>
         <h2 className="font-bold text-base" style={{ color: '#232323' }}>프로필 수정</h2>
-        <div className="w-10"></div> {/* 오른쪽 공간 맞추기 */}
+        <div className="w-10"></div>
       </header>
 
       {/* 내용 영역 */}
-      <main className="flex-1 overflow-y-auto p-8 space-y-6 pb-32">
+      <main className="flex-1 overflow-y-auto p-8 space-y-4 pb-32">
         {/* 프로필 사진 */}
         <div className="flex justify-center">
           <div className="relative">
@@ -49,67 +49,67 @@ function ProfileEditScreen({
               👩‍⚕️
             </div>
             <button
-              className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#C9A27A] flex items-center justify-center text-white shadow-md hover:bg-[#B8946A] transition-colors"
+              className="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-[#C9A27A] flex items-center justify-center text-white shadow-md hover:bg-[#B8946A] transition-colors"
               onClick={() => {
-                // TODO: 프로필 사진 변경 기능 구현
                 alert('프로필 사진 변경 기능은 준비 중입니다.');
               }}
             >
-              <Camera size={16} />
+              <Camera size={18} />
             </button>
           </div>
         </div>
 
-        {/* 이름 */}
+        {/* 프로필 정보 카드 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <label className="block text-sm font-bold mb-2" style={{ color: '#232323' }}>이름</label>
-          <input
-            type="text"
-            value={editProfileName}
-            onChange={(e) => setEditProfileName(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
-            style={{ color: '#232323' }}
-            placeholder="이름을 입력하세요"
-          />
-        </div>
+          <div className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#232323' }}>이름</label>
+              <input
+                type="text"
+                value={editProfileName}
+                onChange={(e) => setEditProfileName(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
+                style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
+                placeholder="이름을 입력하세요"
+              />
+            </div>
 
-        {/* 샵 이름 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <label className="block text-sm font-bold mb-2" style={{ color: '#232323' }}>샵 이름</label>
-          <input
-            type="text"
-            value={editProfileShopName}
-            onChange={(e) => setEditProfileShopName(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
-            style={{ color: '#232323' }}
-            placeholder="샵 이름을 입력하세요"
-          />
-        </div>
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#232323' }}>연락처</label>
+              <input
+                type="tel"
+                value={editProfilePhone}
+                onChange={(e) => setEditProfilePhone(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
+                style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
+                placeholder="010-0000-0000"
+              />
+            </div>
 
-        {/* 연락처 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <label className="block text-sm font-bold mb-2" style={{ color: '#232323' }}>연락처</label>
-          <input
-            type="tel"
-            value={editProfilePhone}
-            onChange={(e) => setEditProfilePhone(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
-            style={{ color: '#232323' }}
-            placeholder="010-0000-0000"
-          />
-        </div>
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#232323' }}>샵 이름</label>
+              <input
+                type="text"
+                value={editProfileShopName}
+                onChange={(e) => setEditProfileShopName(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
+                style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
+                placeholder="샵 이름을 입력하세요"
+              />
+            </div>
 
-        {/* 이메일 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <label className="block text-sm font-bold mb-2" style={{ color: '#232323' }}>이메일</label>
-          <input
-            type="email"
-            value={editProfileEmail}
-            onChange={(e) => setEditProfileEmail(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
-            style={{ color: '#232323' }}
-            placeholder="email@example.com"
-          />
+            <div>
+              <label className="block text-sm font-medium mb-2" style={{ color: '#232323' }}>이메일</label>
+              <input
+                type="email"
+                value={editProfileEmail}
+                onChange={(e) => setEditProfileEmail(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
+                style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
+                placeholder="email@example.com"
+              />
+            </div>
+          </div>
         </div>
       </main>
 
