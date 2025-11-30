@@ -1,7 +1,8 @@
 // 음성 녹음 → 처리 → 결과 미리보기까지 담당하는 화면
 import React from 'react';
-import { Square, Scissors, ArrowLeft, MoreHorizontal, Phone, Edit, ChevronRight } from 'lucide-react';
+import { Square, ArrowLeft, MoreHorizontal, Phone, Edit, ChevronRight } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
+import logo from '../assets/logo.png';
 import {
   formatRecordingDateTime,
   createDateTimeStrings,
@@ -222,9 +223,11 @@ function RecordScreen({
     return (
       <div className="flex flex-col h-full px-8 pt-24 pb-12" style={{ backgroundColor: '#F2F0E6' }}>
         <div className="text-center mb-12">
-          <div className="inline-block p-5 rounded-2xl bg-white shadow-md border border-gray-200 mb-6 animate-bounce" style={{ backgroundColor: '#FFFFFF' }}>
-            <Scissors size={32} style={{ color: '#C9A27A' }} />
-          </div>
+          <img 
+            src={logo} 
+            alt="Mallo 로고" 
+            className="w-28 h-28 object-contain mx-auto mb-6 animate-bounce"
+          />
           <h2 className="text-2xl font-bold mb-3" style={{ color: '#232323' }}>시술 기록 정리 중</h2>
           <p className="font-light" style={{ color: '#232323' }}>AI가 내용을 분석하고 서식을 적용하고 있습니다.</p>
         </div>

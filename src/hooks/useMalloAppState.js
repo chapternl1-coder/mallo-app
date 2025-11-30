@@ -12,6 +12,9 @@ import { SYSTEM_PROMPT } from '../constants/systemPrompt';
 import TagPickerModal from '../components/TagPickerModal';
 import CustomerTagPickerModal from '../components/CustomerTagPickerModal';
 
+// 녹음 시간 제한 상수
+const MAX_RECORD_SECONDS = 120; // 2분
+
 export default function useMalloAppState() {
   const [currentScreen, setCurrentScreen] = useState(SCREENS.LOGIN);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -1005,6 +1008,17 @@ export default function useMalloAppState() {
       setIsProcessing(false);
     }
   }, [currentScreen, recordingTime, resultData, isProcessing]);
+
+  // 2분 제한 도달 시 자동으로 녹음 종료
+  useEffect(() => {
+    if (recordState !== 'recording') return;
+    if (isProcessing) return; // 이미 처리 중이면 무시
+    
+    if (recordingTime >= MAX_RECORD_SECONDS) {
+      console.log('⏱ 2분 제한 도달, 자동으로 녹음 종료');
+      stopRecording();
+    }
+  }, [recordState, recordingTime, isProcessing]);
 
   useEffect(() => {
     if (currentScreen === SCREENS.HOME) {
