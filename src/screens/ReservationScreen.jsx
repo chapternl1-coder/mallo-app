@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Calendar, ChevronLeft, ChevronRight, Check, Minus, Plus } from 'lucide-react';
+import { ArrowLeft, Calendar, ChevronLeft, ChevronRight, Check, Minus, Plus, GripVertical } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { SCREENS } from '../constants/screens';
 
 function ReservationScreen({
@@ -278,6 +279,35 @@ function ReservationScreen({
     }
   };
 
+  // 드래그 앤 드롭 핸들러
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
+    
+    const sourceIndex = result.source.index;
+    const destinationIndex = result.destination.index;
+    
+    if (sourceIndex === destinationIndex) return;
+
+    // 순서 변경
+    const reordered = Array.from(sortedReservations);
+    const [removed] = reordered.splice(sourceIndex, 1);
+    reordered.splice(destinationIndex, 0, removed);
+
+    // order 필드 업데이트
+    const updatedReservations = reordered.map((res, idx) => ({
+      ...res,
+      order: idx
+    }));
+
+    // 전체 reservations 배열에서 업데이트
+    if (setReservations) {
+      setReservations(prev => {
+        const otherReservations = prev.filter(res => res.date !== selectedDate);
+        return [...otherReservations, ...updatedReservations];
+      });
+    }
+  };
+
   // 입력 포커스 관리
   useEffect(() => {
     if ((isAddingNew || editingIndex !== null) && inputRef.current) {
@@ -397,18 +427,48 @@ function ReservationScreen({
         </div>
 
         {/* 예약 리스트 */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          {sortedReservations.map((reservation, index) => {
-            const isEditing = editingIndex === index;
-            const isLast = index === sortedReservations.length - 1;
-            
-            return (
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="reservations">
+            {(provided, snapshot) => (
               <div
-                key={reservation.id}
-                className={`flex items-center gap-3 ${!isLast ? 'pb-2 mb-2 border-b border-gray-100' : ''} transition-all`}
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
               >
-                
-                {/* 체크박스 (완료 토글) */}
+                {sortedReservations.map((reservation, index) => {
+                  const isEditing = editingIndex === index;
+                  const isLast = index === sortedReservations.length - 1;
+                  
+                  return (
+                    <Draggable
+                      key={reservation.id}
+                      draggableId={String(reservation.id)}
+                      index={index}
+                      isDragDisabled={isEditing || isAddingNew}
+                    >
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          className={`flex items-center gap-3 ${!isLast ? 'pb-2 mb-2 border-b border-gray-100' : ''} transition-all ${
+                            snapshot.isDragging ? 'opacity-60 shadow-lg' : ''
+                          }`}
+                          style={{
+                            ...provided.draggableProps.style,
+                          }}
+                        >
+                          {/* 드래그 핸들 아이콘 (왼쪽) */}
+                          {!isEditing && (
+                            <div
+                              {...provided.dragHandleProps}
+                              className="flex-shrink-0 cursor-grab active:cursor-grabbing p-1"
+                              onMouseDown={(e) => e.stopPropagation()}
+                            >
+                              <GripVertical size={18} className="text-gray-300" />
+                            </div>
+                          )}
+                          
+                          {/* 체크박스 (완료 토글) */}
                 <button
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
@@ -496,9 +556,16 @@ function ReservationScreen({
                     {[reservation.time, reservation.name].filter(Boolean).join(' ')}
                   </div>
                 )}
+                        </div>
+                      )}
+                    </Draggable>
+                  );
+                })}
+                {provided.placeholder}
               </div>
-            );
-          })}
+            )}
+          </Droppable>
+        </DragDropContext>
 
           {sortedReservations.length === 0 && !isAddingNew && (
             <div className="text-center py-8">
@@ -534,7 +601,6 @@ function ReservationScreen({
             </div>
           )}
 
-        </div>
       </main>
     </div>
   );
