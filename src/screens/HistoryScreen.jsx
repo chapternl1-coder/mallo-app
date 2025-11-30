@@ -63,8 +63,65 @@ function HistoryScreen({
       })
     : allRecords;
 
+  // 시간 추출 헬퍼 함수 (UI 표시와 동일한 방식)
+  const extractTimeFromRecord = (record) => {
+    // UI에서 reservationTimeLabel을 생성하는 방식과 동일하게
+    const serviceDateTimeLabel = extractServiceDateTimeLabel(record);
+    if (serviceDateTimeLabel) {
+      // "2025-12-27 17:30 방문/예약" -> "17:30" 추출
+      const timeMatch = serviceDateTimeLabel.match(/(\d{2}):(\d{2})/);
+      if (timeMatch) {
+        const [, hh, mm] = timeMatch;
+        return `${hh}:${mm}`;
+      }
+    }
+    
+    // fallback: record.time 직접 사용
+    if (record.time) {
+      const timeStr = String(record.time).trim();
+      // "HH:mm" 또는 "H:mm" 형식 처리
+      if (/^\d{1,2}:\d{2}/.test(timeStr)) {
+        const [hour, minute] = timeStr.split(':');
+        return `${String(parseInt(hour, 10)).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+      }
+    }
+    
+    // fallback: detail.sections에서 직접 추출
+    if (record.detail && record.detail.sections) {
+      const visitSection = record.detail.sections.find(
+        section => section.title && section.title.includes('방문·예약 정보')
+      );
+      
+      if (visitSection && visitSection.content && Array.isArray(visitSection.content)) {
+        for (const line of visitSection.content) {
+          if (!line || typeof line !== 'string') continue;
+          // "2025년 12월 27일 (금) 17:30 예약 후 제시간 방문" 같은 패턴에서 시간 추출
+          const timeMatch = line.match(/\b(\d{1,2}):(\d{2})\b/);
+          if (timeMatch) {
+            const [, hour, minute] = timeMatch;
+            return `${String(parseInt(hour, 10)).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+          }
+        }
+      }
+    }
+    
+    return '00:00'; // 기본값
+  };
+
+  // 디버깅: 정렬 전 모든 기록의 시간 추출 확인
+  if (filteredRecords.length > 0 && selectedDate) {
+    console.log('[HistoryScreen 정렬 전] 날짜:', selectedDate, '필터링된 기록 수:', filteredRecords.length);
+    filteredRecords.forEach((record, idx) => {
+      const time = extractTimeFromRecord(record);
+      const dateTimeLabel = extractServiceDateTimeLabel(record);
+      console.log(`[HistoryScreen 정렬 전] ${idx + 1}번째: 시간=${time}, dateTimeLabel="${dateTimeLabel}", record.time="${record.time}", 제목="${record.title || record.id}"`);
+    });
+  }
+
   // 날짜와 시간순 정렬 (serviceDate 우선, 없으면 detail.sections에서 파싱, 그래도 없으면 date 사용)
-  filteredRecords.sort((a, b) => {
+  // 같은 날짜 내에서는 시간 내림차순 (늦은 시간이 위로)
+  const sortedRecords = [...filteredRecords].sort((a, b) => {
+    // 날짜 추출
     let baseDateA = a.serviceDate;
     if (!baseDateA && a.detail && a.detail.sections) {
       const visitDataA = { sections: a.detail.sections };
@@ -92,12 +149,43 @@ function HistoryScreen({
     if (dateA.getTime() !== dateB.getTime()) {
       return dateB.getTime() - dateA.getTime(); // 최신 날짜가 먼저
     }
-    // 같은 날짜면 시간 비교
-    const timeA = a.time.split(':').map(Number);
-    const timeB = b.time.split(':').map(Number);
-    if (timeA[0] !== timeB[0]) return timeB[0] - timeA[0];
-    return timeB[1] - timeA[1];
+    
+    // 같은 날짜면 시간 내림차순으로 정렬 (늦은 시간이 위로)
+    const timeA = extractTimeFromRecord(a);
+    const timeB = extractTimeFromRecord(b);
+    
+    // "HH:mm" 형식의 시간을 비교
+    const timePartsA = timeA.split(':').map(Number);
+    const timePartsB = timeB.split(':').map(Number);
+    
+    // 시간 파싱 검증
+    if (timePartsA.length !== 2 || timePartsB.length !== 2 || 
+        isNaN(timePartsA[0]) || isNaN(timePartsA[1]) || 
+        isNaN(timePartsB[0]) || isNaN(timePartsB[1])) {
+      // 시간 파싱 실패 시 순서 유지
+      return 0;
+    }
+    
+    const [hourA, minuteA] = timePartsA;
+    const [hourB, minuteB] = timePartsB;
+    
+    // 시간 비교: 시간 * 60 + 분으로 변환해서 비교 (늦은 시간이 위로)
+    const totalMinutesA = hourA * 60 + minuteA;
+    const totalMinutesB = hourB * 60 + minuteB;
+    
+    // 내림차순: 큰 값(늦은 시간)이 앞으로
+    return totalMinutesB - totalMinutesA;
   });
+
+  // 디버깅: 정렬 결과 확인
+  if (sortedRecords.length > 0 && selectedDate) {
+    console.log('[HistoryScreen 정렬] 날짜:', selectedDate, '총 기록 수:', sortedRecords.length);
+    sortedRecords.forEach((record, idx) => {
+      const time = extractTimeFromRecord(record);
+      const dateTimeLabel = extractServiceDateTimeLabel(record);
+      console.log(`[HistoryScreen 정렬] ${idx + 1}번째: 시간=${time}, dateTimeLabel="${dateTimeLabel}", 제목="${record.title || record.id}"`);
+    });
+  }
 
   // 날짜 포맷팅 함수 (YYYY-MM-DD -> YYYY년 MM월 DD일)
   const formatDate = (dateStr) => {
@@ -169,14 +257,14 @@ function HistoryScreen({
             <span>{selectedDate ? formatDate(selectedDate) + ' 기록' : '전체 시술 기록'}</span>
           </h3>
           
-          {filteredRecords.length === 0 ? (
+          {sortedRecords.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
               <p className="font-light text-base" style={{ color: textColor, opacity: 0.6 }}>
                 {selectedDate ? '해당 날짜의 시술 기록이 없습니다' : '시술 기록이 없습니다'}
               </p>
             </div>
           ) : (
-            filteredRecords.map((record) => {
+            sortedRecords.map((record) => {
               // summary 텍스트에서 고객 정보 추출하는 helper 함수
               const extractCustomerInfoFromSummary = (summary) => {
                 if (!summary) return { name: undefined, phone: undefined };
