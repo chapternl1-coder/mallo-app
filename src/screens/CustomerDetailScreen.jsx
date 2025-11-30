@@ -1,6 +1,6 @@
 // 특정 고객의 정보와 방문 히스토리를 보여주는 화면
 import React from 'react';
-import { ArrowLeft, MoreHorizontal, Phone, Edit, Mic, ChevronUp, ChevronDown } from 'lucide-react';
+import { ArrowLeft, MoreHorizontal, Phone, Edit, Mic, ChevronUp, ChevronDown, Calendar, Repeat } from 'lucide-react';
 import { formatRecordDateTime, formatServiceDateTimeLabel } from '../utils/date';
 import { SCREENS } from '../constants/screens';
 import {
@@ -11,6 +11,7 @@ import {
   convertCustomerTagsToIds,
   convertVisitTagsToIds
 } from '../utils/visitUtils';
+import { extractServiceDateFromSummary } from '../utils/serviceUtils';
 
 function CustomerDetailScreen({
   setCurrentScreen,
@@ -86,10 +87,107 @@ function CustomerDetailScreen({
   
   const customerVisits = visits[selectedCustomerId] || [];
   
+  // 시간 추출 헬퍼 함수 (HistoryScreen과 동일)
+  const extractTimeFromVisit = (visit) => {
+    // UI에서 serviceDateTimeLabel을 생성하는 방식과 동일하게
+    const serviceDateTimeLabel = extractServiceDateTimeLabel(visit);
+    if (serviceDateTimeLabel) {
+      // "2025-12-27 17:30 방문/예약" -> "17:30" 추출
+      const timeMatch = serviceDateTimeLabel.match(/(\d{2}):(\d{2})/);
+      if (timeMatch) {
+        const [, hh, mm] = timeMatch;
+        return `${hh}:${mm}`;
+      }
+    }
+    
+    // fallback: visit.time 직접 사용
+    if (visit.time) {
+      const timeStr = String(visit.time).trim();
+      // "HH:mm" 또는 "H:mm" 형식 처리
+      if (/^\d{1,2}:\d{2}/.test(timeStr)) {
+        const [hour, minute] = timeStr.split(':');
+        return `${String(parseInt(hour, 10)).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+      }
+    }
+    
+    // fallback: detail.sections에서 직접 추출
+    if (visit.detail && visit.detail.sections) {
+      const visitSection = visit.detail.sections.find(
+        section => section.title && section.title.includes('방문·예약 정보')
+      );
+      
+      if (visitSection && visitSection.content && Array.isArray(visitSection.content)) {
+        for (const line of visitSection.content) {
+          if (!line || typeof line !== 'string') continue;
+          // "2025년 12월 27일 (금) 17:30 예약 후 제시간 방문" 같은 패턴에서 시간 추출
+          const timeMatch = line.match(/\b(\d{1,2}):(\d{2})\b/);
+          if (timeMatch) {
+            const [, hour, minute] = timeMatch;
+            return `${String(parseInt(hour, 10)).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+          }
+        }
+      }
+    }
+    
+    return '00:00'; // 기본값
+  };
+
+  // 방문 기록 정렬: 날짜 내림차순(최신 날짜가 위), 같은 날짜면 시간 내림차순(늦은 시간이 위)
+  const sortedCustomerVisits = [...customerVisits].sort((a, b) => {
+    // 날짜 추출
+    let baseDateA = a.serviceDate;
+    if (!baseDateA && a.detail && a.detail.sections) {
+      const visitDataA = { sections: a.detail.sections };
+      baseDateA = extractServiceDateFromSummary(visitDataA);
+    }
+    baseDateA = baseDateA || a.date;
+    
+    let baseDateB = b.serviceDate;
+    if (!baseDateB && b.detail && b.detail.sections) {
+      const visitDataB = { sections: b.detail.sections };
+      baseDateB = extractServiceDateFromSummary(visitDataB);
+    }
+    baseDateB = baseDateB || b.date;
+    
+    // 날짜 비교
+    const dateA = new Date(baseDateA);
+    const dateB = new Date(baseDateB);
+    if (dateA.getTime() !== dateB.getTime()) {
+      return dateB.getTime() - dateA.getTime(); // 최신 날짜가 먼저
+    }
+    
+    // 같은 날짜면 시간 내림차순으로 정렬 (늦은 시간이 위로)
+    const timeA = extractTimeFromVisit(a);
+    const timeB = extractTimeFromVisit(b);
+    
+    // "HH:mm" 형식의 시간을 비교
+    const timePartsA = timeA.split(':').map(Number);
+    const timePartsB = timeB.split(':').map(Number);
+    
+    // 시간 파싱 검증
+    if (timePartsA.length !== 2 || timePartsB.length !== 2 || 
+        isNaN(timePartsA[0]) || isNaN(timePartsA[1]) || 
+        isNaN(timePartsB[0]) || isNaN(timePartsB[1])) {
+      // 시간 파싱 실패 시 순서 유지
+      return 0;
+    }
+    
+    const [hourA, minuteA] = timePartsA;
+    const [hourB, minuteB] = timePartsB;
+    
+    // 시간 비교: 시간 * 60 + 분으로 변환해서 비교 (늦은 시간이 위로)
+    const totalMinutesA = hourA * 60 + minuteA;
+    const totalMinutesB = hourB * 60 + minuteB;
+    
+    // 내림차순: 큰 값(늦은 시간)이 앞으로
+    return totalMinutesB - totalMinutesA;
+  });
+  
   console.log('CustomerDetailScreen - 최종 찾은 고객:', customer);
   console.log('CustomerDetailScreen - customer.customerTags:', customer?.customerTags);
   console.log('CustomerDetailScreen - customerVisits:', customerVisits);
-  console.log('CustomerDetailScreen - 첫 번째 방문 tags:', customerVisits[0]?.tags);
+  console.log('CustomerDetailScreen - sortedCustomerVisits:', sortedCustomerVisits);
+  console.log('CustomerDetailScreen - 첫 번째 방문 tags:', sortedCustomerVisits[0]?.tags);
 
   if (!customer) {
     return (
@@ -102,7 +200,7 @@ function CustomerDetailScreen({
 
   // 더 보기 함수
   const handleLoadMoreVisits = () => {
-    setVisibleVisitCount((prev) => Math.min(prev + 10, customerVisits.length));
+    setVisibleVisitCount((prev) => Math.min(prev + 10, sortedCustomerVisits.length));
   };
 
   // 접기 함수
@@ -122,9 +220,7 @@ function CustomerDetailScreen({
           <span className="text-xs font-medium" style={{ color: '#232323', opacity: 0.7 }}>고객 상세</span>
           <h2 className="font-bold text-base mt-1" style={{ color: '#232323' }}>{customer.name}</h2>
         </div>
-        <button className="p-2" style={{ color: '#232323', opacity: 0.5 }}>
-          <MoreHorizontal size={24} />
-        </button>
+        <div className="w-10"></div> {/* 공간 맞추기용 */}
       </header>
 
       <main className="flex-1 overflow-y-auto p-8 space-y-6 pb-32">
@@ -165,6 +261,72 @@ function CustomerDetailScreen({
                   <span>{customer.phone}</span>
                 </div>
               </div>
+              
+              {/* 첫 방문일 및 평균 방문 주기 요약 박스 */}
+              {(() => {
+                // 방문 기록에서 날짜 추출
+                const visitDates = sortedCustomerVisits
+                  .map(visit => {
+                    let baseDate = visit.serviceDate;
+                    if (!baseDate && visit.detail && visit.detail.sections) {
+                      const visitData = { sections: visit.detail.sections };
+                      baseDate = extractServiceDateFromSummary(visitData);
+                    }
+                    return baseDate || visit.date;
+                  })
+                  .filter(date => date) // 유효한 날짜만
+                  .map(date => new Date(date))
+                  .filter(date => !isNaN(date.getTime())); // 유효한 Date 객체만
+                
+                if (visitDates.length === 0) {
+                  return null; // 방문 기록 없음
+                }
+                
+                // 날짜 정렬 (오름차순: 과거 -> 최근)
+                visitDates.sort((a, b) => a.getTime() - b.getTime());
+                
+                // 첫 방문일
+                const firstVisitDate = visitDates[0];
+                const firstVisitYear = String(firstVisitDate.getFullYear()).slice(-2);
+                const firstVisitMonth = String(firstVisitDate.getMonth() + 1).padStart(2, '0');
+                const firstVisitDay = String(firstVisitDate.getDate()).padStart(2, '0');
+                const firstVisitFormatted = `${firstVisitYear}.${firstVisitMonth}.${firstVisitDay}`;
+                
+                // 평균 방문 주기 계산
+                let averageCycle = null;
+                if (visitDates.length >= 2) {
+                  const latestVisitDate = visitDates[visitDates.length - 1];
+                  const daysDiff = Math.round(
+                    (latestVisitDate.getTime() - firstVisitDate.getTime()) / (1000 * 60 * 60 * 24)
+                  );
+                  averageCycle = Math.round(daysDiff / (visitDates.length - 1));
+                }
+                
+                return (
+                  <div className="w-full bg-gray-50 rounded-xl py-3 px-4 my-4 grid grid-cols-2 divide-x divide-gray-200">
+                    {/* 좌측 - 첫 방문 */}
+                    <div className="flex flex-col items-center justify-center text-center px-2">
+                      <span className="text-xs text-gray-400 mb-1">첫 방문</span>
+                      <span className="text-sm text-gray-700 font-medium">
+                        {firstVisitFormatted}
+                      </span>
+                    </div>
+                    
+                    {/* 우측 - 방문 주기 */}
+                    <div className="flex flex-col items-center justify-center text-center px-2">
+                      <span className="text-xs text-gray-400 mb-1">방문 주기</span>
+                      {averageCycle === null ? (
+                        <span className="text-sm text-gray-700 font-medium">신규 고객</span>
+                      ) : (
+                        <span className="text-sm text-[#C9A27A] font-bold">
+                          평균 {averageCycle}일
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+              
               {/* customerTags 표시 (주의 태그가 맨 앞) */}
               {(() => {
                 const allTags = formatCustomerTagsForDisplay(customer.customerTags || {}, customer.visitCount || 0);
@@ -206,12 +368,12 @@ function CustomerDetailScreen({
         {/* 방문 히스토리 */}
         <div className="space-y-4 pb-24">
           <h3 className="text-base font-bold" style={{ color: '#232323' }}>방문 히스토리</h3>
-          {customerVisits.length === 0 ? (
+          {sortedCustomerVisits.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 shadow-sm">
               <p className="font-light text-base" style={{ color: '#232323', opacity: 0.6 }}>방문 기록이 없습니다</p>
             </div>
           ) : (
-            customerVisits.slice(0, visibleVisitCount).map((visit) => {
+            sortedCustomerVisits.slice(0, visibleVisitCount).map((visit) => {
               // record + customer를 합쳐서 사용 (customerName, customerPhone 보정)
               const normalizedVisit = normalizeRecordWithCustomer(visit, customer);
               const safeName = normalizedVisit.customerName || '미기재';
@@ -406,9 +568,9 @@ function CustomerDetailScreen({
           )}
           
           {/* 이전 기록 더 보기 / 접기 버튼 */}
-          {(customerVisits.length > visibleVisitCount || visibleVisitCount > 10) && (
+          {(sortedCustomerVisits.length > visibleVisitCount || visibleVisitCount > 10) && (
             <div className="flex justify-center mt-4 mb-20 gap-3">
-              {customerVisits.length > visibleVisitCount && (
+              {sortedCustomerVisits.length > visibleVisitCount && (
                 <button
                   onClick={handleLoadMoreVisits}
                   className="px-4 py-2 text-sm rounded-full border border-[#C9A27A] text-[#C9A27A] bg-white/90 shadow-sm hover:bg-[#C9A27A] hover:text-white transition-colors min-w-[180px]"
