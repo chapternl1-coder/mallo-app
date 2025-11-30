@@ -1090,6 +1090,12 @@ export default function useMalloAppState() {
     setReservations(prev => prev.filter(res => res.id !== id));
   };
 
+  const updateReservation = (id, updatedData) => {
+    setReservations(prev => prev.map(res => 
+      res.id === id ? { ...res, ...updatedData } : res
+    ));
+  };
+
   const screenRouterProps = {
     currentScreen,
     setCurrentScreen,
@@ -1228,7 +1234,8 @@ export default function useMalloAppState() {
     setReservations,
     addReservation,
     toggleReservationComplete,
-    deleteReservation
+    deleteReservation,
+    updateReservation
   };
 
   return {

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Calendar, X, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { ArrowLeft, Calendar, ChevronLeft, ChevronRight, Check, Minus, Plus } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
 
 function ReservationScreen({
@@ -7,12 +7,13 @@ function ReservationScreen({
   addReservation,
   toggleReservationComplete,
   deleteReservation,
+  updateReservation,
   setReservations,
   setCurrentScreen,
   getTodayDateString,
   currentTheme
 }) {
-  // 오늘 날짜 계산 (getTodayDateString이 없으면 직접 계산)
+  // 오늘 날짜 계산
   const getTodayDateStr = () => {
     if (getTodayDateString) return getTodayDateString();
     const today = new Date();
@@ -20,6 +21,11 @@ function ReservationScreen({
   };
 
   const [selectedDate, setSelectedDate] = useState(getTodayDateStr());
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editingText, setEditingText] = useState('');
+  const [isAddingNew, setIsAddingNew] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const inputRef = useRef(null);
 
   const bgColor = currentTheme?.pastel || '#F2F0E6';
   const textColor = currentTheme?.text || '#232323';
@@ -88,6 +94,179 @@ function ReservationScreen({
     setSelectedDate(formatDateStr(newDate));
   };
 
+  // 텍스트 파싱 (시간, 이름, 전화번호 추출)
+  const parseReservationText = (text) => {
+    // 예: "14:30 김철수 1234" 또는 "2시30분 김철수 1234"
+    const timeMatch = text.match(/(\d{1,2}):?(\d{2})/);
+    const parts = text.trim().split(/\s+/);
+    
+    let time = '';
+    let name = '';
+    let phoneLast4 = '';
+
+    if (timeMatch) {
+      const hours = timeMatch[1].padStart(2, '0');
+      const minutes = timeMatch[2] || '00';
+      time = `${hours}:${minutes}`;
+    }
+
+    // 숫자 4자리는 전화번호로 간주
+    const phoneMatch = parts.find(p => /^\d{4}$/.test(p));
+    if (phoneMatch) {
+      phoneLast4 = phoneMatch;
+    }
+
+    // 나머지가 이름
+    name = parts.filter(p => p !== timeMatch?.[0] && p !== phoneMatch).join(' ');
+
+    return { time, name, phoneLast4 };
+  };
+
+  // 새 항목 추가 시작
+  const startAddingNew = () => {
+    setIsAddingNew(true);
+    setEditingText('');
+    setEditingIndex(null);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
+  // 편집 시작
+  const startEditing = (reservation, index) => {
+    // 입력 칸을 빈 상태로 시작
+    setEditingText('');
+    setEditingIndex(index);
+    setIsAddingNew(false);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
+  // 완료 처리
+  const handleComplete = () => {
+    // 삭제 중이면 완료 처리 건너뛰기
+    if (isDeleting) {
+      return;
+    }
+    
+    if (!editingText.trim()) {
+      setIsAddingNew(false);
+      setEditingIndex(null);
+      return;
+    }
+
+    const { time, name, phoneLast4 } = parseReservationText(editingText);
+
+    if (editingIndex !== null) {
+      // 수정 모드
+      const reservation = sortedReservations[editingIndex];
+      const updatedData = {
+        time: time || reservation.time || '',
+        name: name || reservation.name || '',
+        phoneLast4: phoneLast4 || reservation.phoneLast4 || ''
+      };
+
+      if (updateReservation) {
+        updateReservation(reservation.id, updatedData);
+      } else if (setReservations) {
+        setReservations(prev => prev.map(res => 
+          res.id === reservation.id ? { ...res, ...updatedData } : res
+        ));
+      }
+    } else {
+      // 추가 모드
+      if (!name) {
+        alert('고객 이름을 입력해주세요.');
+        return;
+      }
+
+      const reservationData = {
+        date: selectedDate,
+        time: time || '',
+        name: name,
+        phoneLast4: phoneLast4 || ''
+      };
+
+      if (addReservation) {
+        addReservation(reservationData);
+      } else if (setReservations) {
+        const newReservation = {
+          id: Date.now(),
+          ...reservationData,
+          isCompleted: false
+        };
+        setReservations(prev => [...prev, newReservation]);
+      }
+    }
+
+    setIsAddingNew(false);
+    setEditingIndex(null);
+    setEditingText('');
+  };
+
+  // 삭제 처리 (줄 삭제)
+  const handleDelete = (reservationId, e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    
+    // 삭제 플래그 설정 (blur 이벤트 방지)
+    setIsDeleting(true);
+    
+    // 편집 모드 종료
+    setEditingIndex(null);
+    setIsAddingNew(false);
+    setEditingText('');
+    
+    // setReservations를 직접 사용하여 삭제
+    if (setReservations && typeof setReservations === 'function') {
+      setReservations(prev => {
+        if (!prev || !Array.isArray(prev)) {
+          setIsDeleting(false);
+          return [];
+        }
+        const filtered = prev.filter(res => res && res.id !== reservationId);
+        return filtered;
+      });
+      
+      // deleteReservation도 함께 호출
+      if (deleteReservation && typeof deleteReservation === 'function') {
+        try {
+          deleteReservation(reservationId);
+        } catch (error) {
+          console.error('[삭제 오류]', error);
+        }
+      }
+      
+      // 삭제 플래그 해제
+      setTimeout(() => {
+        setIsDeleting(false);
+      }, 100);
+    } else {
+      setIsDeleting(false);
+      if (deleteReservation && typeof deleteReservation === 'function') {
+        deleteReservation(reservationId);
+      }
+    }
+  };
+
+  // 엔터 키 처리
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleComplete();
+    } else if (e.key === 'Escape') {
+      setIsAddingNew(false);
+      setEditingIndex(null);
+      setEditingText('');
+    }
+  };
+
+  // 입력 포커스 관리
+  useEffect(() => {
+    if ((isAddingNew || editingIndex !== null) && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isAddingNew, editingIndex]);
+
   return (
     <div className="flex flex-col h-full relative pb-[60px]" style={{ backgroundColor: bgColor }}>
       {/* Header */}
@@ -107,10 +286,9 @@ function ReservationScreen({
       </header>
 
       <main className="flex-1 overflow-y-auto p-8 space-y-6 pb-20">
-        {/* 날짜 선택기 - 개선된 버전 */}
+        {/* 날짜 선택기 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
           <div className="flex items-center justify-between gap-4">
-            {/* 이전 날짜 버튼 */}
             <button
               onClick={() => changeDate(-1)}
               className="p-2 hover:bg-gray-50 rounded-xl transition-colors flex-shrink-0"
@@ -119,12 +297,8 @@ function ReservationScreen({
               <ChevronLeft size={24} />
             </button>
 
-            {/* 중앙 날짜 표시 */}
             <button
-              onClick={() => {
-                // 오늘 날짜로 빠르게 이동
-                setSelectedDate(getTodayDateStr());
-              }}
+              onClick={() => setSelectedDate(getTodayDateStr())}
               className="flex-1 flex flex-col items-center justify-center py-3 px-4 rounded-xl transition-colors hover:bg-gray-50"
             >
               <div className="flex items-center gap-2 mb-1">
@@ -140,7 +314,6 @@ function ReservationScreen({
               </div>
             </button>
 
-            {/* 다음 날짜 버튼 */}
             <button
               onClick={() => changeDate(1)}
               className="p-2 hover:bg-gray-50 rounded-xl transition-colors flex-shrink-0"
@@ -150,7 +323,7 @@ function ReservationScreen({
             </button>
           </div>
 
-          {/* 빠른 날짜 선택 (어제, 오늘, 내일, 모레, 모레+1) */}
+          {/* 빠른 날짜 선택 */}
           <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
             {[-1, 0, 1, 2, 3].map((offset) => {
               const today = parseDateStr(getTodayDateStr());
@@ -181,81 +354,156 @@ function ReservationScreen({
           </div>
         </div>
 
-        {/* 예약 리스트 */}
-        <div className="space-y-4">
+        {/* 예약 리스트 헤더 (날짜 + 완료 버튼) */}
+        <div className="flex justify-between items-center">
           <h3 className="text-base font-bold" style={{ color: textColor }}>
             {formatDateDisplay(selectedDate)} 예약
           </h3>
-          
-          {sortedReservations.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
-              <p className="font-light text-base" style={{ color: textColor, opacity: 0.6 }}>
-                예약이 없습니다
-              </p>
-            </div>
+          {!isAddingNew && editingIndex === null ? (
+            <button
+              onClick={startAddingNew}
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:opacity-90"
+              style={{ backgroundColor: accentColor }}
+            >
+              <Plus size={20} className="text-white" strokeWidth={3} />
+            </button>
           ) : (
-            sortedReservations.map((reservation) => (
+            <button
+              onClick={handleComplete}
+              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:opacity-90"
+              style={{ backgroundColor: accentColor }}
+            >
+              <Check size={20} className="text-white" strokeWidth={3} />
+            </button>
+          )}
+        </div>
+
+        {/* 예약 리스트 */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          {sortedReservations.map((reservation, index) => {
+            const isEditing = editingIndex === index;
+            const isLast = index === sortedReservations.length - 1;
+            
+            return (
               <div
                 key={reservation.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-between"
+                className={`flex items-center gap-3 ${!isLast ? 'pb-2 mb-2 border-b border-gray-100' : ''}`}
               >
-                <div className="flex items-center gap-4 flex-1">
-                  <button
-                    onClick={() => {
-                      if (toggleReservationComplete) {
-                        toggleReservationComplete(reservation.id);
-                      } else if (setReservations) {
-                        setReservations(prev => prev.map(res => 
-                          res.id === reservation.id ? { ...res, isCompleted: !res.isCompleted } : res
-                        ));
-                      }
-                    }}
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
-                      reservation.isCompleted
-                        ? 'bg-[#C9A27A] border-[#C9A27A]'
-                        : 'border-gray-300 hover:border-[#C9A27A]'
-                    }`}
-                  >
-                    {reservation.isCompleted && (
-                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </button>
-                  <div className="flex-1">
-                    <div className={`flex items-center gap-3 ${reservation.isCompleted ? 'opacity-50' : ''}`}>
-                      <div className="flex items-center gap-2">
-                        <Clock size={16} className="text-gray-400" />
-                        <span className="text-sm font-bold" style={{ color: accentColor }}>
-                          {reservation.time}
-                        </span>
-                      </div>
-                      <span 
-                        className={`text-base font-medium ${reservation.isCompleted ? 'line-through' : ''}`}
-                        style={{ color: textColor }}
-                      >
-                        {reservation.name}
-                      </span>
-                      <span className="text-sm text-gray-400">
-                        ({reservation.phoneLast4})
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                {/* 체크박스 (완료 토글) */}
                 <button
-                  onClick={() => {
-                    if (deleteReservation) {
-                      deleteReservation(reservation.id);
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (toggleReservationComplete) {
+                      toggleReservationComplete(reservation.id);
                     } else if (setReservations) {
-                      setReservations(prev => prev.filter(res => res.id !== reservation.id));
+                      setReservations(prev => prev.map(res => 
+                        res.id === reservation.id ? { ...res, isCompleted: !res.isCompleted } : res
+                      ));
                     }
                   }}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+                    reservation.isCompleted
+                      ? 'bg-[#C9A27A] border-[#C9A27A]'
+                      : 'border-gray-300 hover:border-[#C9A27A]'
+                  }`}
                 >
-                  <X size={18} className="text-gray-400" />
+                  {reservation.isCompleted && (
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
                 </button>
+
+                {/* 편집 모드일 때: 입력 필드 + 삭제 버튼 (오른쪽) */}
+                {isEditing ? (
+                  <>
+                    {/* 입력 필드 */}
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={editingText}
+                      onChange={(e) => setEditingText(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      onBlur={(e) => {
+                        // 삭제 버튼이 blur를 유발한 경우 무시
+                        if (!isDeleting) {
+                          handleComplete();
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 rounded-lg border-2 focus:outline-none text-base"
+                      style={{ 
+                        borderColor: accentColor,
+                        color: textColor
+                      }}
+                      placeholder="예: 14:30 김철수"
+                    />
+                    {/* 삭제 버튼 (빨간 동그라미, 오른쪽) */}
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault(); // blur 이벤트 방지
+                        e.stopPropagation();
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('[삭제 버튼 클릭]', reservation.id);
+                        handleDelete(reservation.id, e);
+                      }}
+                      className="w-6 h-6 rounded-full flex items-center justify-center transition-colors flex-shrink-0 hover:opacity-80"
+                      style={{ backgroundColor: '#EF4444', color: '#FFFFFF' }}
+                    >
+                      <Minus size={16} />
+                    </button>
+                  </>
+                ) : (
+                  /* 일반 모드일 때: 텍스트만 (체크박스 바로 옆) */
+                  <div
+                    onClick={() => startEditing(reservation, index)}
+                    className={`flex-1 px-3 py-2 rounded-lg cursor-text hover:bg-gray-50 transition-colors flex items-center ${
+                      reservation.isCompleted ? 'line-through text-gray-400' : ''
+                    }`}
+                    style={{ color: reservation.isCompleted ? '#9CA3AF' : textColor }}
+                  >
+                    {[reservation.time, reservation.name].filter(Boolean).join(' ')}
+                  </div>
+                )}
               </div>
-            ))
+            );
+          })}
+
+          {sortedReservations.length === 0 && !isAddingNew && (
+            <div className="text-center py-8">
+              <p className="font-light text-sm" style={{ color: textColor, opacity: 0.6 }}>
+                아래 + 버튼을 눌러 예약을 추가하세요
+              </p>
+            </div>
+          )}
+
+          {/* 새 항목 추가 입력 필드 (리스트 맨 아래) */}
+          {isAddingNew && (
+            <div className="flex items-center gap-3 pb-2 mb-2 border-b border-gray-100 mt-2">
+              <div className="w-6 h-6 flex-shrink-0"></div>
+              <input
+                ref={inputRef}
+                type="text"
+                value={editingText}
+                onChange={(e) => setEditingText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={(e) => {
+                  // 삭제 버튼이 blur를 유발한 경우 무시
+                  if (!isDeleting) {
+                    handleComplete();
+                  }
+                }}
+                className="flex-1 px-3 py-2 rounded-lg border-2 focus:outline-none text-base"
+                style={{ 
+                  borderColor: accentColor,
+                  color: textColor
+                }}
+                placeholder="예: 14:30 김철수"
+              />
+            </div>
           )}
         </div>
       </main>
@@ -264,4 +512,3 @@ function ReservationScreen({
 }
 
 export default ReservationScreen;
-
