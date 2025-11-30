@@ -34,7 +34,7 @@ function HomeHeader({
       </header>
 
       {/* 검색창 - 화면 중앙에 크게 배치 */}
-      <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-md px-8" style={{ top: '140px', zIndex: 100 }}>
+      <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-md px-8" style={{ top: '240px', zIndex: 100 }}>
         <div className="bg-white rounded-2xl shadow-md border border-[#EFECE1] p-6">
           <div className="flex items-center gap-4 bg-white rounded-2xl px-4 h-14 border border-[#EFECE1] focus-within:border-[#C9A27A] focus-within:ring-2 focus-within:ring-[#C9A27A] transition-all">
             <input 
