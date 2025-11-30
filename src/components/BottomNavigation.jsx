@@ -1,10 +1,11 @@
 import React from 'react';
-import { Home, History, User } from 'lucide-react';
+import { Home, History, User, Calendar } from 'lucide-react';
 
 export default function BottomNavigation({ activeTab, onTabChange }) {
   const tabs = [
     { id: 'Home', label: '홈', icon: Home },
     { id: 'History', label: '기록', icon: History },
+    { id: 'Reservation', label: '일정', icon: Calendar },
     { id: 'Settings', label: '설정', icon: User },
   ];
 

@@ -9,6 +9,7 @@ import EditCustomerScreen from "../screens/EditCustomerScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import ProfileEditScreen from "../screens/ProfileEditScreen";
 import TagSettingsScreen from "../screens/TagSettingsScreen";
+import ReservationScreen from "../screens/ReservationScreen";
 
 export default function ScreenRouter(props) {
   const { currentScreen } = props;
@@ -64,6 +65,8 @@ export default function ScreenRouter(props) {
       return <ProfileEditScreen {...props} />;
     case SCREENS.TAG_SETTINGS:
       return <TagSettingsScreen {...props} />;
+    case SCREENS.RESERVATION:
+      return <ReservationScreen {...props} />;
     default:
       return <HomeScreen {...props} />;
   }

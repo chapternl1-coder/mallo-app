@@ -9,5 +9,6 @@ export const SCREENS = {
   PROFILE_EDIT: 'profile-edit',
   TAG_SETTINGS: 'TagSettings',
   HISTORY: 'History',
+  RESERVATION: 'Reservation',
 };
 

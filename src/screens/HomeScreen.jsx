@@ -2,6 +2,7 @@ import React from 'react';
 import { Mic } from 'lucide-react';
 import HomeHeader from '../components/HomeHeader';
 import { filterCustomersBySearch } from '../utils/customerListUtils';
+import { SCREENS } from '../constants/screens';
 
 /**
  * 홈 화면 컴포넌트
@@ -43,7 +44,7 @@ function HomeScreen({
       />
 
       <main className="flex-1 overflow-y-auto flex flex-col items-center justify-start p-8 space-y-12 pb-20 relative">
-
+        
         {/* 신규 고객 바로 녹음 버튼 - 큰 원형 카드 형태 (항상 표시) */}
         <div className="absolute left-1/2 -translate-x-1/2 w-full max-w-md px-8 z-0" style={{ bottom: '50px' }}>
           <div 

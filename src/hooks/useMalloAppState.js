@@ -153,6 +153,12 @@ export default function useMalloAppState() {
     });
     return normalizedVisits;
   });
+
+  // 예약 관리 상태 (localStorage 연동)
+  const [reservations, setReservations] = useState(() => {
+    const loadedReservations = loadFromLocalStorage('mallo_reservations', []);
+    return loadedReservations || [];
+  });
   
   const [tempResultData, setTempResultData] = useState(null);
   
@@ -163,6 +169,10 @@ export default function useMalloAppState() {
   useEffect(() => {
     saveToLocalStorage('mallo_visits', visits);
   }, [visits]);
+
+  useEffect(() => {
+    saveToLocalStorage('mallo_reservations', reservations);
+  }, [reservations]);
 
   const normalizeRecordWithCustomer = (visit, customer) => {
     if (!visit) return null;
@@ -1039,6 +1049,8 @@ export default function useMalloAppState() {
       setActiveTab('Home');
     } else if (currentScreen === SCREENS.HISTORY) {
       setActiveTab('History');
+    } else if (currentScreen === SCREENS.RESERVATION) {
+      setActiveTab('Reservation');
     } else if (currentScreen === SCREENS.PROFILE) {
       setActiveTab('Settings');
     }
@@ -1050,9 +1062,32 @@ export default function useMalloAppState() {
       setCurrentScreen(SCREENS.HOME);
     } else if (tabId === 'History') {
       setCurrentScreen(SCREENS.HISTORY);
+    } else if (tabId === 'Reservation') {
+      setCurrentScreen(SCREENS.RESERVATION);
     } else if (tabId === 'Settings') {
       setCurrentScreen(SCREENS.PROFILE);
     }
+  };
+
+  // 예약 관련 함수들
+  const addReservation = (reservation) => {
+    const newReservation = {
+      id: Date.now(),
+      ...reservation,
+      isCompleted: false
+    };
+    setReservations(prev => [...prev, newReservation]);
+    return newReservation;
+  };
+
+  const toggleReservationComplete = (id) => {
+    setReservations(prev => prev.map(res => 
+      res.id === id ? { ...res, isCompleted: !res.isCompleted } : res
+    ));
+  };
+
+  const deleteReservation = (id) => {
+    setReservations(prev => prev.filter(res => res.id !== id));
   };
 
   const screenRouterProps = {
@@ -1188,7 +1223,12 @@ export default function useMalloAppState() {
     MOCK_CUSTOMERS,
     TagPickerModal,
     CustomerTagPickerModal,
-    saveToLocalStorage
+    saveToLocalStorage,
+    reservations,
+    setReservations,
+    addReservation,
+    toggleReservationComplete,
+    deleteReservation
   };
 
   return {

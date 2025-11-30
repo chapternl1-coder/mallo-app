@@ -11,13 +11,12 @@ export default function MalloApp() {
     <div className="h-screen w-full flex items-center justify-center font-sans" style={{ backgroundColor: '#F2F0E6' }}>
       <div className="w-full max-w-md h-full sm:h-[90vh] sm:rounded-[2rem] sm:shadow-md overflow-hidden relative border-0" style={{ backgroundColor: '#F2F0E6' }}>
         <ScreenRouter {...screenRouterProps} />
-        {currentScreen !== SCREENS.LOGIN && 
-         currentScreen !== SCREENS.RECORD && 
-         currentScreen !== SCREENS.CUSTOMER_DETAIL && 
-         currentScreen !== SCREENS.EDIT && 
-         currentScreen !== SCREENS.EDIT_CUSTOMER && 
-         currentScreen !== SCREENS.PROFILE_EDIT && 
-         <BottomNavigation activeTab={activeTab} onTabChange={handleTabClick} />}
+        {(currentScreen === SCREENS.HOME || 
+          currentScreen === SCREENS.HISTORY || 
+          currentScreen === SCREENS.RESERVATION ||
+          currentScreen === SCREENS.PROFILE) && (
+          <BottomNavigation activeTab={activeTab} onTabChange={handleTabClick} />
+        )}
       </div>
     </div>
   );
