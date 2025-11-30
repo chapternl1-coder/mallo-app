@@ -34,11 +34,21 @@ function ReservationScreen({
   // 선택된 날짜의 예약 필터링
   const filteredReservations = (reservations || []).filter(res => res && res.date === selectedDate);
   
-  // 시간순 정렬 (오름차순)
+  // 저장 순서대로 정렬 (order 필드가 있으면 order로, 없으면 id 순서)
   const sortedReservations = [...filteredReservations].sort((a, b) => {
-    const timeA = a.time || '00:00';
-    const timeB = b.time || '00:00';
-    return timeA.localeCompare(timeB);
+    // order 필드가 둘 다 있으면 order로 정렬
+    if (a.order !== undefined && b.order !== undefined) {
+      return a.order - b.order;
+    }
+    
+    // order 필드가 하나만 있으면 order가 있는 것이 위로
+    if (a.order !== undefined) return -1;
+    if (b.order !== undefined) return 1;
+    
+    // 둘 다 order가 없으면 id(저장 순서)로 정렬 - 먼저 저장한 것이 위에
+    const idA = a.id || 0;
+    const idB = b.id || 0;
+    return idA - idB;
   });
 
   // 날짜 포맷팅 (YYYY-MM-DD -> MM월 DD일)
@@ -132,8 +142,11 @@ function ReservationScreen({
 
   // 편집 시작
   const startEditing = (reservation, index) => {
-    // 입력 칸을 빈 상태로 시작
-    setEditingText('');
+    // 기존 내용을 입력칸에 채우기
+    const parts = [];
+    if (reservation.time) parts.push(reservation.time);
+    if (reservation.name) parts.push(reservation.name);
+    setEditingText(parts.join(' '));
     setEditingIndex(index);
     setIsAddingNew(false);
     setTimeout(() => inputRef.current?.focus(), 100);
@@ -192,7 +205,12 @@ function ReservationScreen({
           ...reservationData,
           isCompleted: false
         };
-        setReservations(prev => [...prev, newReservation]);
+        // 새 항목을 맨 아래에 추가
+        setReservations(prev => {
+          const otherReservations = prev.filter(res => res.date !== selectedDate);
+          const sameDateReservations = prev.filter(res => res.date === selectedDate);
+          return [...otherReservations, ...sameDateReservations, newReservation];
+        });
       }
     }
 
@@ -387,10 +405,12 @@ function ReservationScreen({
             return (
               <div
                 key={reservation.id}
-                className={`flex items-center gap-3 ${!isLast ? 'pb-2 mb-2 border-b border-gray-100' : ''}`}
+                className={`flex items-center gap-3 ${!isLast ? 'pb-2 mb-2 border-b border-gray-100' : ''} transition-all`}
               >
+                
                 {/* 체크박스 (완료 토글) */}
                 <button
+                  onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (toggleReservationComplete) {
@@ -421,6 +441,8 @@ function ReservationScreen({
                     <input
                       ref={inputRef}
                       type="text"
+                      draggable={false}
+                      onMouseDown={(e) => e.stopPropagation()}
                       value={editingText}
                       onChange={(e) => setEditingText(e.target.value)}
                       onKeyDown={handleKeyDown}
@@ -440,6 +462,7 @@ function ReservationScreen({
                     {/* 삭제 버튼 (빨간 동그라미, 오른쪽) */}
                     <button
                       type="button"
+                      draggable={false}
                       onMouseDown={(e) => {
                         e.preventDefault(); // blur 이벤트 방지
                         e.stopPropagation();
@@ -459,7 +482,12 @@ function ReservationScreen({
                 ) : (
                   /* 일반 모드일 때: 텍스트만 (체크박스 바로 옆) */
                   <div
-                    onClick={() => startEditing(reservation, index)}
+                    draggable={false}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      startEditing(reservation, index);
+                    }}
                     className={`flex-1 px-3 py-2 rounded-lg cursor-text hover:bg-gray-50 transition-colors flex items-center ${
                       reservation.isCompleted ? 'line-through text-gray-400' : ''
                     }`}
@@ -475,14 +503,14 @@ function ReservationScreen({
           {sortedReservations.length === 0 && !isAddingNew && (
             <div className="text-center py-8">
               <p className="font-light text-sm" style={{ color: textColor, opacity: 0.6 }}>
-                아래 + 버튼을 눌러 예약을 추가하세요
+                위에 + 버튼을 눌러 예약을 추가하세요
               </p>
             </div>
           )}
 
           {/* 새 항목 추가 입력 필드 (리스트 맨 아래) */}
           {isAddingNew && (
-            <div className="flex items-center gap-3 pb-2 mb-2 border-b border-gray-100 mt-2">
+            <div className="flex items-center gap-3 pb-2 mb-2 border-t border-gray-100 pt-2 mt-2">
               <div className="w-6 h-6 flex-shrink-0"></div>
               <input
                 ref={inputRef}
@@ -505,6 +533,7 @@ function ReservationScreen({
               />
             </div>
           )}
+
         </div>
       </main>
     </div>
