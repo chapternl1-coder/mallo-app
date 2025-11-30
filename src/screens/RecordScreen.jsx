@@ -105,6 +105,16 @@ function RecordScreen({
   TagPickerModal,
   CustomerTagPickerModal
 }) {
+  // 녹음 시간 제한 상수
+  const MAX_SECONDS = 120; // 2분
+  const NEAR_LIMIT_SECONDS = 100; // 1분 40초
+  
+  // 녹음 시간(초)을 elapsedSeconds로 사용
+  const elapsedSeconds = recordingTime;
+  
+  // 1분 40초가 넘어갔는지 여부 확인
+  const isNearLimit = elapsedSeconds >= NEAR_LIMIT_SECONDS;
+
   // recordState에 따라 다른 화면 렌더링
   if (recordState === 'recording' || recordState === 'idle') {
     return (
@@ -118,8 +128,23 @@ function RecordScreen({
         </div>
 
         {/* 타이머 영역 */}
-        <div className="z-10 text-center mb-10">
+        <div className="z-10 text-center mb-8 -mt-8">
+          {/* 팁 박스 */}
+          <div className="w-full px-8 mb-6 z-10 -mt-12">
+            <div className="bg-white/80 rounded-2xl px-6 py-4 shadow-sm border backdrop-blur-sm" style={{ borderColor: '#f0e7d9' }}>
+              <p
+                className={`text-base text-center leading-relaxed ${
+                  isNearLimit ? 'text-[#e05252]' : 'text-[#9b8b7a]'
+                }`}
+              >
+                한 번에 최대 2분까지 녹음돼요.<br />
+                한 고객님 정보만 말씀해 주세요.
+              </p>
+            </div>
+          </div>
+
           <h2 className="text-sm font-medium tracking-widest uppercase mb-4" style={{ color: '#C9A27A', opacity: 0.8 }}>Recording</h2>
+          
           <p 
             className="text-7xl font-mono font-light tracking-tighter tabular-nums"
             style={{
@@ -132,13 +157,13 @@ function RecordScreen({
         </div>
 
         {/* Visualizer & Button */}
-        <div className="z-10 flex flex-col items-center gap-8">
+        <div className="z-10 flex flex-col items-center gap-2 mt-2">
           <WaveBars />
           
           {/* 정지 버튼 - 물결(Ripple) 애니메이션 */}
           <button 
             onClick={stopRecording}
-            className="group relative flex items-center justify-center"
+            className="group relative flex items-center justify-center mb-4"
             style={{ width: '136px', height: '136px' }}
           >
             {/* 물결 효과 - 여러 겹의 원 (골드 브라운 톤) */}
@@ -176,10 +201,10 @@ function RecordScreen({
         </div>
 
         {/* 취소 버튼 */}
-        <div className="absolute bottom-16 w-full px-8 flex justify-center z-10">
+        <div className="absolute bottom-32 w-full px-8 flex justify-center z-10">
           <button
             onClick={cancelRecording}
-            className="px-6 py-2 text-sm font-medium rounded-full transition-all duration-200 hover:opacity-70"
+            className="px-8 py-3 text-base font-medium rounded-full transition-all duration-200 hover:opacity-70"
             style={{ 
               color: '#232323',
               backgroundColor: 'rgba(35, 35, 35, 0.05)',
@@ -188,19 +213,6 @@ function RecordScreen({
           >
             취소하기
           </button>
-        </div>
-
-        <div className="absolute bottom-32 w-full px-8 text-center z-10">
-          <p 
-            className="text-sm leading-relaxed font-light bg-white/80 py-3 px-4 rounded-xl border backdrop-blur-sm"
-            style={{ 
-              color: '#232323', 
-              opacity: 0.7,
-              borderColor: 'rgba(201, 162, 122, 0.2)'
-            }}
-          >
-            💡 Tip: 고객 이름, 시술 종류, 결제 금액을<br/>구체적으로 말하면 더 정확해요.
-          </p>
         </div>
       </div>
     );
