@@ -16,7 +16,9 @@ function ProfileScreen({
   editProfileEmail,
   setEditProfileEmail,
   editProfilePhone,
-  setEditProfilePhone
+  setEditProfilePhone,
+  fillDemoData,
+  resetAllData
 }) {
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
@@ -163,6 +165,62 @@ function ProfileScreen({
             </div>
             <ChevronRight size={18} style={{ color: '#A7A196' }} />
           </button>
+
+          {/* 데모 모드 */}
+          <div className="mt-6 bg-white rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-[13px] font-semibold" style={{ color: '#3a2f25' }}>
+                데모 모드
+              </h2>
+              <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ color: '#b08c5a', backgroundColor: '#f7efe1' }}>
+                개발·시연용
+              </span>
+            </div>
+            <p className="text-[11px] mb-3 leading-relaxed" style={{ color: '#9b8b7a' }}>
+              테스트나 시연용으로 샘플 고객·방문·일정 데이터를 한 번에 채우거나,
+              모든 데이터를 초기 상태로 되돌릴 수 있어요.
+            </p>
+
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof fillDemoData === 'function') {
+                    fillDemoData();
+                  } else {
+                    console.warn('fillDemoData prop is missing in ProfileScreen');
+                  }
+                }}
+                className="w-full h-10 rounded-xl text-white text-[13px] font-semibold active:scale-95 transition"
+                style={{ backgroundColor: '#c89a5a' }}
+              >
+                데모 데이터 채우기
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!window.confirm('정말 모든 데이터를 초기화할까요?\n고객, 방문 기록, 일정이 모두 삭제됩니다.')) {
+                    return;
+                  }
+                  if (typeof resetAllData === 'function') {
+                    resetAllData();
+                  } else {
+                    console.warn('resetAllData prop is missing in ProfileScreen');
+                    alert('초기화 기능에 오류가 발생했습니다. 콘솔을 확인해주세요.');
+                  }
+                }}
+                className="w-full h-10 rounded-xl border text-[12px] active:scale-95 transition"
+                style={{ 
+                  borderColor: '#e0cfc0',
+                  color: '#b85c4c',
+                  backgroundColor: '#fdf6f0'
+                }}
+              >
+                데이터 초기화하기
+              </button>
+            </div>
+          </div>
 
           {/* 도움말 / 문의하기 */}
           <button

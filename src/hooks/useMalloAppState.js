@@ -8,12 +8,31 @@ import { extractServiceDateFromSummary, extractServiceDateTimeLabel } from '../u
 import { loadFromLocalStorage, saveToLocalStorage } from '../utils/storage';
 import { formatPhoneNumber } from '../utils/formatters';
 import { formatRecordDateTime } from '../utils/date';
+import { normalizePhone } from '../utils/customerListUtils';
 import { SYSTEM_PROMPT } from '../constants/systemPrompt';
 import TagPickerModal from '../components/TagPickerModal';
 import CustomerTagPickerModal from '../components/CustomerTagPickerModal';
 
 // 녹음 시간 제한 상수
 const MAX_RECORD_SECONDS = 120; // 2분
+
+// Mallo localStorage 전체 초기화 헬퍼 함수
+function clearMalloStorage() {
+  try {
+    // mallo_로 시작하는 모든 키 삭제
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith('mallo_'))
+      .forEach((key) => localStorage.removeItem(key));
+    
+    // 태그 관련 키도 삭제
+    localStorage.removeItem('visitTags');
+    localStorage.removeItem('customerTags');
+    
+    console.log('[데이터 초기화] localStorage의 모든 Mallo 관련 데이터가 삭제되었습니다.');
+  } catch (e) {
+    console.error('Failed to clear Mallo localStorage', e);
+  }
+}
 
 export default function useMalloAppState() {
   const [currentScreen, setCurrentScreen] = useState(SCREENS.LOGIN);
@@ -130,7 +149,10 @@ export default function useMalloAppState() {
   const phoneInputRef = useRef(null);
   
   const [customers, setCustomers] = useState(() => {
-    const loadedCustomers = loadFromLocalStorage('mallo_customers', MOCK_CUSTOMERS);
+    const loadedCustomers = loadFromLocalStorage('mallo_customers', []);
+    if (!loadedCustomers || loadedCustomers.length === 0) {
+      return [];
+    }
     return loadedCustomers.map(customer => ({
       ...customer,
       tags: (customer.tags || []).filter(tag => tag !== '#신규'),
@@ -143,7 +165,10 @@ export default function useMalloAppState() {
     }));
   });
   const [visits, setVisits] = useState(() => {
-    const loadedVisits = loadFromLocalStorage('mallo_visits', MOCK_VISITS);
+    const loadedVisits = loadFromLocalStorage('mallo_visits', {});
+    if (!loadedVisits || Object.keys(loadedVisits).length === 0) {
+      return {};
+    }
     const normalizedVisits = {};
     Object.keys(loadedVisits).forEach(customerId => {
       normalizedVisits[customerId] = (loadedVisits[customerId] || []).map(visit => ({
@@ -173,6 +198,136 @@ export default function useMalloAppState() {
   useEffect(() => {
     saveToLocalStorage('mallo_reservations', reservations);
   }, [reservations]);
+
+  // 데모용 예약 데이터
+  const DEMO_RESERVATIONS = [
+    {
+      id: 'r_demo_1',
+      date: '2025-12-01',
+      time: '10:30',
+      name: '김민지',
+      phoneLast4: '5678',
+      isCompleted: false,
+    },
+    {
+      id: 'r_demo_2',
+      date: '2025-12-01',
+      time: '14:00',
+      name: '이상윤',
+      phoneLast4: '5432',
+      isCompleted: false,
+    },
+    {
+      id: 'r_demo_3',
+      date: '2025-12-02',
+      time: '11:00',
+      name: '오영진',
+      phoneLast4: '7890',
+      isCompleted: false,
+    },
+  ];
+
+  // 데모 데이터 채우기 함수
+  const fillDemoData = () => {
+    setCustomers(MOCK_CUSTOMERS || []);
+    setVisits(MOCK_VISITS || []);
+    setReservations(DEMO_RESERVATIONS || []);
+  };
+
+  // 데이터 초기화 함수
+  const resetAllData = () => {
+    console.log('[데이터 초기화] 시작...');
+    
+    // localStorage에서 Mallo 관련 키 전부 제거 (먼저 실행)
+    clearMalloStorage();
+
+    // 메모리 state 초기화
+    setCustomers([]);
+    setVisits({});
+    setReservations([]);
+
+    // 태그 관련 state도 초기화 (기본값으로)
+    if (typeof setVisitTags === 'function') {
+      setVisitTags(migrateTagsToObjects({
+        procedure: [],
+        design: [],
+        care: [],
+        payment: []
+      }));
+    }
+    
+    if (typeof setCustomerTags === 'function') {
+      setCustomerTags(migrateTagsToObjects({
+        caution: [],
+        trait: [],
+        payment: [],
+        pattern: []
+      }));
+    }
+    
+    console.log('[데이터 초기화] 완료 - 모든 데이터가 초기화되었습니다.');
+    
+    // useEffect가 빈 배열/객체를 localStorage에 저장하도록 함
+    // 이렇게 하면 새로고침 후에도 빈 상태가 유지됨
+  };
+
+  // CSV 일괄 고객 추가 함수
+  const bulkImportCustomers = (rows) => {
+    // rows: [{ name, phone }, ...] 형태
+    setCustomers((prev) => {
+      const existing = [...prev];
+      const existingPhones = new Set(
+        existing
+          .map((c) => c.phone)
+          .filter(Boolean)
+          .map((p) => normalizePhone(p))
+      );
+
+      const newCustomers = [];
+      const duplicateCount = { value: 0 };
+
+      rows.forEach((row) => {
+        const rawName = row.name || row.이름 || row.Name || '';
+        const rawPhone = row.phone || row.전화번호 || row.Phone || '';
+
+        const name = String(rawName).trim();
+        const phone = String(rawPhone).trim();
+
+        if (!name || !phone) return;
+
+        const normalized = normalizePhone(phone);
+        if (!normalized || existingPhones.has(normalized)) {
+          duplicateCount.value++;
+          return;
+        }
+
+        existingPhones.add(normalized);
+
+        // 전화번호 포맷팅 (010-XXXX-XXXX 형식)
+        const formattedPhone = formatPhoneNumber(normalized);
+
+        newCustomers.push({
+          id: `c_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          name,
+          phone: formattedPhone,
+          visitCount: 0,
+          lastVisit: null,
+          avatar: '👤',
+          customerTags: {
+            caution: [],
+            trait: [],
+            payment: [],
+            pattern: []
+          },
+          history: []
+        });
+      });
+
+      if (newCustomers.length === 0) return prev;
+
+      return [...prev, ...newCustomers];
+    });
+  };
 
   const normalizeRecordWithCustomer = (visit, customer) => {
     if (!visit) return null;
@@ -1235,7 +1390,10 @@ export default function useMalloAppState() {
     addReservation,
     toggleReservationComplete,
     deleteReservation,
-    updateReservation
+    updateReservation,
+    bulkImportCustomers,
+    fillDemoData,
+    resetAllData
   };
 
   return {

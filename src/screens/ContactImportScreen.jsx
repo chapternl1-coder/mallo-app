@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ArrowLeft, FileUp, Users, Upload } from 'lucide-react';
+import Papa from 'papaparse';
 import { SCREENS } from '../constants/screens';
 
 function ContactImportScreen({
   setCurrentScreen,
   customers,
   setCustomers,
+  bulkImportCustomers,
   currentTheme
 }) {
   const bgColor = currentTheme?.pastel || '#F2F0E6';
@@ -14,6 +16,75 @@ function ContactImportScreen({
 
   const [previewCustomers, setPreviewCustomers] = useState([]);
   const [isUploaded, setIsUploaded] = useState(false);
+  const [error, setError] = useState('');
+  const fileInputRef = useRef(null);
+
+  // CSV 파일 파싱 함수
+  const handleFileChange = (e) => {
+    const file = e.target?.files?.[0];
+    if (!file) return;
+
+    setError('');
+    setPreviewCustomers([]);
+    setIsUploaded(false);
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      encoding: 'UTF-8',
+      complete: (results) => {
+        const raw = results.data || [];
+
+        // name/phone 컬럼 추려서 단순화
+        const mapped = raw.map((row, index) => {
+          const name = row.name || row.이름 || row.Name || row['고객명'] || '';
+          const phone = row.phone || row.전화번호 || row.Phone || row['전화번호'] || '';
+
+          return {
+            name: String(name).trim(),
+            phone: String(phone).trim(),
+            rowIndex: index + 2 // 엑셀 행 번호 (헤더 + 1)
+          };
+        });
+
+        const filtered = mapped.filter((r) => r.name && r.phone);
+
+        if (filtered.length === 0) {
+          setError('이름/전화번호가 있는 행을 찾을 수 없어요. CSV 컬럼 이름을 확인해주세요.\n\n예: 이름,전화번호 또는 name,phone');
+          return;
+        }
+
+        // 미리보기용 데이터 변환
+        const previewData = filtered.map((row, idx) => ({
+          id: `preview_${Date.now()}_${idx}`,
+          name: row.name,
+          phone: row.phone,
+          visitCount: 0,
+          lastVisit: null,
+          avatar: '👤',
+          customerTags: {
+            caution: [],
+            trait: [],
+            payment: [],
+            pattern: []
+          },
+          history: []
+        }));
+
+        setPreviewCustomers(previewData);
+        setIsUploaded(true);
+      },
+      error: (err) => {
+        console.error('CSV 파싱 오류:', err);
+        setError('CSV 파일을 읽는 중 문제가 발생했어요. 파일 형식을 확인해주세요.');
+      }
+    });
+  };
+
+  // 파일 선택 트리거
+  const handleFileSelect = () => {
+    fileInputRef.current?.click();
+  };
 
   // 샘플 데이터 생성 함수
   const generateSampleData = () => {
@@ -106,7 +177,45 @@ function ContactImportScreen({
       return;
     }
 
-    if (setCustomers) {
+    // bulkImportCustomers 사용 또는 기본 setCustomers 사용
+    if (bulkImportCustomers) {
+      const rows = previewCustomers.map(c => ({
+        name: c.name,
+        phone: c.phone
+      }));
+
+      // 중복 체크를 위해 기존 고객 전화번호 Set 생성
+      const existingPhones = new Set(
+        customers.map(c => c.phone?.replace(/[-\s]/g, '')).filter(Boolean)
+      );
+      
+      const newRows = rows.filter(row => {
+        const normalizedPhone = row.phone.replace(/[-\s]/g, '');
+        return normalizedPhone && !existingPhones.has(normalizedPhone);
+      });
+
+      if (newRows.length === 0) {
+        alert('이미 등록된 고객입니다.');
+        return;
+      }
+
+      bulkImportCustomers(newRows);
+
+      const duplicateCount = rows.length - newRows.length;
+      
+      if (duplicateCount > 0) {
+        alert(`${duplicateCount}명은 이미 등록되어 있어 제외되었습니다.\n${newRows.length}명이 추가되었습니다.`);
+      } else {
+        alert(`${newRows.length}명의 고객이 추가되었습니다.`);
+      }
+
+      // 프로필 화면으로 돌아가기
+      setPreviewCustomers([]);
+      setIsUploaded(false);
+      setTimeout(() => {
+        setCurrentScreen(SCREENS.PROFILE);
+      }, 500);
+    } else if (setCustomers) {
       // 기존 고객과 중복 체크 (전화번호 기준)
       setCustomers(prev => {
         const existingPhones = new Set(prev.map(c => c.phone));
@@ -168,16 +277,34 @@ function ContactImportScreen({
         {/* 파일 업로드 영역 */}
         {!isUploaded && (
           <div className="space-y-4">
+            {/* CSV 파일 안내 */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
+              <div className="text-xs mb-2" style={{ color: textColor, opacity: 0.8 }}>
+                <p className="font-semibold mb-1">CSV 형식 안내</p>
+                <p>- 엑셀에서 "다른 이름으로 저장" &gt; CSV 형식으로 저장해주세요.</p>
+                <p>- 최소한 <span className="font-semibold">이름, 전화번호</span> 컬럼이 있어야 해요.</p>
+                <p className="mt-1 text-xs" style={{ opacity: 0.7 }}>
+                  예) <span className="font-mono">이름,전화번호</span> 또는 <span className="font-mono">name,phone</span>
+                </p>
+              </div>
+            </div>
+
+            {/* 파일 입력 (숨김) */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
             <div
               className="bg-white rounded-2xl border-2 border-dashed p-12 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
               style={{ 
                 borderColor: accentColor,
                 minHeight: '300px'
               }}
-              onClick={() => {
-                // 실제 파일 업로드 기능은 추후 구현
-                alert('파일 업로드 기능은 준비 중입니다. 샘플 데이터 버튼을 사용해주세요.');
-              }}
+              onClick={handleFileSelect}
             >
               <FileUp size={48} style={{ color: accentColor, marginBottom: '16px' }} />
               <p className="text-lg font-medium mb-2" style={{ color: textColor }}>
@@ -187,6 +314,13 @@ function ContactImportScreen({
                 클릭하여 파일을 선택하세요
               </p>
             </div>
+
+            {/* 에러 메시지 */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                <p className="text-xs text-red-600 whitespace-pre-line">{error}</p>
+              </div>
+            )}
 
             {/* 안내 문구 */}
             <p className="text-xs text-center" style={{ color: textColor, opacity: 0.7 }}>
