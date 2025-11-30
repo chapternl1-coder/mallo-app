@@ -1,6 +1,15 @@
+// 음성 녹음 → 처리 → 결과 미리보기까지 담당하는 화면
 import React from 'react';
 import { Square, Scissors, ArrowLeft, MoreHorizontal, Phone, Edit, ChevronRight } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
+import {
+  formatRecordingDateTime,
+  createDateTimeStrings,
+  cleanTitle,
+  createVisitRecord,
+  updateCustomerTags,
+  createNewCustomer
+} from '../utils/recordUtils';
 
 // WaveBars 컴포넌트
 const WaveBars = () => (
@@ -561,30 +570,13 @@ function RecordScreen({
         
         {/* 녹음 일시 표시 */}
         {recordingDate && (
-          <p className="text-center text-xs mt-4 font-medium" style={{ color: 'rgba(35, 35, 35, 0.4)' }}>
-            기록 일시: {(() => {
-              const year = recordingDate.getFullYear();
-              const month = recordingDate.getMonth() + 1;
-              const day = recordingDate.getDate();
-              const hours = recordingDate.getHours();
-              const minutes = recordingDate.getMinutes();
-              const ampm = hours >= 12 ? '오후' : '오전';
-              const displayHours = hours % 12 || 12;
-              const displayMinutes = minutes.toString().padStart(2, '0');
-              return `${year}년 ${month}월 ${day}일 ${ampm} ${displayHours}:${displayMinutes}`;
-            })()}
-          </p>
+          <div className="p-8 pt-0 text-center">
+            <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.6 }}>
+              {formatRecordingDate(recordingDate)}
+            </p>
+          </div>
         )}
       </main>
-
-      {/* 녹음 일시 표시 */}
-      {recordingDate && (
-        <div className="p-8 pt-0 text-center">
-          <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.6 }}>
-            {formatRecordingDate(recordingDate)}
-          </p>
-        </div>
-      )}
 
       {/* Fixed Action Bar - 3개 버튼 나란히 배치 (화면 하단 고정) */}
       <div className="absolute bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 px-8 py-4 shadow-lg" style={{ backgroundColor: '#F2F0E6' }}>
@@ -719,125 +711,48 @@ function RecordScreen({
               if (selectedCustomerForRecord) {
                 // 기존 고객 선택 시 - 기록 저장
                 const customerId = selectedCustomerForRecord.id;
-                const today = new Date();
-                const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                const timeStr = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
-                const recordedAt = today.toISOString();
+                const { dateStr, timeStr, recordedAt } = createDateTimeStrings();
                 
                 const parsedServiceDate = extractServiceDateFromSummary(resultData);
                 const serviceDate = parsedServiceDate || dateStr;
                 
-                const cleanTitle = (title) => {
-                  if (!title) return title;
-                  let cleaned = title;
-                  if (selectedCustomerForRecord?.name) {
-                    cleaned = cleaned.replace(new RegExp(selectedCustomerForRecord.name, 'g'), '').trim();
-                  }
-                  cleaned = cleaned.replace(/신규\s*고객/gi, '').trim();
-                  cleaned = cleaned.replace(/기존\s*고객/gi, '').trim();
-                  cleaned = cleaned.replace(/\s+/g, ' ').trim();
-                  return cleaned || title;
-                };
+                const cleanedTitle = cleanTitle(resultData.title, selectedCustomerForRecord?.name);
                 
-                const newVisitId = Date.now();
-                const newVisit = {
-                  id: newVisitId,
-                  date: dateStr,
-                  time: timeStr,
-                  recordedAt: recordedAt,
-                  serviceDate: serviceDate,
-                  title: cleanTitle(resultData.title),
-                  summary: resultData.sections[0]?.content[0] || cleanTitle(resultData.title),
+                const newVisit = createVisitRecord({
+                  dateStr,
+                  timeStr,
+                  recordedAt,
+                  serviceDate,
+                  title: cleanedTitle,
+                  summary: resultData.sections[0]?.content[0] || cleanedTitle,
                   rawTranscript: rawTranscript || transcript,
-                  detail: {
-                    sections: resultData.sections
-                  },
-                  tags: (() => {
-                    const selectedTagLabels = selectedTagIds
-                      .map(id => {
-                        const tag = allVisitTags.find(t => t.id === id);
-                        return tag ? tag.label : null;
-                      })
-                      .filter(label => label !== null);
-                    const allTags = [...new Set([...serviceTags, ...selectedTagLabels])];
-                    return allTags;
-                  })()
-                };
+                  sections: resultData.sections,
+                  selectedTagIds,
+                  allVisitTags,
+                  serviceTags
+                });
                 
                 setVisits(prev => ({
                   ...prev,
                   [customerId]: [newVisit, ...(prev[customerId] || [])]
                 }));
                 
-                const updatedCustomerTags = { ...selectedCustomerForRecord.customerTags || {
-                  caution: [],
-                  trait: [],
-                  payment: [],
-                  pattern: []
-                }};
-                
-                selectedCustomerTagIds.forEach(tagId => {
-                  const tag = allCustomerTags.find(t => t.id === tagId);
-                  if (tag) {
-                    const category = tag.category;
-                    if (updatedCustomerTags[category]) {
-                      const existingLabels = new Set(
-                        updatedCustomerTags[category].map(t => 
-                          typeof t === 'string' ? t : t.label || t
-                        )
-                      );
-                      if (!existingLabels.has(tag.label)) {
-                        updatedCustomerTags[category] = [...updatedCustomerTags[category], tag.label];
-                      }
-                    } else {
-                      updatedCustomerTags[category] = [tag.label];
-                    }
-                  }
-                });
-                
                 const currentVisitCount = selectedCustomerForRecord.visitCount || 0;
                 const nextVisitCount = currentVisitCount + 1;
                 
-                if (nextVisitCount >= 2) {
-                  const patternTags = updatedCustomerTags.pattern || [];
-                  updatedCustomerTags.pattern = patternTags.filter(tag => tag !== '신규');
-                  if (!updatedCustomerTags.pattern.includes('기존')) {
-                    updatedCustomerTags.pattern = [...updatedCustomerTags.pattern, '기존'];
-                  }
-                } else {
-                  const patternTags = updatedCustomerTags.pattern || [];
-                  if (!patternTags.includes('신규')) {
-                    updatedCustomerTags.pattern = [...patternTags, '신규'];
-                  }
-                }
-                
-                const allContent = [
-                  resultData.title || '',
-                  ...(resultData.sections || []).flatMap(section => 
-                    (section.content || []).join(' ')
-                  )
-                ].join(' ').toLowerCase();
-                
-                if (allContent.includes('임산부')) {
-                  const cautionTags = updatedCustomerTags.caution || [];
-                  if (!cautionTags.includes('임산부')) {
-                    updatedCustomerTags.caution = [...cautionTags, '임산부'];
-                  }
-                }
-                
-                if (allContent.includes('글루알러지') || allContent.includes('글루 알러지')) {
-                  const cautionTags = updatedCustomerTags.caution || [];
-                  if (!cautionTags.includes('글루알러지')) {
-                    updatedCustomerTags.caution = [...cautionTags, '글루알러지'];
-                  }
-                }
-                
-                if (allContent.includes('눈물많음') || allContent.includes('눈물 많음') || allContent.includes('눈물이 많')) {
-                  const cautionTags = updatedCustomerTags.caution || [];
-                  if (!cautionTags.includes('눈물많음')) {
-                    updatedCustomerTags.caution = [...cautionTags, '눈물많음'];
-                  }
-                }
+                const updatedCustomerTags = updateCustomerTags({
+                  existingCustomerTags: selectedCustomerForRecord.customerTags || {
+                    caution: [],
+                    trait: [],
+                    payment: [],
+                    pattern: []
+                  },
+                  selectedCustomerTagIds,
+                  allCustomerTags,
+                  visitCount: nextVisitCount,
+                  resultTitle: resultData.title,
+                  resultSections: resultData.sections
+                });
                 
                 setCustomers(prev => prev.map(c => {
                   if (c.id === customerId) {
@@ -889,119 +804,57 @@ function RecordScreen({
                 }
                 
                 // 신규 고객 생성 및 기록 저장
-                const today = new Date();
-                const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                const timeStr = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
-                const recordedAt = today.toISOString();
+                const { dateStr, timeStr, recordedAt } = createDateTimeStrings();
                 
                 const parsedServiceDate = extractServiceDateFromSummary(resultData);
                 const serviceDate = parsedServiceDate || dateStr;
                 
-                const newCustomerId = Math.max(...customers.map(c => c.id), 0) + 1;
-                
-                const newCustomerTags = {
-                  caution: [],
-                  trait: [],
-                  payment: [],
-                  pattern: []
-                };
-                
-                selectedCustomerTagIds.forEach(tagId => {
-                  const tag = allCustomerTags.find(t => t.id === tagId);
-                  if (tag) {
-                    const category = tag.category;
-                    if (newCustomerTags[category]) {
-                      newCustomerTags[category] = [...newCustomerTags[category], tag.label];
-                    } else {
-                      newCustomerTags[category] = [tag.label];
-                    }
-                  }
+                // 신규 고객 태그 생성 (방문 횟수 1이므로 신규)
+                const newCustomerTags = updateCustomerTags({
+                  existingCustomerTags: {
+                    caution: [],
+                    trait: [],
+                    payment: [],
+                    pattern: []
+                  },
+                  selectedCustomerTagIds,
+                  allCustomerTags,
+                  visitCount: 1,
+                  resultTitle: resultData.title,
+                  resultSections: resultData.sections
                 });
                 
-                if (!newCustomerTags.pattern.includes('신규')) {
-                  newCustomerTags.pattern = [...newCustomerTags.pattern, '신규'];
-                }
-                
-                const allContent = [
-                  resultData.title || '',
-                  ...(resultData.sections || []).flatMap(section => 
-                    (section.content || []).join(' ')
-                  )
-                ].join(' ').toLowerCase();
-                
-                if (allContent.includes('임산부')) {
-                  if (!newCustomerTags.caution.includes('임산부')) {
-                    newCustomerTags.caution = [...newCustomerTags.caution, '임산부'];
-                  }
-                }
-                
-                if (allContent.includes('글루알러지') || allContent.includes('글루 알러지')) {
-                  if (!newCustomerTags.caution.includes('글루알러지')) {
-                    newCustomerTags.caution = [...newCustomerTags.caution, '글루알러지'];
-                  }
-                }
-                
-                if (allContent.includes('눈물많음') || allContent.includes('눈물 많음') || allContent.includes('눈물이 많')) {
-                  if (!newCustomerTags.caution.includes('눈물많음')) {
-                    newCustomerTags.caution = [...newCustomerTags.caution, '눈물많음'];
-                  }
-                }
-                
-                const newCustomer = {
-                  id: newCustomerId,
-                  name: tempName.trim(),
-                  phone: tempPhone.trim(),
-                  visitCount: 1,
-                  lastVisit: dateStr,
-                  avatar: '👤',
-                  tags: [],
+                const newCustomer = createNewCustomer({
+                  name: tempName,
+                  phone: tempPhone,
+                  dateStr,
+                  customers,
                   customerTags: newCustomerTags
-                };
+                });
                 
-                const cleanTitle = (title) => {
-                  if (!title) return title;
-                  let cleaned = title;
-                  if (tempName) {
-                    cleaned = cleaned.replace(new RegExp(tempName, 'g'), '').trim();
-                  }
-                  cleaned = cleaned.replace(/신규\s*고객/gi, '').trim();
-                  cleaned = cleaned.replace(/기존\s*고객/gi, '').trim();
-                  cleaned = cleaned.replace(/\s+/g, ' ').trim();
-                  return cleaned || title;
-                };
+                const cleanedTitle = cleanTitle(resultData.title, tempName);
                 
-                const newVisitId = Date.now();
-                const newVisit = {
-                  id: newVisitId,
-                  date: dateStr,
-                  time: timeStr,
-                  recordedAt: recordedAt,
-                  serviceDate: serviceDate,
-                  title: cleanTitle(resultData.title),
-                  summary: resultData.sections[0]?.content[0] || cleanTitle(resultData.title),
+                const newVisit = createVisitRecord({
+                  dateStr,
+                  timeStr,
+                  recordedAt,
+                  serviceDate,
+                  title: cleanedTitle,
+                  summary: resultData.sections[0]?.content[0] || cleanedTitle,
                   rawTranscript: rawTranscript || transcript,
-                  detail: {
-                    sections: resultData.sections
-                  },
-                  tags: (() => {
-                    const selectedTagLabels = selectedTagIds
-                      .map(id => {
-                        const tag = allVisitTags.find(t => t.id === id);
-                        return tag ? tag.label : null;
-                      })
-                      .filter(label => label !== null);
-                    const allTags = [...new Set([...serviceTags, ...selectedTagLabels])];
-                    return allTags;
-                  })()
-                };
+                  sections: resultData.sections,
+                  selectedTagIds,
+                  allVisitTags,
+                  serviceTags
+                });
                 
                 setCustomers(prev => [...prev, newCustomer]);
                 setVisits(prev => ({
                   ...prev,
-                  [newCustomerId]: [newVisit]
+                  [newCustomer.id]: [newVisit]
                 }));
                 
-                setSelectedCustomerId(newCustomerId);
+                setSelectedCustomerId(newCustomer.id);
                 setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
               }
               

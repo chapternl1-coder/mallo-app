@@ -960,7 +960,6 @@ export default function useMalloAppState() {
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   };
   
-  const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [expandedHistoryIds, setExpandedHistoryIds] = useState(new Set());
   const [selectedDate, setSelectedDate] = useState(getTodayDateString());
 

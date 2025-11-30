@@ -1,10 +1,18 @@
+// 특정 고객의 정보와 방문 히스토리를 보여주는 화면
 import React from 'react';
 import { ArrowLeft, MoreHorizontal, Phone, Edit, Mic, ChevronUp, ChevronDown } from 'lucide-react';
 import { formatRecordDateTime, formatServiceDateTimeLabel } from '../utils/date';
 import { SCREENS } from '../constants/screens';
+import {
+  overrideCustomerInfoLine,
+  cleanVisitTitle,
+  formatVisitDateTime,
+  formatCustomerTagsForDisplay,
+  convertCustomerTagsToIds,
+  convertVisitTagsToIds
+} from '../utils/visitUtils';
 
 function CustomerDetailScreen({
-  currentScreen,
   setCurrentScreen,
   selectedCustomerId,
   customers,
@@ -102,30 +110,6 @@ function CustomerDetailScreen({
     setVisibleVisitCount(10);
   };
 
-  // "미기재"와 "null"을 실제 고객 정보로 치환하는 helper 함수
-  const overrideCustomerInfoLine = (line, customerInfo) => {
-    if (!line) return line;
-    
-    let updated = line;
-
-    // 이름이 미기재나 null로 되어있으면 실제 이름으로 교체
-    if (customerInfo?.name) {
-      updated = updated.replace(/이름:\s*미기재/g, `이름: ${customerInfo.name}`);
-      updated = updated.replace(/이름\s*:\s*미기재/g, `이름: ${customerInfo.name}`);
-      updated = updated.replace(/이름:\s*null/gi, `이름: ${customerInfo.name}`);
-      updated = updated.replace(/이름\s*:\s*null/gi, `이름: ${customerInfo.name}`);
-    }
-
-    // 전화번호가 미기재나 null로 되어있으면 실제 전화번호로 교체
-    if (customerInfo?.phone) {
-      updated = updated.replace(/전화번호:\s*미기재/g, `전화번호: ${customerInfo.phone}`);
-      updated = updated.replace(/전화번호\s*:\s*미기재/g, `전화번호: ${customerInfo.phone}`);
-      updated = updated.replace(/전화번호:\s*null/gi, `전화번호: ${customerInfo.phone}`);
-      updated = updated.replace(/전화번호\s*:\s*null/gi, `전화번호: ${customerInfo.phone}`);
-    }
-
-    return updated;
-  };
 
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
@@ -156,22 +140,7 @@ function CustomerDetailScreen({
               setNewTag('');
               
               // 고객 특징 태그를 ID 배열로 변환하여 로드
-              const customerTags = customer.customerTags || {};
-              const tagLabels = [];
-              Object.values(customerTags).forEach(categoryTags => {
-                if (Array.isArray(categoryTags)) {
-                  categoryTags.forEach(tag => {
-                    const label = typeof tag === 'string' ? tag : tag.label || tag;
-                    tagLabels.push(label);
-                  });
-                }
-              });
-              const tagIds = tagLabels
-                .map(label => {
-                  const tag = allCustomerTags.find(t => t.label === label);
-                  return tag ? tag.id : null;
-                })
-                .filter(id => id !== null);
+              const tagIds = convertCustomerTagsToIds(customer.customerTags || {}, allCustomerTags);
               setEditCustomerTagIds(tagIds);
               
               setCurrentScreen(SCREENS.EDIT_CUSTOMER);
@@ -198,58 +167,7 @@ function CustomerDetailScreen({
               </div>
               {/* customerTags 표시 (주의 태그가 맨 앞) */}
               {(() => {
-                const customerTags = customer.customerTags || {};
-                console.log('CustomerDetailScreen - customerTags:', customerTags);
-                const allTags = [];
-                
-                // 방문 횟수 확인 (2 이상이면 "신규" 제거하고 "기존" 추가)
-                const visitCount = customer.visitCount || 0;
-                const shouldReplaceNewWithExisting = visitCount >= 2;
-                
-                // 주의 태그 먼저 추가
-                if (customerTags.caution && customerTags.caution.length > 0) {
-                  customerTags.caution.forEach(tag => {
-                    allTags.push({ tag, type: 'caution' });
-                  });
-                }
-                
-                // 나머지 태그 추가
-                if (customerTags.trait && customerTags.trait.length > 0) {
-                  customerTags.trait.forEach(tag => {
-                    allTags.push({ tag, type: 'trait' });
-                  });
-                }
-                if (customerTags.payment && customerTags.payment.length > 0) {
-                  customerTags.payment.forEach(tag => {
-                    allTags.push({ tag, type: 'payment' });
-                  });
-                }
-                if (customerTags.pattern && customerTags.pattern.length > 0) {
-                  customerTags.pattern.forEach(tag => {
-                    // 방문 횟수가 2 이상이면 "신규" 태그는 제외하고 "기존" 태그 추가
-                    if (shouldReplaceNewWithExisting && tag === '신규') {
-                      // "신규" 태그는 건너뛰고 "기존" 태그가 없으면 추가
-                      if (!customerTags.pattern.includes('기존')) {
-                        allTags.push({ tag: '기존', type: 'pattern' });
-                      }
-                    } else {
-                      allTags.push({ tag, type: 'pattern' });
-                    }
-                  });
-                }
-                
-                // 방문 횟수가 2 이상이고 "기존" 태그가 없으면 추가
-                if (shouldReplaceNewWithExisting && (!customerTags.pattern || !customerTags.pattern.includes('기존'))) {
-                  // "신규" 태그가 이미 필터링되었는지 확인
-                  const hasNewTag = customerTags.pattern && customerTags.pattern.includes('신규');
-                  if (!hasNewTag || allTags.find(t => t.tag === '기존')) {
-                    // 이미 "기존" 태그가 추가되었거나 "신규" 태그가 없으면 추가하지 않음
-                  } else {
-                    allTags.push({ tag: '기존', type: 'pattern' });
-                  }
-                }
-                
-                console.log('CustomerDetailScreen - allTags:', allTags);
+                const allTags = formatCustomerTagsForDisplay(customer.customerTags || {}, customer.visitCount || 0);
                 
                 if (allTags.length === 0) return null;
                 
@@ -301,45 +219,13 @@ function CustomerDetailScreen({
 
               // 날짜/시간 정보 준비
               const serviceDateTimeLabel = extractServiceDateTimeLabel(visit);
-              let dateTimeDisplay = '';
-              if (serviceDateTimeLabel) {
-                // "2025-12-27 17:30 방문/예약" -> "2025.12.27 17:30"
-                const dateTimeMatch = serviceDateTimeLabel.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
-                if (dateTimeMatch) {
-                  const [, year, month, day, hour, minute] = dateTimeMatch;
-                  dateTimeDisplay = `${year}.${month}.${day} ${hour}:${minute}`;
-                } else {
-                  // fallback: recordedAt 사용
-                  const recordedAt = visit.recordedAt || visit.createdAt || (visit.date && visit.time ? `${visit.date}T${visit.time}:00` : null);
-                  if (recordedAt) {
-                    dateTimeDisplay = formatRecordDateTime(recordedAt);
-                  }
-                }
-              } else {
-                // serviceDateTimeLabel이 없으면 recordedAt 사용
-                const recordedAt = visit.recordedAt || visit.createdAt || (visit.date && visit.time ? `${visit.date}T${visit.time}:00` : null);
-                if (recordedAt) {
-                  dateTimeDisplay = formatRecordDateTime(recordedAt);
-                }
-              }
+              const dateTimeDisplay = formatVisitDateTime(visit, serviceDateTimeLabel);
 
               // 시술 내용 요약 (고객 이름 제거)
-              const cleanTitle = (title) => {
-                if (!title) return title;
-                let cleaned = title;
-                // 고객 이름 제거
-                if (safeName && safeName !== '미기재') {
-                  cleaned = cleaned.replace(new RegExp(safeName, 'g'), '').trim();
-                }
-                // '기존 고객', '신규 고객' 등 제거
-                cleaned = cleaned.replace(/기존\s*고객/gi, '').trim();
-                cleaned = cleaned.replace(/신규\s*고객/gi, '').trim();
-                // 연속된 공백 정리
-                cleaned = cleaned.replace(/\s+/g, ' ').trim();
-                return cleaned || title || '';
-              };
-
-              const displayTitle = cleanTitle(visit.title || visit.subject || visit.summary || '');
+              const displayTitle = cleanVisitTitle(
+                visit.title || visit.subject || visit.summary || '',
+                safeName
+              );
 
               return (
                 <div key={visit.id} className="bg-white rounded-xl shadow-sm overflow-hidden relative" style={{ padding: '12px 16px' }}>
@@ -414,13 +300,7 @@ function CustomerDetailScreen({
                           setEditingCustomer(customer);
                           
                           // 편집 중인 방문의 태그를 ID 배열로 변환
-                          const visitTagLabels = normalizedVisit.tags || [];
-                          const visitTagIds = visitTagLabels
-                            .map(label => {
-                              const tag = allVisitTags.find(t => t.label === label);
-                              return tag ? tag.id : null;
-                            })
-                            .filter(id => id !== null);
+                          const visitTagIds = convertVisitTagsToIds(normalizedVisit.tags || [], allVisitTags);
                           setEditingVisitTagIds(visitTagIds);
                           
                           setCurrentScreen(SCREENS.EDIT);
