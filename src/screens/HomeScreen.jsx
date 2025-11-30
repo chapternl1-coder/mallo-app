@@ -47,7 +47,7 @@ function HomeScreen({
       />
 
       {/* 본문 영역 */}
-      <main className="flex-1 flex justify-center px-8 pt-[240px] pb-[150px] overflow-y-auto">
+      <main className="flex-1 flex justify-center px-8 pt-[200px] pb-[150px] overflow-y-auto">
         <div className="w-full max-w-md">
           <div
             className="w-full bg-white rounded-3xl shadow-lg border-2 border-gray-200 hover:shadow-xl hover:border-[#C9A27A] transition-all duration-300 p-12 flex flex-col items-center justify-center gap-6"
