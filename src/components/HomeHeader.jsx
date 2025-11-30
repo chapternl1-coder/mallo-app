@@ -1,7 +1,7 @@
 import React from 'react';
-import { Scissors } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
 import CustomerListItem from './CustomerListItem';
+import logo from '../assets/logo.png';
 
 function HomeHeader({
   todayStr,
@@ -14,22 +14,17 @@ function HomeHeader({
 }) {
   return (
     <>
-      <header className="px-8 py-6 flex justify-between items-center bg-white z-10 border-b border-gray-200 shadow-sm">
+      <header className="px-8 py-6 flex justify-between items-center bg-white z-10 border-b border-gray-200 shadow-sm h-[100px]">
         <div className="flex flex-col">
           <h2 className="text-xl font-bold" style={{ color: '#232323' }}>원장님, 안녕하세요!</h2>
           <span className="text-sm font-light mt-1" style={{ color: '#232323', opacity: 0.6 }}>{todayStr}</span>
         </div>
         <div className="flex items-center gap-3">
-          <button 
-            onClick={() => {
-              setActiveTab('History');
-              setCurrentScreen(SCREENS.HISTORY);
-            }}
-            className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-md hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: '#C9A27A' }}
-          >
-            <Scissors size={20} className="text-white" />
-          </button>
+          <img 
+            src={logo} 
+            alt="Mallo 로고" 
+            className="w-20 h-20 object-contain"
+          />
         </div>
       </header>
 

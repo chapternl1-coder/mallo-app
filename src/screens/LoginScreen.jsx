@@ -1,6 +1,7 @@
 import React from 'react';
-import { Scissors, Mail, Lock } from 'lucide-react';
+import { Mail, Lock } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
+import logo from '../assets/logo.png';
 
 function LoginScreen({
   email,
@@ -24,13 +25,15 @@ function LoginScreen({
 
   return (
     <div className="flex flex-col h-full items-center justify-center p-8" style={{ backgroundColor: '#F2F0E6' }}>
-      <div className="w-full max-w-sm space-y-10">
+      <div className="w-full max-w-sm space-y-6">
         {/* 로고 */}
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl shadow-md mb-6" style={{ backgroundColor: '#C9A27A' }}>
-            <Scissors size={40} className="text-white" />
-          </div>
-          <h1 className="text-3xl font-bold mb-3" style={{ color: '#232323' }}>Mallo</h1>
+          <img 
+            src={logo} 
+            alt="Mallo 로고" 
+            className="w-60 h-60 object-contain mx-auto mb-2"
+          />
+          <h1 className="text-3xl font-bold mb-2" style={{ color: '#232323' }}>Mallo</h1>
           <p className="font-light" style={{ color: '#232323' }}>오늘 시술, 말로만 기록하세요.</p>
         </div>
 

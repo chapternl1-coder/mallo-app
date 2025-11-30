@@ -5,6 +5,8 @@ import { SCREENS } from '../constants/screens';
 function ProfileEditScreen({
   editProfileName,
   setEditProfileName,
+  editProfileShopName,
+  setEditProfileShopName,
   editProfileEmail,
   setEditProfileEmail,
   editProfilePhone,
@@ -16,6 +18,7 @@ function ProfileEditScreen({
     setUserProfile(prev => ({
       ...prev,
       name: editProfileName.trim(),
+      shopName: editProfileShopName.trim(),
       email: editProfileEmail.trim(),
       phone: editProfilePhone.trim()
     }));
@@ -25,7 +28,7 @@ function ProfileEditScreen({
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
       {/* 헤더 */}
-      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
+      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm h-[100px]">
         <button 
           onClick={() => setCurrentScreen(SCREENS.PROFILE)} 
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
@@ -67,6 +70,19 @@ function ProfileEditScreen({
             className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
             style={{ color: '#232323' }}
             placeholder="이름을 입력하세요"
+          />
+        </div>
+
+        {/* 샵 이름 */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <label className="block text-sm font-bold mb-2" style={{ color: '#232323' }}>샵 이름</label>
+          <input
+            type="text"
+            value={editProfileShopName}
+            onChange={(e) => setEditProfileShopName(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#C9A27A] focus:outline-none transition-colors"
+            style={{ color: '#232323' }}
+            placeholder="샵 이름을 입력하세요"
           />
         </div>
 

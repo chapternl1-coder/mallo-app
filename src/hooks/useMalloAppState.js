@@ -20,6 +20,7 @@ export default function useMalloAppState() {
     sectorId: 'beauty', 
     roleTitle: '뷰티샵 원장',
     name: '김말로 원장님',
+    shopName: '말로 뷰티 스튜디오',
     email: 'mallo@beauty.com',
     phone: '010-1234-5678'
   });
@@ -40,6 +41,7 @@ export default function useMalloAppState() {
   const [isEditCustomerTagPickerOpen, setIsEditCustomerTagPickerOpen] = useState(false);
   const [editCustomerMemo, setEditCustomerMemo] = useState('');
   const [editProfileName, setEditProfileName] = useState('');
+  const [editProfileShopName, setEditProfileShopName] = useState('');
   const [editProfileEmail, setEditProfileEmail] = useState('');
   const [editProfilePhone, setEditProfilePhone] = useState('');
   const [editingVisitTagIds, setEditingVisitTagIds] = useState([]);
@@ -976,6 +978,7 @@ export default function useMalloAppState() {
   useEffect(() => {
     if (currentScreen === SCREENS.PROFILE_EDIT) {
       setEditProfileName(userProfile.name || '');
+      setEditProfileShopName(userProfile.shopName || '');
       setEditProfileEmail(userProfile.email || '');
       setEditProfilePhone(userProfile.phone || '');
     }
@@ -1066,6 +1069,8 @@ export default function useMalloAppState() {
     setNewTag,
     editProfileName,
     setEditProfileName,
+    editProfileShopName,
+    setEditProfileShopName,
     editProfileEmail,
     setEditProfileEmail,
     editProfilePhone,

@@ -21,7 +21,7 @@ function ProfileScreen({
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
       {/* 헤더 */}
-      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
+      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm h-[100px]">
         <button 
           onClick={() => setCurrentScreen(SCREENS.HOME)} 
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
@@ -54,6 +54,11 @@ function ProfileScreen({
               <h3 className="font-bold text-lg mb-1" style={{ color: '#232323' }}>
                 {userProfile.name}
               </h3>
+              {userProfile.shopName && (
+                <p className="text-sm font-medium mb-1" style={{ color: '#C9A27A' }}>
+                  {userProfile.shopName}
+                </p>
+              )}
               <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.7 }}>
                 {userProfile.email}
               </p>
@@ -63,23 +68,6 @@ function ProfileScreen({
 
         {/* 메뉴 리스트 */}
         <div className="space-y-2">
-          {/* 내 샵 정보 */}
-          <button
-            onClick={() => {
-              // TODO: 샵 정보 화면 구현
-              alert('준비 중입니다.');
-            }}
-            className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#F2F0E6] flex items-center justify-center">
-                <span className="text-xl">🏠</span>
-              </div>
-              <span className="text-sm font-medium" style={{ color: '#232323' }}>내 샵 정보</span>
-            </div>
-            <ChevronRight size={18} style={{ color: '#A7A196' }} />
-          </button>
-
           {/* 시술 태그/키워드 관리 */}
           <button
             onClick={() => {
