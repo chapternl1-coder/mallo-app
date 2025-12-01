@@ -839,8 +839,38 @@ export default function useMalloAppState() {
     setCurrentScreen(SCREENS.HOME);
   };
 
+  // content 배열의 모든 항목을 문자열로 변환하는 헬퍼 함수
+  const normalizeContentArray = (content) => {
+    if (!Array.isArray(content)) {
+      return [];
+    }
+    return content.map((item) => {
+      if (typeof item === 'string') {
+        return item;
+      }
+      if (typeof item === 'object' && item !== null) {
+        // 객체인 경우 JSON 문자열로 변환하되, 한 줄로 정리
+        try {
+          return JSON.stringify(item, null, 2);
+        } catch (e) {
+          return String(item);
+        }
+      }
+      return String(item || '');
+    });
+  };
+
   const handleSummaryResult = (summaryData) => {
-    setResultData(summaryData);
+    // sections의 content 배열을 정리하여 모든 항목이 문자열인지 확인
+    const cleanedData = {
+      ...summaryData,
+      sections: (summaryData.sections || []).map((section) => ({
+        ...section,
+        content: normalizeContentArray(section.content || []),
+      })),
+    };
+    
+    setResultData(cleanedData);
     
     if (summaryData.customerInfo) {
       const extractedName = summaryData.customerInfo.name;
@@ -1001,15 +1031,20 @@ export default function useMalloAppState() {
       }
       
       // API 응답 형식을 기존 handleSummaryResult가 기대하는 형식으로 변환
-      // summaryJson이 { name, service, price, note } 형태일 수 있으므로
-      // 기존 형식 { title, sections }로 변환 필요
+      let cleanedResult = {};
+      
       if (parsedResult.title && parsedResult.sections && Array.isArray(parsedResult.sections)) {
-        handleSummaryResult(parsedResult);
+        // 올바른 형식: customerInfo 추가하고 그대로 전달 (handleSummaryResult에서 content 정리됨)
+        cleanedResult = {
+          ...parsedResult,
+          customerInfo: parsedResult.customerInfo || { name: null, phone: null },
+        };
       } else {
-        // 새 형식이면 기존 형식으로 변환
-        const formattedResult = {
+        // 다른 형식이면 변환
+        cleanedResult = {
           title: parsedResult.title || parsedResult.summary || parsedResult.service || '시술 기록',
-          sections: parsedResult.sections || [
+          customerInfo: parsedResult.customerInfo || { name: null, phone: null },
+          sections: [
             {
               title: '시술 내용',
               content: [parsedResult.service || parsedResult.note || '시술 내용이 없습니다.']
@@ -1020,8 +1055,9 @@ export default function useMalloAppState() {
             }] : [])
           ]
         };
-        handleSummaryResult(formattedResult);
       }
+      
+      handleSummaryResult(cleanedResult);
       
       setTranscript(testSummaryInput);
       setRawTranscript(testSummaryInput);
