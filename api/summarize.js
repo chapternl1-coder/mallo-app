@@ -1,4 +1,4 @@
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   // CORS 헤더
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -66,11 +66,10 @@ module.exports = async (req, res) => {
 
     res.status(200).json({
       ok: true,
-      summary: JSON.parse(summaryJson),
+      summaryJson,
     });
-  } catch (error) {
-    console.error('Summarize API error:', error);
-    res.status(500).json({ error: 'Internal server error', message: error.message });
+  } catch (err) {
+    console.error('Server summarize error:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
-};
-
+}
