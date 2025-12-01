@@ -174,7 +174,7 @@ function RecordScreen({
 
             {/* Recording 텍스트 - 살짝 더 내려줌 */}
             <h2
-              className="text-[11px] font-medium tracking-widest uppercase mt-7 mb-1"
+              className="text-[11px] font-medium tracking-widest uppercase mt-11 mb-1"
               style={{ color: '#C9A27A', opacity: 0.8 }}
             >
               Recording
