@@ -334,7 +334,8 @@ function EditScreen({
               + 항목 추가
             </button>
           </div>
-        ))}
+          );
+        })}
         
         {/* 전체 삭제 버튼 (editingVisit이 있을 때만 표시, 스크롤 끝에만 표시) */}
         {editingVisit && editingCustomer && (

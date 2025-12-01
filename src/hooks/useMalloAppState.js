@@ -1098,11 +1098,30 @@ export default function useMalloAppState() {
 
       const data = await response.json();
       
+      // 디버깅: API 응답 확인
+      console.log('[요약 테스트] API 응답 받음', {
+        hasSummaryJson: !!data.summaryJson,
+        summaryJsonLength: data.summaryJson?.length || 0,
+        summaryJsonPreview: data.summaryJson?.substring(0, 200) || '없음',
+      });
+      
       let parsedResult = {};
       try {
         parsedResult = JSON.parse(data.summaryJson || '{}');
+        console.log('[요약 테스트] JSON 파싱 성공', {
+          hasTitle: !!parsedResult.title,
+          title: parsedResult.title,
+          sectionsCount: parsedResult.sections?.length || 0,
+          sectionsPreview: parsedResult.sections?.map(s => ({
+            title: s.title,
+            contentCount: s.content?.length || 0,
+            contentPreview: s.content?.slice(0, 2) || [],
+          })) || [],
+        });
       } catch (e) {
-        console.warn('요약 JSON 파싱 실패', e);
+        console.error('요약 JSON 파싱 실패', e, {
+          summaryJson: data.summaryJson,
+        });
         throw new Error('요약 결과를 파싱할 수 없습니다.');
       }
       
@@ -1121,10 +1140,19 @@ export default function useMalloAppState() {
         };
         
         // 디버깅: 변환 전후 비교
+        console.log('[요약 변환] API 응답 처리 시작', {
+          sectionsCount: parsedResult.sections?.length || 0,
+          sections: parsedResult.sections?.map(s => ({
+            title: s.title,
+            contentTypes: (s.content || []).map(item => typeof item),
+            hasObjects: (s.content || []).some(item => typeof item === 'object' && item !== null),
+          })),
+        });
+        
         parsedResult.sections.forEach((section, idx) => {
           const hasObjects = (section.content || []).some(item => typeof item === 'object' && item !== null);
           if (hasObjects) {
-            console.warn(`[요약 변환] 섹션 "${section.title}"에 객체가 포함되어 변환합니다.`, {
+            console.warn(`[요약 변환] ⚠️ 섹션 "${section.title}"에 객체가 포함되어 변환합니다.`, {
               before: section.content,
               after: cleanedResult.sections[idx].content,
             });
