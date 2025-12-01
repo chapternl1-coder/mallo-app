@@ -89,7 +89,7 @@ function CustomerDetailScreen({
   
   // 개발용 요약 테스트 state
   const [devTestText, setDevTestText] = useState('');
-  const [devSummaryResult, setDevSummaryResult] = useState(null);
+  const [devSummaryResult, setDevSummaryResult] = useState('');
   const [isDevSummaryLoading, setIsDevSummaryLoading] = useState(false);
   
   // 시간 추출 헬퍼 함수 (HistoryScreen과 동일)
@@ -222,7 +222,7 @@ function CustomerDetailScreen({
 
     try {
       setIsDevSummaryLoading(true);
-      setDevSummaryResult(null);
+      setDevSummaryResult('');
 
       const response = await fetch('/api/summarize', {
         method: 'POST',
@@ -238,15 +238,18 @@ function CustomerDetailScreen({
 
       const data = await response.json();
 
-      let parsed = null;
+      // ① 서버에서 온 summaryJson(JSON 문자열)을 객체로 파싱
+      // ② 다시 보기 좋게 문자열로 변환해서 state에 저장
+      let pretty = '';
       try {
-        // 서버에서 내려온 summaryJson 문자열을 실제 JSON 객체로 변환
-        parsed = JSON.parse(data.summaryJson || '{}');
+        const parsed = JSON.parse(data.summaryJson || '{}');
+        pretty = JSON.stringify(parsed, null, 2);
       } catch (e) {
         console.error('요약 JSON 파싱 실패', e);
+        pretty = data.summaryJson || '';
       }
 
-      setDevSummaryResult(parsed);
+      setDevSummaryResult(pretty);
     } catch (err) {
       console.error('DEV 요약 테스트 오류:', err);
       alert('테스트 요약 실패\n\n요약 서버 호출에 실패했습니다. 잠시 후 다시 시도해주세요.');
@@ -455,7 +458,7 @@ function CustomerDetailScreen({
               className="mt-3 text-xs bg-[#faf6ee] rounded-xl p-3 overflow-x-auto whitespace-pre-wrap"
               style={{ color: '#232323' }}
             >
-              {JSON.stringify(devSummaryResult, null, 2)}
+              {devSummaryResult}
             </pre>
           ) : (
             <p className="mt-3 text-xs text-gray-400">
