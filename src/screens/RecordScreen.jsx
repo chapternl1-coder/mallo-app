@@ -161,7 +161,7 @@ function RecordScreen({
                 style={{ borderColor: '#f0e7d9' }}
               >
                 <p
-                  className={`text-[11px] text-center leading-snug ${
+                  className={`text-[12px] text-center leading-snug ${
                     isNearLimit ? 'text-[#e05252]' : 'text-[#9b8b7a]'
                   }`}
                 >
@@ -181,7 +181,7 @@ function RecordScreen({
 
             {/* 타이머 숫자 크게 */}
             <p
-              className="text-5xl font-mono font-light tracking-tighter tabular-nums leading-none"
+              className="text-[40px] font-mono font-light tracking-tighter tabular-nums leading-none"
               style={{
                 color: '#232323',
                 textShadow: '0 2px 10px rgba(201, 162, 122, 0.2)',
@@ -192,7 +192,7 @@ function RecordScreen({
           </div>
 
           {/* Visualizer & 버튼 */}
-          <div className="z-10 flex flex-col items-center gap-2 mt-[96px]">
+          <div className="z-10 flex flex-col items-center gap-2 mt-[120px]">
             <WaveBars />
 
             {/* 정지 버튼 - 물결(Ripple) 애니메이션 */}
