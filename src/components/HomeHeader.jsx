@@ -14,7 +14,7 @@ function HomeHeader({
 }) {
   return (
     <>
-      <header className="px-8 pt-6 pb-4 flex justify-between items-center bg-white z-10 border-b border-gray-200 shadow-sm h-[100px]">
+      <header className="px-8 pt-6 pb-4 flex justify-between items-center bg-white z-10 border-b border-gray-200 shadow-sm h-[80px]">
         <div className="flex flex-col">
           <h2 className="text-xl font-bold" style={{ color: '#232323' }}>원장님, 안녕하세요!</h2>
           <span className="text-sm font-light mt-1" style={{ color: '#232323', opacity: 0.6 }}>{todayStr}</span>
@@ -31,7 +31,7 @@ function HomeHeader({
       {/* 검색창 - 화면 중앙에 크게 배치 */}
       <div
         className="absolute left-1/2 -translate-x-1/2 w-full max-w-md px-8"
-        style={{ top: '120px', zIndex: 100 }}
+        style={{ top: '100px', zIndex: 100 }}
       >
         <div className="bg-white rounded-2xl shadow-md border border-[#EFECE1] p-6">
           <div className="flex items-center gap-4 bg-white rounded-2xl px-4 h-14 border border-[#EFECE1] focus-within:border-[#C9A27A] focus-within:ring-2 focus-within:ring-[#C9A27A] transition-all">

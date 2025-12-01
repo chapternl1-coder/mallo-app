@@ -223,7 +223,7 @@ function CustomerDetailScreen({
         <div className="w-10"></div> {/* 공간 맞추기용 */}
       </header>
 
-      <main className="flex-1 overflow-y-auto p-8 space-y-6 pb-32">
+      <main className="flex-1 overflow-y-auto p-8 space-y-6 pb-40">
         {/* 고객 정보 카드 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 relative">
           {/* 편집 버튼 */}
@@ -366,7 +366,7 @@ function CustomerDetailScreen({
         </div>
 
         {/* 방문 히스토리 */}
-        <div className="space-y-4 pb-24">
+        <div className="space-y-4 pb-32">
           <h3 className="text-base font-bold" style={{ color: '#232323' }}>방문 히스토리</h3>
           {sortedCustomerVisits.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 shadow-sm">
