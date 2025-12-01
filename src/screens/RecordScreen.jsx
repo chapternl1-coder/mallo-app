@@ -192,7 +192,7 @@ function RecordScreen({
           </div>
 
           {/* Visualizer & 버튼 */}
-          <div className="z-10 flex flex-col items-center gap-2 mt-[72px]">
+          <div className="z-10 flex flex-col items-center gap-2 mt-[96px]">
             <WaveBars />
 
             {/* 정지 버튼 - 물결(Ripple) 애니메이션 */}
