@@ -154,8 +154,8 @@ function RecordScreen({
               justifyContent: 'center',
             }}
           >
-            {/* 팁 박스 - 살짝 위로 */}
-            <div className="w-full px-8 mb-1 z-10 mt-[-4px]">
+            {/* 팁 박스 - 2줄 + 조금 더 위로 */}
+            <div className="w-full px-8 mb-1 z-10 mt-[-8px]">
               <div
                 className="bg-white/80 rounded-xl px-4 py-2 shadow-sm border backdrop-blur-sm"
                 style={{ borderColor: '#f0e7d9' }}
@@ -166,13 +166,15 @@ function RecordScreen({
                   }`}
                 >
                   한 번에 최대 2분까지 녹음돼요.
+                  <br />
+                  한 고객님 정보만 말씀해 주세요.
                 </p>
               </div>
             </div>
 
-            {/* Recording 텍스트 - 아래로 조금 내리기 */}
+            {/* Recording 텍스트 */}
             <h2
-              className="text-[9px] font-medium tracking-widest uppercase mt-2 mb-1"
+              className="text-[9px] font-medium tracking-widest uppercase mt-1 mb-1"
               style={{ color: '#C9A27A', opacity: 0.8 }}
             >
               Recording
@@ -180,7 +182,7 @@ function RecordScreen({
 
             {/* 타이머 */}
             <p
-              className="mt-4 text-[64px] font-mono font-light tracking-tighter tabular-nums leading-none"
+              className="mt-6 text-[64px] font-mono font-light tracking-tighter tabular-nums leading-none"
               style={{
                 color: '#232323',
                 textShadow: '0 2px 10px rgba(201, 162, 122, 0.2)',
