@@ -154,8 +154,8 @@ function RecordScreen({
               justifyContent: 'center',
             }}
           >
-            {/* 팁 박스 - 2줄, 한 사이즈 키우고 조금 더 위로 */}
-            <div className="w-full px-8 mb-1 z-10 mt-[-10px]">
+            {/* 팁 박스 - 2줄, 더 위로 올림 */}
+            <div className="w-full px-8 mb-1 z-10 mt-[-14px]">
               <div
                 className="bg-white/80 rounded-xl px-4 py-2 shadow-sm border backdrop-blur-sm"
                 style={{ borderColor: '#f0e7d9' }}
@@ -172,9 +172,9 @@ function RecordScreen({
               </div>
             </div>
 
-            {/* Recording 텍스트 - 한 사이즈 키우고 조금 더 아래로 */}
+            {/* Recording 텍스트 - 살짝 더 내려줌 */}
             <h2
-              className="text-[11px] font-medium tracking-widest uppercase mt-3 mb-1"
+              className="text-[11px] font-medium tracking-widest uppercase mt-4 mb-1"
               style={{ color: '#C9A27A', opacity: 0.8 }}
             >
               Recording
