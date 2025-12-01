@@ -389,7 +389,7 @@ function RecordScreen({
             </div>
             
             {/* 전화번호 입력 */}
-            <div className="mb-1.5">
+            <div className="mb-3">
               <label className="block text-xs font-medium mb-1.5" style={{ color: '#232323', opacity: 0.7 }}>전화번호</label>
               <input
                 ref={phoneInputRef}
@@ -406,45 +406,6 @@ function RecordScreen({
                 <p className="text-xs mt-1.5" style={{ color: '#EF4444' }}>* 전화번호는 필수입니다</p>
               )}
             </div>
-            
-            {/* 시술 태그 표시 - 히스토리 카드처럼 */}
-            {(() => {
-              const allTagIds = [...new Set([...(recommendedTagIds || []), ...(selectedTagIds || [])])];
-              
-              const validTags = allTagIds
-                .map((tagId) => {
-                  const tag = allVisitTags.find((t) => t.id === tagId);
-                  return tag ? tag.label : null;
-                })
-                .filter((label) => label !== null);
-              
-              // serviceTags도 추가 (문자열 배열인 경우)
-              const serviceTagLabels = (serviceTags || []).filter(tag => typeof tag === 'string');
-              const allTagLabels = [...new Set([...validTags, ...serviceTagLabels])];
-              
-              if (allTagLabels.length === 0) return null;
-              
-              return (
-                <div className="mt-1.5 mb-1.5 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
-                  {allTagLabels.map((tagLabel, idx) => {
-                    // tagLabel이 객체일 경우 문자열로 변환
-                    const displayLabel = typeof tagLabel === 'string' ? tagLabel : (typeof tagLabel === 'object' && tagLabel !== null ? (tagLabel.label || JSON.stringify(tagLabel)) : String(tagLabel || ''));
-                    return (
-                      <span 
-                        key={idx}
-                        className="text-[11px] px-2 py-1 rounded-md"
-                        style={{ 
-                          backgroundColor: '#F2F0E6',
-                          color: '#8C6D46'
-                        }}
-                      >
-                        {displayLabel}
-                      </span>
-                    );
-                  })}
-                </div>
-              );
-            })()}
           </div>
         )}
 
