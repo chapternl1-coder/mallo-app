@@ -297,11 +297,11 @@ function EditScreen({
                 return (
                   <div key={contentIndex} className="flex gap-2 relative">
                     <textarea
-                      value={item}
+                      value={typeof item === 'string' ? item : (typeof item === 'object' && item !== null ? JSON.stringify(item, null, 2) : String(item || ''))}
                       onChange={(e) => updateSectionContent(sectionIndex, contentIndex, e.target.value)}
                       className="flex-1 px-4 py-3 rounded-2xl border-none resize-none focus:bg-gray-50 outline-none transition-colors"
                       style={{ color: '#232323', minHeight: '60px', paddingRight: showDeleteButton ? '50px' : '16px' }}
-                      rows={Math.max(2, Math.ceil(item.length / 40))}
+                      rows={Math.max(2, Math.ceil(String(item || '').length / 40))}
                       placeholder="내용을 입력하세요..."
                     />
                     {showDeleteButton && (

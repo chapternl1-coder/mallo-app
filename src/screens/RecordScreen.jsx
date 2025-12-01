@@ -345,18 +345,22 @@ function RecordScreen({
               
               return (
                 <div className="mt-1.5 mb-1.5 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
-                  {allTagLabels.map((tagLabel, idx) => (
-                    <span 
-                      key={idx}
-                      className="text-[11px] px-2 py-1 rounded-md"
-                      style={{ 
-                        backgroundColor: '#F2F0E6',
-                        color: '#8C6D46'
-                      }}
-                    >
-                      {tagLabel}
-                    </span>
-                  ))}
+                  {allTagLabels.map((tagLabel, idx) => {
+                    // tagLabel이 객체일 경우 문자열로 변환
+                    const displayLabel = typeof tagLabel === 'string' ? tagLabel : (typeof tagLabel === 'object' && tagLabel !== null ? (tagLabel.label || JSON.stringify(tagLabel)) : String(tagLabel || ''));
+                    return (
+                      <span 
+                        key={idx}
+                        className="text-[11px] px-2 py-1 rounded-md"
+                        style={{ 
+                          backgroundColor: '#F2F0E6',
+                          color: '#8C6D46'
+                        }}
+                      >
+                        {displayLabel}
+                      </span>
+                    );
+                  })}
                 </div>
               );
             })()}
@@ -422,18 +426,22 @@ function RecordScreen({
               
               return (
                 <div className="mt-1.5 mb-1.5 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
-                  {allTagLabels.map((tagLabel, idx) => (
-                    <span 
-                      key={idx}
-                      className="text-[11px] px-2 py-1 rounded-md"
-                      style={{ 
-                        backgroundColor: '#F2F0E6',
-                        color: '#8C6D46'
-                      }}
-                    >
-                      {tagLabel}
-                    </span>
-                  ))}
+                  {allTagLabels.map((tagLabel, idx) => {
+                    // tagLabel이 객체일 경우 문자열로 변환
+                    const displayLabel = typeof tagLabel === 'string' ? tagLabel : (typeof tagLabel === 'object' && tagLabel !== null ? (tagLabel.label || JSON.stringify(tagLabel)) : String(tagLabel || ''));
+                    return (
+                      <span 
+                        key={idx}
+                        className="text-[11px] px-2 py-1 rounded-md"
+                        style={{ 
+                          backgroundColor: '#F2F0E6',
+                          color: '#8C6D46'
+                        }}
+                      >
+                        {displayLabel}
+                      </span>
+                    );
+                  })}
                 </div>
               );
             })()}
@@ -460,11 +468,15 @@ function RecordScreen({
                   {section.title}
                 </h4>
                 <ul className="space-y-3">
-                  {section.content.map((item, i) => (
-                    <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
-                      {item}
-                    </li>
-                  ))}
+                  {section.content.map((item, i) => {
+                    // item이 객체일 경우 문자열로 변환
+                    const displayItem = typeof item === 'string' ? item : (typeof item === 'object' && item !== null ? JSON.stringify(item, null, 2) : String(item || ''));
+                    return (
+                      <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
+                        {displayItem}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ))}
@@ -546,7 +558,7 @@ function RecordScreen({
                         : 'bg-gray-100 text-gray-600 border border-gray-200'
                     }`}
                   >
-                    {tag.label}
+                    {typeof tag === 'object' && tag !== null ? (typeof tag.label === 'string' ? tag.label : String(tag.label || '')) : String(tag || '')}
                   </button>
                 );
               })
@@ -612,7 +624,7 @@ function RecordScreen({
                         : 'bg-gray-100 text-gray-600 border border-gray-200'
                     }`}
                   >
-                    {tag.label}
+                    {typeof tag === 'object' && tag !== null ? (typeof tag.label === 'string' ? tag.label : String(tag.label || '')) : String(tag || '')}
                     {isNew && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-200 text-green-800 font-bold">
                         New

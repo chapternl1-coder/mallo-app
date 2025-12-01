@@ -12,6 +12,16 @@ import { formatRecordDateTime } from './date';
  * @returns {string} 치환된 텍스트 라인
  */
 export function overrideCustomerInfoLine(line, customerInfo) {
+  // line이 객체일 경우 문자열로 변환
+  if (typeof line !== 'string') {
+    if (line === null || line === undefined) return '';
+    if (typeof line === 'object') {
+      line = JSON.stringify(line);
+    } else {
+      line = String(line);
+    }
+  }
+  
   if (!line) return line;
   
   let updated = line;
