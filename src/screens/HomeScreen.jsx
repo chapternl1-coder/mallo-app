@@ -53,18 +53,7 @@ function HomeScreen({
             className="w-full bg-white rounded-3xl shadow-lg border-2 border-gray-200 hover:shadow-xl hover:border-[#C9A27A] transition-all duration-300 p-12 flex flex-col items-center justify-center gap-6"
             style={{ backgroundColor: '#FFFFFF' }}
           >
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedCustomerForRecord(null);
-                startRecording();
-              }}
-              className="rounded-full flex items-center justify-center shadow-md transition-transform duration-300 hover:scale-110 active:scale-95 cursor-pointer"
-              style={{ backgroundColor: '#C9A27A', width: '136px', height: '136px' }}
-            >
-              <Mic size={40} className="text-white" />
-            </button>
-
+            {/* 텍스트를 위로 */}
             <div className="text-center">
               <h3
                 className="text-2xl font-bold mb-2"
@@ -79,6 +68,19 @@ function HomeScreen({
                 시술 내용을 말로만 기록하세요
               </p>
             </div>
+
+            {/* 버튼을 아래로 */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedCustomerForRecord(null);
+                startRecording();
+              }}
+              className="rounded-full flex items-center justify-center shadow-md transition-transform duration-300 hover:scale-110 active:scale-95 cursor-pointer mt-2"
+              style={{ backgroundColor: '#C9A27A', width: '136px', height: '136px' }}
+            >
+              <Mic size={40} className="text-white" />
+            </button>
           </div>
         </div>
       </main>
