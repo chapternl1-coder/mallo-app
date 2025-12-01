@@ -154,14 +154,14 @@ function RecordScreen({
               justifyContent: 'center',
             }}
           >
-            {/* 팁 박스 - 2줄 + 조금 더 위로 */}
-            <div className="w-full px-8 mb-1 z-10 mt-[-8px]">
+            {/* 팁 박스 - 2줄, 한 사이즈 키우고 조금 더 위로 */}
+            <div className="w-full px-8 mb-1 z-10 mt-[-10px]">
               <div
                 className="bg-white/80 rounded-xl px-4 py-2 shadow-sm border backdrop-blur-sm"
                 style={{ borderColor: '#f0e7d9' }}
               >
                 <p
-                  className={`text-[12px] text-center leading-tight ${
+                  className={`text-[14px] text-center leading-tight ${
                     isNearLimit ? 'text-[#e05252]' : 'text-[#9b8b7a]'
                   }`}
                 >
@@ -172,17 +172,17 @@ function RecordScreen({
               </div>
             </div>
 
-            {/* Recording 텍스트 */}
+            {/* Recording 텍스트 - 한 사이즈 키우고 조금 더 아래로 */}
             <h2
-              className="text-[9px] font-medium tracking-widest uppercase mt-1 mb-1"
+              className="text-[11px] font-medium tracking-widest uppercase mt-3 mb-1"
               style={{ color: '#C9A27A', opacity: 0.8 }}
             >
               Recording
             </h2>
 
-            {/* 타이머 */}
+            {/* 타이머 - 조금 더 아래 */}
             <p
-              className="mt-6 text-[64px] font-mono font-light tracking-tighter tabular-nums leading-none"
+              className="mt-8 text-[64px] font-mono font-light tracking-tighter tabular-nums leading-none"
               style={{
                 color: '#232323',
                 textShadow: '0 2px 10px rgba(201, 162, 122, 0.2)',
