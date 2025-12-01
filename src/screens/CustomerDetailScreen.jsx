@@ -87,11 +87,6 @@ function CustomerDetailScreen({
   
   const customerVisits = visits[selectedCustomerId] || [];
   
-  // 개발용 요약 테스트 state
-  const [devSourceText, setDevSourceText] = useState('');
-  const [devSummaryResult, setDevSummaryResult] = useState('');
-  const [isDevSummaryLoading, setIsDevSummaryLoading] = useState(false);
-  
   // 시간 추출 헬퍼 함수 (HistoryScreen과 동일)
   const extractTimeFromVisit = (visit) => {
     // UI에서 serviceDateTimeLabel을 생성하는 방식과 동일하게
@@ -212,56 +207,6 @@ function CustomerDetailScreen({
   const handleCollapseVisits = () => {
     setVisibleVisitCount(10);
   };
-
-  // 개발용 요약 테스트 핸들러
-  async function handleDevSummaryTest() {
-    if (!devSourceText.trim()) {
-      alert('요약할 텍스트를 입력해주세요.');
-      return;
-    }
-
-    try {
-      setIsDevSummaryLoading(true);
-      setDevSummaryResult('');
-
-      const res = await fetch('/api/summarize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceText: devSourceText }),
-      });
-
-      if (!res.ok) {
-        console.error('요약 API 에러 상태코드:', res.status);
-        alert('요약 API 호출에 실패했습니다.');
-        return;
-      }
-
-      const data = await res.json(); // { ok: true, summaryJson: "..." }
-
-      let pretty = '';
-
-      if (data && typeof data.summaryJson === 'string') {
-        try {
-          const parsed = JSON.parse(data.summaryJson);
-          // ✅ 객체 → 예쁘게 문자열로 변환 (객체를 JSX에 직접 넣지 않음)
-          pretty = JSON.stringify(parsed, null, 2);
-        } catch (e) {
-          console.warn('summaryJson 파싱 실패, 원문 사용', e);
-          pretty = data.summaryJson;
-        }
-      } else {
-        // 혹시 summaryJson이 없으면 전체 data를 문자열로 보여주기
-        pretty = JSON.stringify(data, null, 2);
-      }
-
-      setDevSummaryResult(pretty);
-    } catch (err) {
-      console.error('요약 테스트 중 오류:', err);
-      alert('요약 테스트 중 오류가 발생했습니다.');
-    } finally {
-      setIsDevSummaryLoading(false);
-    }
-  }
 
 
   return (
@@ -419,64 +364,6 @@ function CustomerDetailScreen({
             </div>
           </div>
         </div>
-
-        {/* DEV: 개발용 요약 테스트 카드 */}
-        <section className="mt-4">
-          <div className="bg-[#fff7e6] rounded-2xl p-4 border border-[#f3e0b5]">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#f0d9a8] text-[#7a5a2b] font-semibold">
-                DEV
-              </span>
-              <p className="text-xs text-[#7a5a2b] font-medium">개발용 요약 테스트</p>
-            </div>
-
-            <p className="text-[11px] text-[#7a5a2b] opacity-80 mb-2 leading-snug">
-              음성 대신 텍스트를 입력해서 요약·태그 흐름을 테스트할 수 있어요.
-              실제 요약 결과는 아래에 JSON 형태로 보여집니다.
-            </p>
-
-            <textarea
-              className="w-full mt-2 text-xs rounded-xl border border-[#ead8b8] bg-white px-3 py-2 outline-none resize-none min-h-[80px]"
-              placeholder="여기에 시술 내용을 붙여넣고 아래 버튼을 눌러 요약을 테스트해보세요."
-              value={devSourceText}
-              onChange={(e) => setDevSourceText(e.target.value)}
-            />
-
-            <button
-              type="button"
-              onClick={handleDevSummaryTest}
-              disabled={isDevSummaryLoading}
-              className="mt-3 w-full rounded-xl py-2 text-xs font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
-              style={{ backgroundColor: '#C9A27A' }}
-            >
-              {isDevSummaryLoading ? '요약 중...' : '이 텍스트로 요약 테스트'}
-            </button>
-
-            <div className="mt-3">
-              {isDevSummaryLoading ? (
-                <p className="text-[11px] text-gray-500">
-                  요약 중입니다...
-                </p>
-              ) : devSummaryResult ? (
-                <pre className="text-[11px] bg-white/90 rounded-xl p-3 whitespace-pre-wrap break-words max-h-64 overflow-auto">
-                  {(() => {
-                    // devSummaryResult를 안전하게 문자열로 변환
-                    const safeText = typeof devSummaryResult === 'string' 
-                      ? devSummaryResult 
-                      : (typeof devSummaryResult === 'object' && devSummaryResult !== null 
-                        ? JSON.stringify(devSummaryResult, null, 2) 
-                        : String(devSummaryResult || ''));
-                    return safeText;
-                  })()}
-                </pre>
-              ) : (
-                <p className="text-[11px] text-gray-400">
-                  테스트 결과가 여기 표시됩니다.
-                </p>
-              )}
-            </div>
-          </div>
-        </section>
 
         {/* 방문 히스토리 */}
         <div className="space-y-4 pb-32">
