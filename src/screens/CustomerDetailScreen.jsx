@@ -1,5 +1,5 @@
 // 특정 고객의 정보와 방문 히스토리를 보여주는 화면
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, MoreHorizontal, Phone, Edit, Mic, ChevronUp, ChevronDown, Calendar, Repeat } from 'lucide-react';
 import { formatRecordDateTime, formatServiceDateTimeLabel } from '../utils/date';
 import { SCREENS } from '../constants/screens';
@@ -86,6 +86,11 @@ function CustomerDetailScreen({
   }
   
   const customerVisits = visits[selectedCustomerId] || [];
+  
+  // 개발용 요약 테스트 state
+  const [devTestText, setDevTestText] = useState('');
+  const [devSummaryResult, setDevSummaryResult] = useState(null);
+  const [isDevSummaryLoading, setIsDevSummaryLoading] = useState(false);
   
   // 시간 추출 헬퍼 함수 (HistoryScreen과 동일)
   const extractTimeFromVisit = (visit) => {
@@ -206,6 +211,48 @@ function CustomerDetailScreen({
   // 접기 함수
   const handleCollapseVisits = () => {
     setVisibleVisitCount(10);
+  };
+
+  // 개발용 요약 테스트 핸들러
+  const handleDevSummaryTest = async () => {
+    if (!devTestText || !devTestText.trim()) {
+      alert('요약할 텍스트를 입력해주세요.');
+      return;
+    }
+
+    try {
+      setIsDevSummaryLoading(true);
+      setDevSummaryResult(null);
+
+      const response = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceText: devTestText,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('요약 API 호출 실패');
+      }
+
+      const data = await response.json();
+
+      let parsed = null;
+      try {
+        // 서버에서 내려온 summaryJson 문자열을 실제 JSON 객체로 변환
+        parsed = JSON.parse(data.summaryJson || '{}');
+      } catch (e) {
+        console.error('요약 JSON 파싱 실패', e);
+      }
+
+      setDevSummaryResult(parsed);
+    } catch (err) {
+      console.error('DEV 요약 테스트 오류:', err);
+      alert('테스트 요약 실패\n\n요약 서버 호출에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsDevSummaryLoading(false);
+    }
   };
 
 
@@ -363,6 +410,58 @@ function CustomerDetailScreen({
               )}
             </div>
           </div>
+        </div>
+
+        {/* 개발용 요약 테스트 카드 */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="text-base font-bold" style={{ color: '#232323' }}>
+                개발용 요약 테스트
+              </h3>
+              <span className="text-xs font-bold px-2 py-1 rounded bg-yellow-100 text-yellow-800">DEV</span>
+            </div>
+            <p className="text-xs" style={{ color: '#232323', opacity: 0.7 }}>
+              음성 대신 텍스트를 입력해서 요약 태그 흐름을 테스트할 수 있어요.
+            </p>
+          </div>
+
+          <textarea
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A] mb-3 resize-none"
+            placeholder="여기에 고객에게 말할 내용을 두서없이 적어보고, 아래 버튼을 눌러 테스트하세요."
+            value={devTestText}
+            onChange={(e) => setDevTestText(e.target.value)}
+            rows={4}
+            style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
+          />
+
+          <button
+            type="button"
+            className="w-full py-3 rounded-xl font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleDevSummaryTest}
+            disabled={isDevSummaryLoading || !devTestText.trim()}
+            style={{ backgroundColor: '#C9A27A' }}
+          >
+            {isDevSummaryLoading ? '요약 테스트 중...' : '이 텍스트로 요약 테스트'}
+          </button>
+
+          {/* 요약 결과 표시 */}
+          {isDevSummaryLoading ? (
+            <p className="mt-3 text-xs text-gray-500">
+              요약 중입니다...
+            </p>
+          ) : devSummaryResult ? (
+            <pre
+              className="mt-3 text-xs bg-[#faf6ee] rounded-xl p-3 overflow-x-auto whitespace-pre-wrap"
+              style={{ color: '#232323' }}
+            >
+              {JSON.stringify(devSummaryResult, null, 2)}
+            </pre>
+          ) : (
+            <p className="mt-3 text-xs text-gray-400">
+              아래 "이 텍스트로 요약 테스트" 버튼을 누르면 결과가 여기에 표시됩니다.
+            </p>
+          )}
         </div>
 
         {/* 방문 히스토리 */}
