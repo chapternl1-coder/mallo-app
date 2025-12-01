@@ -457,29 +457,51 @@ function RecordScreen({
                 <span className="ml-2">{userProfile.roleTitle}</span>
               </span>
               <h3 className="font-bold text-white text-lg mb-2">📝 오늘의 시술 요약</h3>
-              <p className="text-base font-medium text-white/90 leading-relaxed">{resultData.title}</p>
+              <p className="text-base font-medium text-white/90 leading-relaxed">
+                {(() => {
+                  const safeTitle = typeof resultData.title === 'string' 
+                    ? resultData.title 
+                    : (typeof resultData.title === 'object' && resultData.title !== null 
+                      ? JSON.stringify(resultData.title, null, 2) 
+                      : String(resultData.title || ''));
+                  return safeTitle;
+                })()}
+              </p>
             </div>
           </div>
 
           <div className="p-8 space-y-7">
-            {resultData.sections.map((section, idx) => (
-              <div key={idx} className="animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 100}ms` }}>
-                <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
-                  {section.title}
-                </h4>
-                <ul className="space-y-3">
-                  {section.content.map((item, i) => {
-                    // item이 객체일 경우 문자열로 변환
-                    const displayItem = typeof item === 'string' ? item : (typeof item === 'object' && item !== null ? JSON.stringify(item, null, 2) : String(item || ''));
-                    return (
-                      <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
-                        {displayItem}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
+            {resultData.sections.map((section, idx) => {
+              // section.title 안전하게 변환
+              const safeSectionTitle = typeof section.title === 'string' 
+                ? section.title 
+                : (typeof section.title === 'object' && section.title !== null 
+                  ? JSON.stringify(section.title, null, 2) 
+                  : String(section.title || ''));
+              
+              return (
+                <div key={idx} className="animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 100}ms` }}>
+                  <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
+                    {safeSectionTitle}
+                  </h4>
+                  <ul className="space-y-3">
+                    {section.content.map((item, i) => {
+                      // item이 객체일 경우 문자열로 변환
+                      const safeItem = typeof item === 'string' 
+                        ? item 
+                        : (typeof item === 'object' && item !== null 
+                          ? JSON.stringify(item, null, 2) 
+                          : String(item || ''));
+                      return (
+                        <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
+                          {safeItem}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })}
           </div>
         </div>
 

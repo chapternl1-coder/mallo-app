@@ -541,10 +541,17 @@ function HistoryScreen({
                           phone: displayPhone !== '전화번호 미기재' ? displayPhone : undefined
                         };
                         
+                        // section.title을 안전하게 문자열로 변환
+                        const safeSectionTitle = typeof section.title === 'string' 
+                          ? section.title 
+                          : (typeof section.title === 'object' && section.title !== null 
+                            ? JSON.stringify(section.title, null, 2) 
+                            : String(section.title || ''));
+                        
                         return (
                           <div key={idx}>
                             <h5 className="text-base font-bold mb-3" style={{ color: textColor }}>
-                              {section.title}
+                              {safeSectionTitle}
                             </h5>
                             <ul className="space-y-2">
                               {section.content.map((item, i) => (

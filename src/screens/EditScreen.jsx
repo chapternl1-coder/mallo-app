@@ -265,17 +265,26 @@ function EditScreen({
         )}
 
         {/* 섹션 편집 */}
-        {tempResultData.sections.map((section, sectionIndex) => (
-          <div key={sectionIndex} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-            <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
-              {section.title}
-            </h4>
+        {tempResultData.sections.map((section, sectionIndex) => {
+          // section.title을 안전하게 문자열로 변환
+          const safeSectionTitle = typeof section.title === 'string' 
+            ? section.title 
+            : (typeof section.title === 'object' && section.title !== null 
+              ? JSON.stringify(section.title, null, 2) 
+              : String(section.title || ''));
+          
+          return (
+            <div key={sectionIndex} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+              <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
+                {safeSectionTitle}
+              </h4>
             <div className="space-y-3">
               {section.content.map((item, contentIndex) => {
-                const isCustomerBasicInfo = section.title && section.title.includes('고객 기본 정보');
-                const isVisitInfo = section.title && (
-                  section.title.includes('방문·예약 정보') ||
-                  section.title.includes('방문예약 정보')
+                const sectionTitleStr = typeof section.title === 'string' ? section.title : String(section.title || '');
+                const isCustomerBasicInfo = sectionTitleStr && sectionTitleStr.includes('고객 기본 정보');
+                const isVisitInfo = sectionTitleStr && (
+                  sectionTitleStr.includes('방문·예약 정보') ||
+                  sectionTitleStr.includes('방문예약 정보')
                 );
                 const isProtectedSection = isCustomerBasicInfo || isVisitInfo;
                 

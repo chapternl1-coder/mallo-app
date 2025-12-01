@@ -459,7 +459,15 @@ function CustomerDetailScreen({
                 </p>
               ) : devSummaryResult ? (
                 <pre className="text-[11px] bg-white/90 rounded-xl p-3 whitespace-pre-wrap break-words max-h-64 overflow-auto">
-                  {devSummaryResult}
+                  {(() => {
+                    // devSummaryResult를 안전하게 문자열로 변환
+                    const safeText = typeof devSummaryResult === 'string' 
+                      ? devSummaryResult 
+                      : (typeof devSummaryResult === 'object' && devSummaryResult !== null 
+                        ? JSON.stringify(devSummaryResult, null, 2) 
+                        : String(devSummaryResult || ''));
+                    return safeText;
+                  })()}
                 </pre>
               ) : (
                 <p className="text-[11px] text-gray-400">
@@ -640,10 +648,17 @@ function CustomerDetailScreen({
                           }
                         }
                         
+                        // section.title을 안전하게 문자열로 변환
+                        const safeSectionTitle = typeof section.title === 'string' 
+                          ? section.title 
+                          : (typeof section.title === 'object' && section.title !== null 
+                            ? JSON.stringify(section.title, null, 2) 
+                            : String(section.title || ''));
+                        
                         return (
                           <div key={idx}>
                             <h5 className="text-base font-bold mb-3" style={{ color: '#232323' }}>
-                              {section.title}
+                              {safeSectionTitle}
                             </h5>
                             <ul className="space-y-2">
                               {displayContent.map((item, i) => (
