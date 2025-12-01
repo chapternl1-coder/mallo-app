@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 
 import { Mail, Lock } from 'lucide-react';
 
@@ -15,6 +15,8 @@ function LoginScreen({
   setActiveTab,
   setCurrentScreen
 }) {
+  const passwordInputRef = useRef(null);
+
   const handleLogin = () => {
     // 간단한 로그인 로직 (실제로는 API 호출)
     if (email && password) {
@@ -73,7 +75,15 @@ function LoginScreen({
                     placeholder="example@beauty.com"
                     className="w-full bg-transparent outline-none font-light placeholder-gray-400"
                     style={{ color: '#232323' }}
-                    onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        // Enter / Next 키를 누르면 비밀번호 인풋으로 포커스 이동
+                        if (passwordInputRef.current) {
+                          passwordInputRef.current.focus();
+                        }
+                      }
+                    }}
                   />
                 </div>
               </div>
@@ -91,7 +101,13 @@ function LoginScreen({
                     placeholder="••••••••"
                     className="w-full bg-transparent outline-none font-light placeholder-gray-400"
                     style={{ color: '#232323' }}
-                    onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                    ref={passwordInputRef}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleLogin();
+                      }
+                    }}
                   />
                 </div>
               </div>
