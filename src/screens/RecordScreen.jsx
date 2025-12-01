@@ -119,7 +119,7 @@ function RecordScreen({
   // recordState에 따라 다른 화면 렌더링
   if (recordState === 'recording' || recordState === 'idle') {
     return (
-      <div className="flex flex-col h-full bg-white relative overflow-hidden">
+      <div className="flex flex-col h-full bg-white relative items-center overflow-hidden pt-[80px] pb-[150px]">
         {/* 배경 효과 - 따뜻한 크림색 파동 */}
         <div className="absolute inset-0 pointer-events-none">
           <div
