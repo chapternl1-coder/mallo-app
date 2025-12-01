@@ -181,7 +181,7 @@ function RecordScreen({
 
             {/* 타이머 숫자 크게 */}
             <p
-              className="text-[40px] font-mono font-light tracking-tighter tabular-nums leading-none"
+              className="text-[48px] font-mono font-light tracking-tighter tabular-nums leading-none"
               style={{
                 color: '#232323',
                 textShadow: '0 2px 10px rgba(201, 162, 122, 0.2)',
@@ -192,7 +192,7 @@ function RecordScreen({
           </div>
 
           {/* Visualizer & 버튼 */}
-          <div className="z-10 flex flex-col items-center gap-2 mt-[120px]">
+          <div className="z-10 flex flex-col items-center gap-2 mt-[110px]">
             <WaveBars />
 
             {/* 정지 버튼 - 물결(Ripple) 애니메이션 */}
