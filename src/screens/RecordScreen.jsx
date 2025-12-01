@@ -123,7 +123,7 @@ function RecordScreen({
         className="flex flex-col min-h-screen pb-[60px]"
         style={{ backgroundColor: '#F2F0E6' }}
       >
-        <main className="relative flex-1 flex flex-col items-center justify-start pt-[170px] pb-[140px] overflow-hidden">
+        <main className="relative flex-1 flex flex-col items-center justify-start pt-[150px] pb-[140px] overflow-hidden">
           {/* 배경 효과 - 따뜻한 크림색 파동 */}
           <div className="absolute inset-0 pointer-events-none">
             <div
@@ -144,33 +144,44 @@ function RecordScreen({
             ></div>
           </div>
 
-          {/* 타이머 영역 - 홈 화면 텍스트 높이(약 65px)와 gap-6(24px) 합친 높이로 맞추기 */}
-          <div className="z-10 text-center mb-0" style={{ height: '89px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            {/* 팁 박스 - 더 작게 */}
-            <div className="w-full px-8 mb-0 z-10">
+          {/* 타이머 영역 */}
+          <div
+            className="z-10 text-center mb-0"
+            style={{
+              height: '96px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+            }}
+          >
+            {/* 안내 텍스트 - 2줄 */}
+            <div className="w-full px-8 mb-1 z-10">
               <div
-                className="bg-white/80 rounded-xl px-4 py-1.5 shadow-sm border backdrop-blur-sm"
+                className="bg-white/80 rounded-xl px-4 py-2 shadow-sm border backdrop-blur-sm"
                 style={{ borderColor: '#f0e7d9' }}
               >
                 <p
-                  className={`text-[10px] text-center leading-tight ${
+                  className={`text-[11px] text-center leading-snug ${
                     isNearLimit ? 'text-[#e05252]' : 'text-[#9b8b7a]'
                   }`}
                 >
                   한 번에 최대 2분까지 녹음돼요.
+                  <br />
+                  한 고객님 정보만 말씀해 주세요.
                 </p>
               </div>
             </div>
 
             <h2
-              className="text-[9px] font-medium tracking-widest uppercase mb-0 mt-0.5"
+              className="text-[9px] font-medium tracking-widest uppercase mb-1 mt-0.5"
               style={{ color: '#C9A27A', opacity: 0.8 }}
             >
               Recording
             </h2>
 
+            {/* 타이머 숫자 크게 */}
             <p
-              className="text-3xl font-mono font-light tracking-tighter tabular-nums leading-none"
+              className="text-5xl font-mono font-light tracking-tighter tabular-nums leading-none"
               style={{
                 color: '#232323',
                 textShadow: '0 2px 10px rgba(201, 162, 122, 0.2)',
@@ -180,8 +191,8 @@ function RecordScreen({
             </p>
           </div>
 
-          {/* Visualizer & Button - 홈 화면 gap-6과 정확히 맞추기 */}
-          <div className="z-10 flex flex-col items-center gap-2 mt-[32px]">
+          {/* Visualizer & 버튼 */}
+          <div className="z-10 flex flex-col items-center gap-2 mt-[48px]">
             <WaveBars />
 
             {/* 정지 버튼 - 물결(Ripple) 애니메이션 */}
