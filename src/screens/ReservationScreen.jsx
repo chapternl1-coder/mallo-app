@@ -318,7 +318,7 @@ function ReservationScreen({
   return (
     <div className="flex flex-col h-full relative pb-[60px]" style={{ backgroundColor: bgColor }}>
       {/* Header */}
-      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
+      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm h-[100px]">
         <button 
           onClick={() => setCurrentScreen(SCREENS.HOME)}
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
