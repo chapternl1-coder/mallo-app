@@ -592,7 +592,7 @@ function CustomerDetailScreen({
       </main>
 
       {/* 하단 고정 버튼: 새 기록 남기기 */}
-      <div className="absolute bottom-8 left-8 right-8 z-30">
+      <div className="absolute bottom-24 left-8 right-8 z-30">
         <button 
           onClick={() => {
             setSelectedCustomerForRecord(customer);
