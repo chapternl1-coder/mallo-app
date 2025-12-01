@@ -413,16 +413,16 @@ export default function useMalloAppState() {
       return;
     }
     
-    console.log('[태그 자동 추출] sourceText 길이:', sourceText?.length);
-    console.log('[태그 자동 추출] sourceText 처음 200자:', sourceText?.substring(0, 200));
+    // console.log('[태그 자동 추출] sourceText 길이:', sourceText?.length);
+    // console.log('[태그 자동 추출] sourceText 처음 200자:', sourceText?.substring(0, 200));
     
     const extractedTags = extractTagsFromContent(sourceText, visitTags);
     setServiceTags(extractedTags);
     
     if (allVisitTags.length > 0) {
       const matched = matchTagsFromSummary(sourceText, allVisitTags);
-      console.log('[방문 태그 자동 선택] 원본 텍스트:', sourceText?.substring(0, 100));
-      console.log('[방문 태그 자동 선택] 매칭된 태그 ID:', matched);
+      // console.log('[방문 태그 자동 선택] 원본 텍스트:', sourceText?.substring(0, 100));
+      // console.log('[방문 태그 자동 선택] 매칭된 태그 ID:', matched);
       
       // extractTagsFromContent로 추출한 태그도 ID로 변환하여 추가
       const extractedTagIds = extractedTags
@@ -439,18 +439,18 @@ export default function useMalloAppState() {
         const tag = allVisitTags.find(t => t.id === id);
         return tag ? tag.label : id;
       });
-      console.log('[방문 태그 자동 선택] 매칭된 태그 라벨:', matchedTagLabels);
-      console.log('[방문 태그 자동 선택] extractTagsFromContent로 추출한 태그:', extractedTags);
-      console.log('[방문 태그 자동 선택] 최종 태그 ID:', allMatchedTagIds);
+      // console.log('[방문 태그 자동 선택] 매칭된 태그 라벨:', matchedTagLabels);
+      // console.log('[방문 태그 자동 선택] extractTagsFromContent로 추출한 태그:', extractedTags);
+      // console.log('[방문 태그 자동 선택] 최종 태그 ID:', allMatchedTagIds);
       setRecommendedTagIds(allMatchedTagIds);
       setSelectedTagIds(allMatchedTagIds);
     }
     
     if (allCustomerTags.length > 0) {
-      console.log('[태그 자동 선택] sourceText 길이:', sourceText?.length);
-      console.log('[태그 자동 선택] sourceText 처음 200자:', sourceText?.substring(0, 200));
-      console.log('[태그 자동 선택] allCustomerTags 개수:', allCustomerTags.length);
-      console.log('[태그 자동 선택] allCustomerTags 샘플 (처음 5개):', allCustomerTags.slice(0, 5).map(t => ({ id: t.id, label: t.label, category: t.category })));
+      // console.log('[태그 자동 선택] sourceText 길이:', sourceText?.length);
+      // console.log('[태그 자동 선택] sourceText 처음 200자:', sourceText?.substring(0, 200));
+      // console.log('[태그 자동 선택] allCustomerTags 개수:', allCustomerTags.length);
+      // console.log('[태그 자동 선택] allCustomerTags 샘플 (처음 5개):', allCustomerTags.slice(0, 5).map(t => ({ id: t.id, label: t.label, category: t.category })));
       
       const visitCount = selectedCustomerForRecord?.visitCount || 0;
       const shouldExcludeNewTag = visitCount >= 2;
@@ -462,16 +462,16 @@ export default function useMalloAppState() {
       
       if (shouldExcludeNewTag && newTagId) {
         matchedCustomerTags = matchedCustomerTags.filter(id => id !== newTagId);
-        console.log('[태그 자동 선택] 방문 횟수 2 이상 - "신규" 태그 제외됨');
+        // console.log('[태그 자동 선택] 방문 횟수 2 이상 - "신규" 태그 제외됨');
       }
       
-      console.log('[태그 자동 선택] 원본 텍스트:', sourceText?.substring(0, 100));
-      console.log('[태그 자동 선택] 매칭된 태그 ID:', matchedCustomerTags);
+      // console.log('[태그 자동 선택] 원본 텍스트:', sourceText?.substring(0, 100));
+      // console.log('[태그 자동 선택] 매칭된 태그 ID:', matchedCustomerTags);
       const matchedTagLabels = matchedCustomerTags.map(id => {
         const tag = allCustomerTags.find(t => t.id === id);
         return tag ? tag.label : id;
       });
-      console.log('[태그 자동 선택] 매칭된 태그 라벨:', matchedTagLabels);
+      // console.log('[태그 자동 선택] 매칭된 태그 라벨:', matchedTagLabels);
       setRecommendedCustomerTagIds(matchedCustomerTags);
       
       if (matchedCustomerTags.length === 0) {
@@ -538,10 +538,10 @@ export default function useMalloAppState() {
           .join(' ')
           .toLowerCase();
         
-        console.log('[고객 태그 자동 감지] 고객 ID:', selectedCustomerId);
-        console.log('[고객 태그 자동 감지] 방문 기록 수:', customerVisits.length);
-        console.log('[고객 태그 자동 감지] 수집된 텍스트:', allVisitContent);
-        console.log('[고객 태그 자동 감지] "임산부" 포함 여부:', allVisitContent.includes('임산부'));
+        // console.log('[고객 태그 자동 감지] 고객 ID:', selectedCustomerId);
+        // console.log('[고객 태그 자동 감지] 방문 기록 수:', customerVisits.length);
+        // console.log('[고객 태그 자동 감지] 수집된 텍스트:', allVisitContent);
+        // console.log('[고객 태그 자동 감지] "임산부" 포함 여부:', allVisitContent.includes('임산부'));
         
         const currentCustomerTags = customer.customerTags || {
           caution: [],
@@ -550,7 +550,7 @@ export default function useMalloAppState() {
           pattern: []
         };
         
-        console.log('[고객 태그 자동 감지] 현재 customerTags:', currentCustomerTags);
+        // console.log('[고객 태그 자동 감지] 현재 customerTags:', currentCustomerTags);
         
         const updatedCustomerTags = { ...currentCustomerTags };
         let needsUpdate = false;
@@ -560,7 +560,7 @@ export default function useMalloAppState() {
           if (!cautionTags.includes('임산부')) {
             updatedCustomerTags.caution = [...cautionTags, '임산부'];
             needsUpdate = true;
-            console.log('[고객 태그 자동 감지] "임산부" 태그 추가됨');
+            // console.log('[고객 태그 자동 감지] "임산부" 태그 추가됨');
           }
         }
         
@@ -569,7 +569,7 @@ export default function useMalloAppState() {
           if (!cautionTags.includes('글루알러지')) {
             updatedCustomerTags.caution = [...cautionTags, '글루알러지'];
             needsUpdate = true;
-            console.log('[고객 태그 자동 감지] "글루알러지" 태그 추가됨');
+            // console.log('[고객 태그 자동 감지] "글루알러지" 태그 추가됨');
           }
         }
         
@@ -578,7 +578,7 @@ export default function useMalloAppState() {
           if (!cautionTags.includes('눈물많음')) {
             updatedCustomerTags.caution = [...cautionTags, '눈물많음'];
             needsUpdate = true;
-            console.log('[고객 태그 자동 감지] "눈물많음" 태그 추가됨');
+            // console.log('[고객 태그 자동 감지] "눈물많음" 태그 추가됨');
           }
         }
         
@@ -594,17 +594,17 @@ export default function useMalloAppState() {
               updatedCustomerTags.pattern = [...updatedCustomerTags.pattern, '기존'];
             }
             needsUpdate = true;
-            console.log('[고객 태그 자동 감지] 방문 횟수 2 이상 - "신규" → "기존" 태그 변경됨');
+            // console.log('[고객 태그 자동 감지] 방문 횟수 2 이상 - "신규" → "기존" 태그 변경됨');
           }
         }
         
         if (needsUpdate) {
-          console.log('[고객 태그 자동 감지] 업데이트된 customerTags:', updatedCustomerTags);
+          // console.log('[고객 태그 자동 감지] 업데이트된 customerTags:', updatedCustomerTags);
           setCustomers(prev => prev.map(c => 
             c.id === customer.id ? { ...c, customerTags: updatedCustomerTags } : c
           ));
         } else {
-          console.log('[고객 태그 자동 감지] 업데이트 불필요 (이미 태그가 있거나 키워드 없음)');
+          // console.log('[고객 태그 자동 감지] 업데이트 불필요 (이미 태그가 있거나 키워드 없음)');
         }
       }
     }
@@ -1081,6 +1081,8 @@ export default function useMalloAppState() {
 
     setIsTestingSummary(true);
     try {
+      console.log('[요약 API] 요청 시작');
+
       const response = await fetch('/api/summarize', {
         method: 'POST',
         headers: {
@@ -1098,32 +1100,20 @@ export default function useMalloAppState() {
 
       const data = await response.json();
       
-      // 디버깅: API 응답 확인
-      console.log('[요약 테스트] API 응답 받음', {
-        hasSummaryJson: !!data.summaryJson,
-        summaryJsonLength: data.summaryJson?.length || 0,
-        summaryJsonPreview: data.summaryJson?.substring(0, 200) || '없음',
-      });
-      
       let parsedResult = {};
       try {
         parsedResult = JSON.parse(data.summaryJson || '{}');
-        console.log('[요약 테스트] JSON 파싱 성공', {
-          hasTitle: !!parsedResult.title,
-          title: parsedResult.title,
-          sectionsCount: parsedResult.sections?.length || 0,
-          sectionsPreview: parsedResult.sections?.map(s => ({
-            title: s.title,
-            contentCount: s.content?.length || 0,
-            contentPreview: s.content?.slice(0, 2) || [],
-          })) || [],
-        });
       } catch (e) {
-        console.error('요약 JSON 파싱 실패', e, {
-          summaryJson: data.summaryJson,
-        });
+        console.error('[요약 API] 호출 실패', e);
         throw new Error('요약 결과를 파싱할 수 없습니다.');
       }
+      
+      // 응답 요약 로그
+      console.log('[요약 API] 응답 요약', {
+        status: response.status,
+        hasSummaryJson: !!data?.summaryJson,
+        sectionsCount: parsedResult?.sections?.length || 0,
+      });
       
       // API 응답 형식을 기존 handleSummaryResult가 기대하는 형식으로 변환
       let cleanedResult = {};
@@ -1139,25 +1129,24 @@ export default function useMalloAppState() {
           })),
         };
         
-        // 디버깅: 변환 전후 비교
-        console.log('[요약 변환] API 응답 처리 시작', {
-          sectionsCount: parsedResult.sections?.length || 0,
-          sections: parsedResult.sections?.map(s => ({
-            title: s.title,
-            contentTypes: (s.content || []).map(item => typeof item),
-            hasObjects: (s.content || []).some(item => typeof item === 'object' && item !== null),
-          })),
-        });
+        // // console.log('[요약 변환] API 응답 처리 시작', {
+        //   sectionsCount: parsedResult.sections?.length || 0,
+        //   sections: parsedResult.sections?.map(s => ({
+        //     title: s.title,
+        //     contentTypes: (s.content || []).map(item => typeof item),
+        //     hasObjects: (s.content || []).some(item => typeof item === 'object' && item !== null),
+        //   })),
+        // });
         
-        parsedResult.sections.forEach((section, idx) => {
-          const hasObjects = (section.content || []).some(item => typeof item === 'object' && item !== null);
-          if (hasObjects) {
-            console.warn(`[요약 변환] ⚠️ 섹션 "${section.title}"에 객체가 포함되어 변환합니다.`, {
-              before: section.content,
-              after: cleanedResult.sections[idx].content,
-            });
-          }
-        });
+        // parsedResult.sections.forEach((section, idx) => {
+        //   const hasObjects = (section.content || []).some(item => typeof item === 'object' && item !== null);
+        //   if (hasObjects) {
+        //     // console.warn(`[요약 변환] ⚠️ 섹션 "${section.title}"에 객체가 포함되어 변환합니다.`, {
+        //       before: section.content,
+        //       after: cleanedResult.sections[idx].content,
+        //     });
+        //   }
+        // });
       } else {
         // 다른 형식이면 변환
         cleanedResult = {
@@ -1181,8 +1170,8 @@ export default function useMalloAppState() {
       setTranscript(testSummaryInput);
       setRawTranscript(testSummaryInput);
       setRecordingDate(new Date());
-    } catch (e) {
-      const errorMessage = e.message || '알 수 없는 오류가 발생했습니다.';
+    } catch (err) {
+      console.error('[요약 API] 호출 실패', err);
       alert(`테스트 요약 실패\n\n요약 서버 호출에 실패했습니다. 잠시 후 다시 시도해주세요.`);
     } finally {
       setIsTestingSummary(false);
