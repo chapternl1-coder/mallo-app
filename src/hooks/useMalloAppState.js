@@ -908,50 +908,17 @@ export default function useMalloAppState() {
 
       setRecordingDate(new Date());
 
-      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-      if (!apiKey) {
-        throw new Error('OpenAI API 키가 설정되지 않았습니다. .env 파일에 VITE_OPENAI_API_KEY를 추가해주세요.');
+      // TODO: 음성 인식은 별도 서버 API가 필요합니다 (/api/transcribe 등)
+      // 현재는 DEV_MODE에서만 더미 데이터를 사용합니다.
+      // 실제 프로덕션에서는 서버 API를 통해 음성을 텍스트로 변환해야 합니다.
+      let transcript = '';
+      if (DEV_MODE) {
+        // 개발 모드에서는 더미 텍스트 사용
+        transcript = '테스트를 위한 더미 음성 인식 결과입니다. 실제 녹음 기능을 사용하려면 서버 API가 필요합니다.';
+      } else {
+        // 실제 환경에서는 서버 API 호출 필요
+        throw new Error('음성 인식 기능은 서버 API를 통해 사용할 수 있습니다. 서버 API가 구현될 때까지 사용할 수 없습니다.');
       }
-
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'recording.webm');
-      formData.append('model', 'whisper-1');
-      formData.append('language', 'ko');
-
-      let whisperResponse;
-      try {
-        whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`
-          },
-          body: formData
-        });
-      } catch (fetchError) {
-        if (fetchError.message.includes('CORS') || fetchError.message.includes('Failed to fetch')) {
-          throw new Error('음성 인식 API 연결에 실패했습니다.\n\n브라우저에서 OpenAI API를 직접 호출할 수 없습니다.\n백엔드 서버를 통해 API를 호출하도록 설정해주세요.');
-        }
-        throw fetchError;
-      }
-
-      if (!whisperResponse.ok) {
-        const errorData = await whisperResponse.json().catch(() => ({}));
-        const errorMessage = errorData.error?.message || '';
-        if (errorMessage.includes('too short') || recordingTime < 1) {
-          setIsProcessing(false);
-          setRecordState('idle');
-          setCurrentScreen(SCREENS.HOME);
-          return;
-        }
-        let userMessage = `음성 인식 실패 (상태 코드: ${whisperResponse.status})`;
-        if (whisperResponse.status === 401) {
-          userMessage = 'OpenAI API 키가 유효하지 않거나 만료되었습니다.';
-        }
-        throw new Error(userMessage + (errorMessage ? `\n\n${errorMessage}` : ''));
-      }
-
-      const whisperData = await whisperResponse.json();
-      const transcript = whisperData.text || '';
       
       if (!transcript.trim() || recordingTime < 1) {
         setIsProcessing(false);
@@ -963,80 +930,29 @@ export default function useMalloAppState() {
       setTranscript(transcript);
       setRawTranscript(transcript);
 
-      const roleJson = {
-        role_guess: '뷰티샵 원장',
-        sector: '뷰티/샵',
-        confidence: 1.0,
-        need_user_confirmation: false,
-        reason_short: '뷰티샵 원장님 전용 앱'
-      };
+      // 서버 API로 요약 요청
+      const summarizeResponse = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sourceText: transcript,
+        }),
+      });
 
-      let gptResponse;
-      try {
-        gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: SYSTEM_PROMPT
-              },
-              {
-                role: 'user',
-                content: `[역할 추론 결과(JSON)]\n${JSON.stringify(roleJson)}\n\n{TODAY}: ${getTodayDate()}\n\n[원문 텍스트]\n${transcript}`
-              }
-            ],
-            temperature: 0.7,
-            response_format: { type: 'json_object' }
-          })
-        });
-      } catch (fetchError) {
-        if (fetchError.message.includes('CORS') || fetchError.message.includes('Failed to fetch')) {
-          throw new Error('요약 API 연결에 실패했습니다.\n\n브라우저에서 OpenAI API를 직접 호출할 수 없습니다.\n백엔드 서버를 통해 API를 호출하도록 설정해주세요.');
-        }
-        throw fetchError;
+      if (!summarizeResponse.ok) {
+        const errorData = await summarizeResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || '요약 서버 호출에 실패했습니다.');
       }
 
-      if (!gptResponse.ok) {
-        let errorMessage = `요약 API 요청 실패 (상태 코드: ${gptResponse.status})`;
-        
-        if (gptResponse.status === 401) {
-          errorMessage = 'OpenAI API 키가 유효하지 않거나 만료되었습니다.\n\n.env 파일의 VITE_OPENAI_API_KEY를 확인해주세요.';
-        } else if (gptResponse.status === 429) {
-          errorMessage = 'API 사용량 한도에 도달했습니다.\n\n잠시 후 다시 시도해주세요.';
-        } else if (gptResponse.status >= 500) {
-          errorMessage = 'OpenAI 서버 오류가 발생했습니다.\n\n잠시 후 다시 시도해주세요.';
-        }
-        
-        try {
-          const errorData = await gptResponse.json();
-          if (errorData.error?.message) {
-            errorMessage += `\n\n상세: ${errorData.error.message}`;
-          }
-        } catch {
-          // JSON 파싱 실패 시 기본 메시지 사용
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      const gptData = await gptResponse.json();
-      const content = gptData.choices[0]?.message?.content;
+      const summarizeData = await summarizeResponse.json();
       
-      if (!content) {
-        throw new Error('API 응답에 내용이 없습니다.');
-      }
-
-      let parsedResult;
+      let parsedResult = {};
       try {
-        parsedResult = JSON.parse(content);
+        parsedResult = JSON.parse(summarizeData.summaryJson || '{}');
       } catch (parseError) {
-        throw new Error('API 응답을 파싱할 수 없습니다.');
+        throw new Error('요약 결과를 파싱할 수 없습니다.');
       }
       
       if (parsedResult.title && parsedResult.sections && Array.isArray(parsedResult.sections)) {
@@ -1059,100 +975,60 @@ export default function useMalloAppState() {
 
     setIsTestingSummary(true);
     try {
-      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-      if (!apiKey) {
-        throw new Error('OpenAI API 키가 설정되지 않았습니다.\n\n.env 파일에 VITE_OPENAI_API_KEY를 추가해주세요.');
+      const response = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sourceText: testSummaryInput,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || '요약 API 호출 실패');
       }
 
-      const roleJson = {
-        role_guess: '뷰티샵 원장',
-        sector: '뷰티/샵',
-        confidence: 1.0,
-        need_user_confirmation: false,
-        reason_short: '뷰티샵 원장님 전용 앱'
-      };
-
-      let gptResponse;
-      try {
-        gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: SYSTEM_PROMPT
-              },
-              {
-                role: 'user',
-                content: `[역할 추론 결과(JSON)]\n${JSON.stringify(roleJson)}\n\n{TODAY}: ${getTodayDate()}\n\n[원문 텍스트]\n${testSummaryInput}`
-              }
-            ],
-            temperature: 0.7,
-            response_format: { type: 'json_object' }
-          })
-        });
-      } catch (fetchError) {
-        // 네트워크 에러나 CORS 에러 처리
-        if (fetchError.message.includes('CORS') || fetchError.message.includes('Failed to fetch')) {
-          throw new Error('API 연결에 실패했습니다.\n\n브라우저에서 OpenAI API를 직접 호출할 수 없습니다.\n백엔드 서버를 통해 API를 호출하도록 설정해주세요.');
-        }
-        throw fetchError;
-      }
-
-      if (!gptResponse.ok) {
-        let errorMessage = `API 요청 실패 (상태 코드: ${gptResponse.status})`;
-        
-        if (gptResponse.status === 401) {
-          errorMessage = 'OpenAI API 키가 유효하지 않거나 만료되었습니다.\n\n.env 파일의 VITE_OPENAI_API_KEY를 확인해주세요.';
-        } else if (gptResponse.status === 429) {
-          errorMessage = 'API 사용량 한도에 도달했습니다.\n\n잠시 후 다시 시도해주세요.';
-        } else if (gptResponse.status >= 500) {
-          errorMessage = 'OpenAI 서버 오류가 발생했습니다.\n\n잠시 후 다시 시도해주세요.';
-        }
-        
-        try {
-          const errorData = await gptResponse.json();
-          if (errorData.error?.message) {
-            errorMessage += `\n\n상세: ${errorData.error.message}`;
-          }
-        } catch {
-          // JSON 파싱 실패 시 기본 메시지 사용
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      const gptData = await gptResponse.json();
-      const content = gptData.choices[0]?.message?.content;
+      const data = await response.json();
       
-      if (!content) {
-        throw new Error('API 응답에 내용이 없습니다.');
-      }
-
-      let parsedResult;
+      let parsedResult = {};
       try {
-        parsedResult = JSON.parse(content);
-      } catch (parseError) {
-        throw new Error('API 응답을 파싱할 수 없습니다.');
+        parsedResult = JSON.parse(data.summaryJson || '{}');
+      } catch (e) {
+        console.warn('요약 JSON 파싱 실패', e);
+        throw new Error('요약 결과를 파싱할 수 없습니다.');
       }
       
+      // API 응답 형식을 기존 handleSummaryResult가 기대하는 형식으로 변환
+      // summaryJson이 { name, service, price, note } 형태일 수 있으므로
+      // 기존 형식 { title, sections }로 변환 필요
       if (parsedResult.title && parsedResult.sections && Array.isArray(parsedResult.sections)) {
         handleSummaryResult(parsedResult);
-        
-        setTranscript(testSummaryInput);
-        setRawTranscript(testSummaryInput);
-        setRecordingDate(new Date());
       } else {
-        throw new Error('API 응답 형식이 올바르지 않습니다.');
+        // 새 형식이면 기존 형식으로 변환
+        const formattedResult = {
+          title: parsedResult.title || parsedResult.summary || parsedResult.service || '시술 기록',
+          sections: parsedResult.sections || [
+            {
+              title: '시술 내용',
+              content: [parsedResult.service || parsedResult.note || '시술 내용이 없습니다.']
+            },
+            ...(parsedResult.note ? [{
+              title: '주의사항',
+              content: [parsedResult.note]
+            }] : [])
+          ]
+        };
+        handleSummaryResult(formattedResult);
       }
+      
+      setTranscript(testSummaryInput);
+      setRawTranscript(testSummaryInput);
+      setRecordingDate(new Date());
     } catch (e) {
       const errorMessage = e.message || '알 수 없는 오류가 발생했습니다.';
-      alert(`테스트 요약 실패\n\n${errorMessage}`);
+      alert(`테스트 요약 실패\n\n요약 서버 호출에 실패했습니다. 잠시 후 다시 시도해주세요.`);
     } finally {
       setIsTestingSummary(false);
     }
