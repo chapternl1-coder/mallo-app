@@ -16,3 +16,4 @@
 - 새로 만드는 화면(Screen) 컴포넌트는 `src/screens/` 안에 넣고 파일 이름은 `SomethingScreen.jsx` 형태로 만들어야 합니다.
 
 
+

@@ -296,3 +296,4 @@ export const MOCK_VISITS = {
   21: [] // 이다혜 - 신규 회원 (방문 기록 없음)
 };
 
+

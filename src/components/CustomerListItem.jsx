@@ -24,3 +24,4 @@ function CustomerListItem({ customer, onClick }) {
 
 export default CustomerListItem;
 
+

@@ -20,3 +20,4 @@ export const BEAUTY_THEME = {
   accentBg: '#FFFFFF'
 };
 
+

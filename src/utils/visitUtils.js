@@ -182,3 +182,4 @@ export function convertVisitTagsToIds(visitTagLabels = [], allVisitTags = []) {
     .filter(id => id !== null);
 }
 
+
