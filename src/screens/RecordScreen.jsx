@@ -486,12 +486,34 @@ function RecordScreen({
                   </h4>
                   <ul className="space-y-3">
                     {section.content.map((item, i) => {
-                      // item이 객체일 경우 문자열로 변환
-                      const safeItem = typeof item === 'string' 
-                        ? item 
-                        : (typeof item === 'object' && item !== null 
-                          ? JSON.stringify(item, null, 2) 
-                          : String(item || ''));
+                      // item을 안전하게 문자열로 변환
+                      let safeItem = '';
+                      
+                      if (typeof item === 'string') {
+                        safeItem = item;
+                      } else if (typeof item === 'object' && item !== null) {
+                        // 객체인 경우 키-값 형태로 읽기 쉽게 변환
+                        try {
+                          if (Array.isArray(item)) {
+                            safeItem = item.map(i => typeof i === 'object' ? JSON.stringify(i) : String(i)).join(', ');
+                          } else {
+                            // 객체를 키: 값 형태로 변환
+                            safeItem = Object.entries(item)
+                              .map(([key, value]) => {
+                                const valStr = typeof value === 'object' && value !== null 
+                                  ? JSON.stringify(value) 
+                                  : String(value || '');
+                                return `${key}: ${valStr}`;
+                              })
+                              .join(', ');
+                          }
+                        } catch (e) {
+                          safeItem = String(item);
+                        }
+                      } else {
+                        safeItem = String(item || '');
+                      }
+                      
                       return (
                         <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
                           {safeItem}

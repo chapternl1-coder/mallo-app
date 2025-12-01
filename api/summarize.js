@@ -84,7 +84,55 @@ export default async function handler(req, res) {
     }
 
     const data = await openaiRes.json();
-    const summaryJson = data?.choices?.[0]?.message?.content || '{}';
+    let summaryJson = data?.choices?.[0]?.message?.content || '{}';
+
+    // content 배열의 객체를 문자열로 변환하는 헬퍼 함수
+    const normalizeContentArray = (content) => {
+      if (!Array.isArray(content)) {
+        return [];
+      }
+      
+      const result = [];
+      content.forEach((item) => {
+        if (typeof item === 'string') {
+          if (item.trim()) {
+            result.push(item);
+          }
+        } else if (typeof item === 'object' && item !== null) {
+          // 객체인 경우 각 키-값을 개별 문자열 항목으로 변환
+          Object.entries(item).forEach(([key, value]) => {
+            const valStr = typeof value === 'object' && value !== null 
+              ? JSON.stringify(value) 
+              : String(value || '');
+            result.push(`${key}: ${valStr}`);
+          });
+        } else {
+          const str = String(item || '');
+          if (str.trim()) {
+            result.push(str);
+          }
+        }
+      });
+      
+      return result;
+    };
+
+    // JSON 파싱 및 content 배열 정리
+    try {
+      const parsed = JSON.parse(summaryJson);
+      if (parsed.sections && Array.isArray(parsed.sections)) {
+        // sections의 각 content 배열을 정리
+        parsed.sections = parsed.sections.map((section) => ({
+          ...section,
+          content: normalizeContentArray(section.content || []),
+        }));
+        // 정리된 결과를 다시 JSON 문자열로 변환
+        summaryJson = JSON.stringify(parsed);
+      }
+    } catch (e) {
+      // JSON 파싱 실패 시 원본 사용
+      console.warn('Failed to normalize summary JSON:', e);
+    }
 
     res.status(200).json({
       ok: true,
