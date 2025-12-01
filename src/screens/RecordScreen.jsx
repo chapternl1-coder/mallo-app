@@ -119,38 +119,59 @@ function RecordScreen({
   // recordState에 따라 다른 화면 렌더링
   if (recordState === 'recording' || recordState === 'idle') {
     return (
-      <div className="flex flex-col h-full bg-white relative items-center justify-center overflow-hidden">
+      <div className="flex flex-col h-full bg-white relative items-center overflow-hidden pt-[160px] pb-[150px]">
         {/* 배경 효과 - 따뜻한 크림색 파동 */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse opacity-20" style={{ backgroundColor: '#C9A27A', animationDuration: '4s' }}></div>
-          <div className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl animate-pulse opacity-15" style={{ backgroundColor: '#C9A27A', animationDuration: '5s', animationDelay: '1s' }}></div>
-          <div className="absolute top-1/2 right-1/3 w-88 h-88 rounded-full blur-3xl animate-pulse opacity-20" style={{ backgroundColor: '#F2F0E6', animationDuration: '6s', animationDelay: '0.5s' }}></div>
-          <div className="absolute bottom-1/4 left-1/3 w-72 h-72 rounded-full blur-3xl animate-pulse opacity-15" style={{ backgroundColor: '#F2F0E6', animationDuration: '4.5s', animationDelay: '2s' }}></div>
+          <div
+            className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse opacity-20"
+            style={{ backgroundColor: '#C9A27A', animationDuration: '4s' }}
+          ></div>
+          <div
+            className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl animate-pulse opacity-15"
+            style={{ backgroundColor: '#C9A27A', animationDuration: '5s', animationDelay: '1s' }}
+          ></div>
+          <div
+            className="absolute top-1/2 right-1/3 w-88 h-88 rounded-full blur-3xl animate-pulse opacity-20"
+            style={{ backgroundColor: '#F2F0E6', animationDuration: '6s', animationDelay: '0.5s' }}
+          ></div>
+          <div
+            className="absolute bottom-1/4 left-1/3 w-72 h-72 rounded-full blur-3xl animate-pulse opacity-15"
+            style={{ backgroundColor: '#F2F0E6', animationDuration: '4.5s', animationDelay: '2s' }}
+          ></div>
         </div>
 
         {/* 타이머 영역 */}
         <div className="z-10 text-center mb-8 -mt-8">
           {/* 팁 박스 */}
           <div className="w-full px-8 mb-6 z-10 -mt-12">
-            <div className="bg-white/80 rounded-2xl px-6 py-4 shadow-sm border backdrop-blur-sm" style={{ borderColor: '#f0e7d9' }}>
+            <div
+              className="bg-white/80 rounded-2xl px-6 py-4 shadow-sm border backdrop-blur-sm"
+              style={{ borderColor: '#f0e7d9' }}
+            >
               <p
                 className={`text-base text-center leading-relaxed ${
-                  isNearLimit ? 'text-[#e05252]' : 'text-[#9b8b7a]'
+                  elapsedSeconds >= NEAR_LIMIT_SECONDS ? 'text-[#e05252]' : 'text-[#9b8b7a]'
                 }`}
               >
-                한 번에 최대 2분까지 녹음돼요.<br />
+                한 번에 최대 2분까지 녹음돼요.
+                <br />
                 한 고객님 정보만 말씀해 주세요.
               </p>
             </div>
           </div>
 
-          <h2 className="text-sm font-medium tracking-widest uppercase mb-4" style={{ color: '#C9A27A', opacity: 0.8 }}>Recording</h2>
-          
-          <p 
+          <h2
+            className="text-sm font-medium tracking-widest uppercase mb-4"
+            style={{ color: '#C9A27A', opacity: 0.8 }}
+          >
+            Recording
+          </h2>
+
+          <p
             className="text-7xl font-mono font-light tracking-tighter tabular-nums"
             style={{
               color: '#232323',
-              textShadow: '0 2px 10px rgba(201, 162, 122, 0.2)'
+              textShadow: '0 2px 10px rgba(201, 162, 122, 0.2)',
             }}
           >
             {formatTime(recordingTime)}
@@ -158,11 +179,11 @@ function RecordScreen({
         </div>
 
         {/* Visualizer & Button */}
-        <div className="z-10 flex flex-col items-center gap-2 mt-2">
+        <div className="z-10 flex flex-col items-center gap-2 mt-[40px]">
           <WaveBars />
-          
+
           {/* 정지 버튼 - 물결(Ripple) 애니메이션 */}
-          <button 
+          <button
             onClick={stopRecording}
             className="group relative flex items-center justify-center mb-4"
             style={{ width: '136px', height: '136px' }}
@@ -184,16 +205,20 @@ function RecordScreen({
                 }}
               ></div>
             ))}
-            
+
             {/* 버튼 본체 */}
-            <div className="absolute inset-0 rounded-full blur-xl transition-colors" style={{ backgroundColor: 'rgba(201, 162, 122, 0.15)' }}></div>
-            <div 
+            <div
+              className="absolute inset-0 rounded-full blur-xl transition-colors"
+              style={{ backgroundColor: 'rgba(201, 162, 122, 0.15)' }}
+            ></div>
+            <div
               className="relative rounded-full flex items-center justify-center group-hover:scale-105 group-active:scale-95 transition-all duration-200 z-10"
-              style={{ 
+              style={{
                 width: '136px',
                 height: '136px',
                 backgroundColor: '#C9A27A',
-                boxShadow: '0 10px 40px rgba(201, 162, 122, 0.4), 0 0 20px rgba(201, 162, 122, 0.2)'
+                boxShadow:
+                  '0 10px 40px rgba(201, 162, 122, 0.4), 0 0 20px rgba(201, 162, 122, 0.2)',
               }}
             >
               <Square size={32} fill="white" stroke="white" className="ml-0.5" />
@@ -206,10 +231,10 @@ function RecordScreen({
           <button
             onClick={cancelRecording}
             className="px-8 py-3 text-base font-medium rounded-full transition-all duration-200 hover:opacity-70"
-            style={{ 
+            style={{
               color: '#232323',
               backgroundColor: 'rgba(35, 35, 35, 0.05)',
-              border: '1px solid rgba(35, 35, 35, 0.1)'
+              border: '1px solid rgba(35, 35, 35, 0.1)',
             }}
           >
             취소하기
@@ -218,6 +243,7 @@ function RecordScreen({
       </div>
     );
   }
+
 
   if (recordState === 'processing') {
     return (
