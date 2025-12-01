@@ -88,7 +88,7 @@ function CustomerDetailScreen({
   const customerVisits = visits[selectedCustomerId] || [];
   
   // 개발용 요약 테스트 state
-  const [devTestText, setDevTestText] = useState('');
+  const [devSourceText, setDevSourceText] = useState('');
   const [devSummaryResult, setDevSummaryResult] = useState('');
   const [isDevSummaryLoading, setIsDevSummaryLoading] = useState(false);
   
@@ -214,8 +214,8 @@ function CustomerDetailScreen({
   };
 
   // 개발용 요약 테스트 핸들러
-  const handleDevSummaryTest = async () => {
-    if (!devTestText || !devTestText.trim()) {
+  async function handleDevSummaryTest() {
+    if (!devSourceText.trim()) {
       alert('요약할 텍스트를 입력해주세요.');
       return;
     }
@@ -224,39 +224,44 @@ function CustomerDetailScreen({
       setIsDevSummaryLoading(true);
       setDevSummaryResult('');
 
-      const response = await fetch('/api/summarize', {
+      const res = await fetch('/api/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sourceText: devTestText,
-        }),
+        body: JSON.stringify({ sourceText: devSourceText }),
       });
 
-      if (!response.ok) {
-        throw new Error('요약 API 호출 실패');
+      if (!res.ok) {
+        console.error('요약 API 에러 상태코드:', res.status);
+        alert('요약 API 호출에 실패했습니다.');
+        return;
       }
 
-      const data = await response.json();
+      const data = await res.json(); // { ok: true, summaryJson: "..." }
 
-      // ① 서버에서 온 summaryJson(JSON 문자열)을 객체로 파싱
-      // ② 다시 보기 좋게 문자열로 변환해서 state에 저장
       let pretty = '';
-      try {
-        const parsed = JSON.parse(data.summaryJson || '{}');
-        pretty = JSON.stringify(parsed, null, 2);
-      } catch (e) {
-        console.error('요약 JSON 파싱 실패', e);
-        pretty = data.summaryJson || '';
+
+      if (data && typeof data.summaryJson === 'string') {
+        try {
+          const parsed = JSON.parse(data.summaryJson);
+          // ✅ 객체 → 예쁘게 문자열로 변환 (객체를 JSX에 직접 넣지 않음)
+          pretty = JSON.stringify(parsed, null, 2);
+        } catch (e) {
+          console.warn('summaryJson 파싱 실패, 원문 사용', e);
+          pretty = data.summaryJson;
+        }
+      } else {
+        // 혹시 summaryJson이 없으면 전체 data를 문자열로 보여주기
+        pretty = JSON.stringify(data, null, 2);
       }
 
       setDevSummaryResult(pretty);
     } catch (err) {
-      console.error('DEV 요약 테스트 오류:', err);
-      alert('테스트 요약 실패\n\n요약 서버 호출에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      console.error('요약 테스트 중 오류:', err);
+      alert('요약 테스트 중 오류가 발생했습니다.');
     } finally {
       setIsDevSummaryLoading(false);
     }
-  };
+  }
 
 
   return (
@@ -415,57 +420,55 @@ function CustomerDetailScreen({
           </div>
         </div>
 
-        {/* 개발용 요약 테스트 카드 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
-          <div className="mb-4">
+        {/* DEV: 개발용 요약 테스트 카드 */}
+        <section className="mt-4">
+          <div className="bg-[#fff7e6] rounded-2xl p-4 border border-[#f3e0b5]">
             <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-base font-bold" style={{ color: '#232323' }}>
-                개발용 요약 테스트
-              </h3>
-              <span className="text-xs font-bold px-2 py-1 rounded bg-yellow-100 text-yellow-800">DEV</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#f0d9a8] text-[#7a5a2b] font-semibold">
+                DEV
+              </span>
+              <p className="text-xs text-[#7a5a2b] font-medium">개발용 요약 테스트</p>
             </div>
-            <p className="text-xs" style={{ color: '#232323', opacity: 0.7 }}>
-              음성 대신 텍스트를 입력해서 요약 태그 흐름을 테스트할 수 있어요.
+
+            <p className="text-[11px] text-[#7a5a2b] opacity-80 mb-2 leading-snug">
+              음성 대신 텍스트를 입력해서 요약·태그 흐름을 테스트할 수 있어요.
+              실제 요약 결과는 아래에 JSON 형태로 보여집니다.
             </p>
-          </div>
 
-          <textarea
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A] mb-3 resize-none"
-            placeholder="여기에 고객에게 말할 내용을 두서없이 적어보고, 아래 버튼을 눌러 테스트하세요."
-            value={devTestText}
-            onChange={(e) => setDevTestText(e.target.value)}
-            rows={4}
-            style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
-          />
+            <textarea
+              className="w-full mt-2 text-xs rounded-xl border border-[#ead8b8] bg-white px-3 py-2 outline-none resize-none min-h-[80px]"
+              placeholder="여기에 시술 내용을 붙여넣고 아래 버튼을 눌러 요약을 테스트해보세요."
+              value={devSourceText}
+              onChange={(e) => setDevSourceText(e.target.value)}
+            />
 
-          <button
-            type="button"
-            className="w-full py-3 rounded-xl font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={handleDevSummaryTest}
-            disabled={isDevSummaryLoading || !devTestText.trim()}
-            style={{ backgroundColor: '#C9A27A' }}
-          >
-            {isDevSummaryLoading ? '요약 테스트 중...' : '이 텍스트로 요약 테스트'}
-          </button>
-
-          {/* 요약 결과 표시 */}
-          {isDevSummaryLoading ? (
-            <p className="mt-3 text-xs text-gray-500">
-              요약 중입니다...
-            </p>
-          ) : devSummaryResult ? (
-            <pre
-              className="mt-3 text-xs bg-[#faf6ee] rounded-xl p-3 overflow-x-auto whitespace-pre-wrap"
-              style={{ color: '#232323' }}
+            <button
+              type="button"
+              onClick={handleDevSummaryTest}
+              disabled={isDevSummaryLoading}
+              className="mt-3 w-full rounded-xl py-2 text-xs font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ backgroundColor: '#C9A27A' }}
             >
-              {devSummaryResult}
-            </pre>
-          ) : (
-            <p className="mt-3 text-xs text-gray-400">
-              아래 "이 텍스트로 요약 테스트" 버튼을 누르면 결과가 여기에 표시됩니다.
-            </p>
-          )}
-        </div>
+              {isDevSummaryLoading ? '요약 중...' : '이 텍스트로 요약 테스트'}
+            </button>
+
+            <div className="mt-3">
+              {isDevSummaryLoading ? (
+                <p className="text-[11px] text-gray-500">
+                  요약 중입니다...
+                </p>
+              ) : devSummaryResult ? (
+                <pre className="text-[11px] bg-white/90 rounded-xl p-3 whitespace-pre-wrap break-words max-h-64 overflow-auto">
+                  {devSummaryResult}
+                </pre>
+              ) : (
+                <p className="text-[11px] text-gray-400">
+                  테스트 결과가 여기 표시됩니다.
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
 
         {/* 방문 히스토리 */}
         <div className="space-y-4 pb-32">
