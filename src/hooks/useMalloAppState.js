@@ -840,43 +840,90 @@ export default function useMalloAppState() {
   };
 
   // content 배열의 모든 항목을 문자열로 변환하는 헬퍼 함수
+  // 객체인 경우 각 키-값을 개별 문자열 항목으로 분리
   const normalizeContentArray = (content) => {
     if (!Array.isArray(content)) {
       return [];
     }
-    return content.map((item, index) => {
-      // 이미 문자열이면 그대로 반환
+    
+    const result = [];
+    
+    content.forEach((item) => {
+      // 이미 문자열이면 처리
       if (typeof item === 'string') {
-        // 문자열이 JSON처럼 보이면 파싱해서 읽기 쉬운 형태로 변환
-        if (item.trim().startsWith('{') || item.trim().startsWith('[')) {
+        // 빈 문자열이면 스킵
+        if (!item.trim()) {
+          return;
+        }
+        
+        // 문자열이 JSON처럼 보이면 파싱해서 개별 항목으로 변환
+        const trimmed = item.trim();
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
           try {
             const parsed = JSON.parse(item);
-            // 파싱 성공하면 객체를 읽기 쉬운 문자열로 변환
-            return Object.entries(parsed)
-              .map(([key, value]) => `${key}: ${value}`)
-              .join(', ');
+            // 파싱 성공하면 객체를 각 키-값을 개별 항목으로 변환
+            if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+              // 객체를 각 키-값을 개별 문자열 항목으로 변환
+              Object.entries(parsed).forEach(([key, value]) => {
+                const valStr = typeof value === 'object' && value !== null 
+                  ? JSON.stringify(value) 
+                  : String(value || '');
+                result.push(`${key}: ${valStr}`);
+              });
+              return;
+            }
+            // 배열이나 다른 형태면 그냥 문자열로
+            result.push(JSON.stringify(parsed));
+            return;
           } catch (e) {
             // JSON 파싱 실패하면 원본 문자열 반환
-            return item;
+            result.push(item);
+            return;
           }
         }
-        return item;
+        result.push(item);
+        return;
       }
       
-      // 객체인 경우 읽기 쉬운 문자열로 변환
+      // 객체인 경우 각 키-값을 개별 문자열 항목으로 변환
       if (typeof item === 'object' && item !== null) {
         try {
-          // 객체의 키-값 쌍을 읽기 쉬운 형태로 변환
-          return Object.entries(item)
-            .map(([key, value]) => `${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`)
-            .join(', ');
+          if (Array.isArray(item)) {
+            // 배열인 경우 각 항목을 처리
+            item.forEach(i => {
+              if (typeof i === 'object' && i !== null) {
+                // 배열 안의 객체도 키-값으로 분리
+                Object.entries(i).forEach(([key, value]) => {
+                  result.push(`${key}: ${String(value || '')}`);
+                });
+              } else {
+                result.push(String(i || ''));
+              }
+            });
+            return;
+          }
+          // 객체의 각 키-값을 개별 문자열 항목으로 변환
+          Object.entries(item).forEach(([key, value]) => {
+            const valStr = typeof value === 'object' && value !== null 
+              ? JSON.stringify(value) 
+              : String(value || '');
+            result.push(`${key}: ${valStr}`);
+          });
+          return;
         } catch (e) {
-          return String(item);
+          result.push(String(item));
+          return;
         }
       }
       
-      return String(item || '');
+      // 그 외의 경우 문자열로 변환
+      const str = String(item || '');
+      if (str.trim()) {
+        result.push(str);
+      }
     });
+    
+    return result.filter(item => item && item.trim()); // 빈 항목 제거
   };
 
   const handleSummaryResult = (summaryData) => {
@@ -1063,11 +1110,26 @@ export default function useMalloAppState() {
       let cleanedResult = {};
       
       if (parsedResult.title && parsedResult.sections && Array.isArray(parsedResult.sections)) {
-        // 올바른 형식: customerInfo 추가하고 그대로 전달 (handleSummaryResult에서 content 정리됨)
+        // 올바른 형식: content 배열을 먼저 정리한 후 전달
         cleanedResult = {
           ...parsedResult,
           customerInfo: parsedResult.customerInfo || { name: null, phone: null },
+          sections: (parsedResult.sections || []).map((section) => ({
+            ...section,
+            content: normalizeContentArray(section.content || []),
+          })),
         };
+        
+        // 디버깅: 변환 전후 비교
+        parsedResult.sections.forEach((section, idx) => {
+          const hasObjects = (section.content || []).some(item => typeof item === 'object' && item !== null);
+          if (hasObjects) {
+            console.warn(`[요약 변환] 섹션 "${section.title}"에 객체가 포함되어 변환합니다.`, {
+              before: section.content,
+              after: cleanedResult.sections[idx].content,
+            });
+          }
+        });
       } else {
         // 다른 형식이면 변환
         cleanedResult = {
@@ -1076,11 +1138,11 @@ export default function useMalloAppState() {
           sections: [
             {
               title: '시술 내용',
-              content: [parsedResult.service || parsedResult.note || '시술 내용이 없습니다.']
+              content: normalizeContentArray([parsedResult.service || parsedResult.note || '시술 내용이 없습니다.'])
             },
             ...(parsedResult.note ? [{
               title: '주의사항',
-              content: [parsedResult.note]
+              content: normalizeContentArray([parsedResult.note])
             }] : [])
           ]
         };
