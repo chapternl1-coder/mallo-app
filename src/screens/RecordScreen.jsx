@@ -119,7 +119,7 @@ function RecordScreen({
   // recordState에 따라 다른 화면 렌더링
   if (recordState === 'recording' || recordState === 'idle') {
     return (
-      <div className="flex flex-col h-full bg-white relative items-center overflow-hidden pt-[160px] pb-[150px]">
+      <div className="flex flex-col h-full bg-white relative overflow-hidden">
         {/* 배경 효과 - 따뜻한 크림색 파동 */}
         <div className="absolute inset-0 pointer-events-none">
           <div
@@ -140,94 +140,97 @@ function RecordScreen({
           ></div>
         </div>
 
-        {/* 타이머 영역 */}
-        <div className="z-10 text-center mb-8 -mt-8">
-          {/* 팁 박스 */}
-          <div className="w-full px-8 mb-6 z-10 -mt-12">
-            <div
-              className="bg-white/80 rounded-2xl px-6 py-4 shadow-sm border backdrop-blur-sm"
-              style={{ borderColor: '#f0e7d9' }}
-            >
-              <p
-                className={`text-base text-center leading-relaxed ${
-                  elapsedSeconds >= NEAR_LIMIT_SECONDS ? 'text-[#e05252]' : 'text-[#9b8b7a]'
-                }`}
+        {/* 홈이랑 맞추기: 위에서 160px 내려와서 시작 */}
+        <main className="flex-1 flex flex-col items-center px-8 pt-[160px] pb-[150px]">
+          {/* 타이머 영역 + 안내문 */}
+          <div className="z-10 w-full text-center mb-8">
+            {/* 팁 박스 */}
+            <div className="w-full mb-6">
+              <div
+                className="bg-white/80 rounded-2xl px-6 py-4 shadow-sm border backdrop-blur-sm"
+                style={{ borderColor: '#f0e7d9' }}
               >
-                한 번에 최대 2분까지 녹음돼요.
-                <br />
-                한 고객님 정보만 말씀해 주세요.
-              </p>
+                <p
+                  className={`text-base text-center leading-relaxed ${
+                    isNearLimit ? 'text-[#e05252]' : 'text-[#9b8b7a]'
+                  }`}
+                >
+                  한 번에 최대 2분까지 녹음돼요.
+                  <br />
+                  한 고객님 정보만 말씀해 주세요.
+                </p>
+              </div>
             </div>
+
+            <h2
+              className="text-sm font-medium tracking-widest uppercase mb-4"
+              style={{ color: '#C9A27A', opacity: 0.8 }}
+            >
+              Recording
+            </h2>
+
+            <p
+              className="text-7xl font-mono font-light tracking-tighter tabular-nums"
+              style={{
+                color: '#232323',
+                textShadow: '0 2px 10px rgba(201, 162, 122, 0.2)',
+              }}
+            >
+              {formatTime(recordingTime)}
+            </p>
           </div>
 
-          <h2
-            className="text-sm font-medium tracking-widest uppercase mb-4"
-            style={{ color: '#C9A27A', opacity: 0.8 }}
-          >
-            Recording
-          </h2>
+          {/* 파형 + 정지 버튼 */}
+          <div className="z-10 flex flex-col items-center gap-4">
+            <WaveBars />
 
-          <p
-            className="text-7xl font-mono font-light tracking-tighter tabular-nums"
-            style={{
-              color: '#232323',
-              textShadow: '0 2px 10px rgba(201, 162, 122, 0.2)',
-            }}
-          >
-            {formatTime(recordingTime)}
-          </p>
-        </div>
+            {/* 정지 버튼 - 물결 애니메이션 */}
+            <button
+              onClick={stopRecording}
+              className="group relative flex items-center justify-center mt-2"
+              style={{ width: '136px', height: '136px' }}
+            >
+              {/* 물결 효과 - 여러 겹의 원 (골드 브라운 톤) */}
+              {[...Array(5)].map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute rounded-full border-2"
+                  style={{
+                    width: '136px',
+                    height: '136px',
+                    borderColor: 'rgba(201, 162, 122, 0.3)',
+                    animation: `ping ${2.5 + i * 0.4}s cubic-bezier(0, 0, 0.2, 1) infinite`,
+                    animationDelay: `${i * 0.25}s`,
+                    left: '50%',
+                    top: '50%',
+                    transform: 'translate(-50%, -50%)',
+                  }}
+                ></div>
+              ))}
 
-        {/* Visualizer & Button */}
-        <div className="z-10 flex flex-col items-center gap-2 mt-[40px]">
-          <WaveBars />
-
-          {/* 정지 버튼 - 물결(Ripple) 애니메이션 */}
-          <button
-            onClick={stopRecording}
-            className="group relative flex items-center justify-center mb-4"
-            style={{ width: '136px', height: '136px' }}
-          >
-            {/* 물결 효과 - 여러 겹의 원 (골드 브라운 톤) */}
-            {[...Array(5)].map((_, i) => (
+              {/* 버튼 본체 */}
               <div
-                key={i}
-                className="absolute rounded-full border-2"
+                className="absolute inset-0 rounded-full blur-xl transition-colors"
+                style={{ backgroundColor: 'rgba(201, 162, 122, 0.15)' }}
+              ></div>
+              <div
+                className="relative rounded-full flex items-center justify-center group-hover:scale-105 group-active:scale-95 transition-all duration-200 z-10"
                 style={{
                   width: '136px',
                   height: '136px',
-                  borderColor: 'rgba(201, 162, 122, 0.3)',
-                  animation: `ping ${2.5 + i * 0.4}s cubic-bezier(0, 0, 0.2, 1) infinite`,
-                  animationDelay: `${i * 0.25}s`,
-                  left: '50%',
-                  top: '50%',
-                  transform: 'translate(-50%, -50%)',
+                  backgroundColor: '#C9A27A',
+                  boxShadow:
+                    '0 10px 40px rgba(201, 162, 122, 0.4), 0 0 20px rgba(201, 162, 122, 0.2)',
                 }}
-              ></div>
-            ))}
+              >
+                <Square size={32} fill="white" stroke="white" className="ml-0.5" />
+              </div>
+            </button>
+          </div>
+        </main>
 
-            {/* 버튼 본체 */}
-            <div
-              className="absolute inset-0 rounded-full blur-xl transition-colors"
-              style={{ backgroundColor: 'rgba(201, 162, 122, 0.15)' }}
-            ></div>
-            <div
-              className="relative rounded-full flex items-center justify-center group-hover:scale-105 group-active:scale-95 transition-all duration-200 z-10"
-              style={{
-                width: '136px',
-                height: '136px',
-                backgroundColor: '#C9A27A',
-                boxShadow:
-                  '0 10px 40px rgba(201, 162, 122, 0.4), 0 0 20px rgba(201, 162, 122, 0.2)',
-              }}
-            >
-              <Square size={32} fill="white" stroke="white" className="ml-0.5" />
-            </div>
-          </button>
-        </div>
-
-        {/* 취소 버튼 */}
-        <div className="absolute bottom-32 w-full px-8 flex justify-center z-10">
+        {/* 취소 버튼 - 화면 하단 근처 고정 */}
+        <div className="absolute bottom-24 w-full px-8 flex justify-center z-10">
           <button
             onClick={cancelRecording}
             className="px-8 py-3 text-base font-medium rounded-full transition-all duration-200 hover:opacity-70"
