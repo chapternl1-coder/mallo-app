@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, X, Minus } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
 
@@ -22,6 +22,11 @@ function EditScreen({
   setIsEditingVisitTagPickerOpen,
   TagPickerModal
 }) {
+  // 개발용 요약 테스트 state
+  const [devSourceText, setDevSourceText] = useState('');
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [summaryError, setSummaryError] = useState('');
+
   if (!tempResultData) {
     return (
       <div className="flex flex-col h-full items-center justify-center" style={{ backgroundColor: '#F2F0E6' }}>
@@ -97,6 +102,163 @@ function EditScreen({
       ...prev,
       title: cleaned
     }));
+  };
+
+  // content 배열의 모든 항목을 문자열로 변환하는 헬퍼 함수
+  const normalizeContentArray = (content) => {
+    if (!Array.isArray(content)) {
+      return [];
+    }
+    
+    const result = [];
+    
+    content.forEach((item) => {
+      if (typeof item === 'string') {
+        if (!item.trim()) {
+          return;
+        }
+        const trimmed = item.trim();
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+          try {
+            const parsed = JSON.parse(item);
+            if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+              Object.entries(parsed).forEach(([key, value]) => {
+                const valStr = typeof value === 'object' && value !== null 
+                  ? JSON.stringify(value) 
+                  : String(value || '');
+                result.push(`${key}: ${valStr}`);
+              });
+              return;
+            }
+            result.push(JSON.stringify(parsed));
+            return;
+          } catch (e) {
+            result.push(item);
+            return;
+          }
+        }
+        result.push(item);
+        return;
+      }
+      
+      if (typeof item === 'object' && item !== null) {
+        try {
+          if (Array.isArray(item)) {
+            item.forEach(i => {
+              if (typeof i === 'object' && i !== null) {
+                Object.entries(i).forEach(([key, value]) => {
+                  result.push(`${key}: ${String(value || '')}`);
+                });
+              } else {
+                result.push(String(i || ''));
+              }
+            });
+            return;
+          }
+          Object.entries(item).forEach(([key, value]) => {
+            const valStr = typeof value === 'object' && value !== null 
+              ? JSON.stringify(value) 
+              : String(value || '');
+            result.push(`${key}: ${valStr}`);
+          });
+          return;
+        } catch (e) {
+          result.push(String(item));
+          return;
+        }
+      }
+      
+      const str = String(item || '');
+      if (str.trim()) {
+        result.push(str);
+      }
+    });
+    
+    return result.filter(item => item && item.trim());
+  };
+
+  // 개발용 요약 테스트 핸들러
+  const handleDevSummary = async () => {
+    if (!devSourceText.trim()) return;
+
+    setSummaryError('');
+    setIsSummarizing(true);
+
+    try {
+      console.log('[요약 API] 요청 시작');
+
+      const response = await fetch('https://mallo-app.vercel.app/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceText: devSourceText,
+          phone: editingCustomer?.phone || '010-0000-0000',
+          visitPatternId: null,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      let parsedResult = {};
+      try {
+        parsedResult = JSON.parse(data.summaryJson || '{}');
+      } catch (e) {
+        throw new Error('요약 결과를 파싱할 수 없습니다.');
+      }
+
+      // 응답 요약 로그
+      console.log('[요약 API] 응답 요약', {
+        status: response.status,
+        hasSummaryJson: !!data?.summaryJson,
+        sectionsCount: parsedResult?.sections?.length || 0,
+      });
+
+      // 요약 결과를 tempResultData에 반영
+      let cleanedResult = {};
+      
+      if (parsedResult.title && parsedResult.sections && Array.isArray(parsedResult.sections)) {
+        cleanedResult = {
+          ...parsedResult,
+          customerInfo: parsedResult.customerInfo || { name: null, phone: null },
+          sections: (parsedResult.sections || []).map((section) => ({
+            ...section,
+            content: normalizeContentArray(section.content || []),
+          })),
+        };
+      } else {
+        cleanedResult = {
+          title: parsedResult.title || parsedResult.summary || parsedResult.service || '시술 기록',
+          customerInfo: parsedResult.customerInfo || { name: null, phone: null },
+          sections: [
+            {
+              title: '시술 내용',
+              content: normalizeContentArray([parsedResult.service || parsedResult.note || '시술 내용이 없습니다.'])
+            },
+            ...(parsedResult.note ? [{
+              title: '주의사항',
+              content: normalizeContentArray([parsedResult.note])
+            }] : [])
+          ]
+        };
+      }
+
+      // tempResultData 업데이트
+      setTempResultData(prev => ({
+        ...prev,
+        title: cleanedResult.title || prev.title,
+        sections: cleanedResult.sections || prev.sections,
+      }));
+
+    } catch (err) {
+      console.error('[요약 API] 호출 실패', err);
+      setSummaryError('요약이 잠시 실패했어요. 다시 한 번 눌러주세요.');
+    } finally {
+      setIsSummarizing(false);
+    }
   };
 
   // 완료 버튼 클릭 핸들러
@@ -210,6 +372,44 @@ function EditScreen({
             placeholder="시술 내용만 입력하세요 (고객 이름, 신규/기존 정보는 자동으로 제거됩니다)"
           />
         </div>
+
+        {/* DEV: 개발용 요약 테스트 카드 */}
+        <section className="bg-[#fff7e6] rounded-2xl p-4 border border-[#f3e0b5]">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#f0d9a8] text-[#7a5a2b] font-semibold">
+              DEV
+            </span>
+            <p className="text-xs text-[#7a5a2b] font-medium">개발용 요약 테스트</p>
+          </div>
+
+          <p className="text-[11px] text-[#7a5a2b] opacity-80 mb-2 leading-snug">
+            음성 대신 텍스트를 입력해서 요약·태그 흐름을 테스트할 수 있어요.
+            실제 요약 결과는 아래에 JSON 형태로 보여집니다.
+          </p>
+
+          <textarea
+            className="w-full mt-2 text-xs rounded-xl border border-[#ead8b8] bg-white px-3 py-2 outline-none resize-none min-h-[80px]"
+            placeholder="여기에 시술 내용을 붙여넣고 아래 버튼을 눌러 요약을 테스트해보세요."
+            value={devSourceText}
+            onChange={(e) => setDevSourceText(e.target.value)}
+          />
+
+          <button
+            type="button"
+            onClick={handleDevSummary}
+            disabled={isSummarizing}
+            className="mt-3 w-full rounded-xl py-2 text-xs font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
+            style={{ backgroundColor: '#C9A27A' }}
+          >
+            {isSummarizing ? '요약 테스트 중…' : '이 텍스트로 요약 테스트'}
+          </button>
+
+          {summaryError && (
+            <p className="mt-2 text-xs text-red-500">
+              {summaryError}
+            </p>
+          )}
+        </section>
 
         {/* 시술 태그 편집 섹션 */}
         {editingVisit && (
