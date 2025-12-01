@@ -119,7 +119,7 @@ function RecordScreen({
   // recordState에 따라 다른 화면 렌더링
   if (recordState === 'recording' || recordState === 'idle') {
     return (
-      <div className="flex flex-col h-full bg-white relative items-center overflow-hidden pt-[80px] pb-[150px]">
+      <div className="flex flex-col h-full bg-white relative items-center justify-center overflow-hidden pt-[24px] pb-[80px]">
         {/* 배경 효과 - 따뜻한 크림색 파동 */}
         <div className="absolute inset-0 pointer-events-none">
           <div
@@ -230,7 +230,7 @@ function RecordScreen({
         </main>
 
         {/* 취소 버튼 - 화면 하단 근처 고정 */}
-        <div className="absolute bottom-24 w-full px-8 flex justify-center z-10">
+        <div className="absolute bottom-16 w-full px-8 flex justify-center z-10">
           <button
             onClick={cancelRecording}
             className="px-8 py-3 text-base font-medium rounded-full transition-all duration-200 hover:opacity-70"
