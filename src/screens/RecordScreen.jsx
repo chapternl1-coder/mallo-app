@@ -181,7 +181,7 @@ function RecordScreen({
 
             {/* 타이머 숫자 크게 */}
             <p
-              className="text-[58px] font-mono font-light tracking-tighter tabular-nums leading-none"
+              className="mt-4 text-[64px] font-mono font-light tracking-tighter tabular-nums leading-none"
               style={{
                 color: '#232323',
                 textShadow: '0 2px 10px rgba(201, 162, 122, 0.2)',
