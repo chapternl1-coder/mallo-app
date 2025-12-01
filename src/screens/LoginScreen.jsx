@@ -1,6 +1,9 @@
 import React from 'react';
+
 import { Mail, Lock } from 'lucide-react';
+
 import { SCREENS } from '../constants/screens';
+
 import logo from '../assets/logo.png';
 
 function LoginScreen({
@@ -29,7 +32,7 @@ function LoginScreen({
       style={{ backgroundColor: '#F2F0E6' }}
     >
       <div className="w-full max-w-sm">
-        {/* ✅ 로고만 (이 위치는 그대로 유지) */}
+        {/* ✅ 로고 (이 위치는 그대로 유지) */}
         <div className="text-center">
           <img
             src={logo}
@@ -39,8 +42,8 @@ function LoginScreen({
         </div>
 
         {/* ✅ 텍스트 + 로그인 폼 묶음
-            → 여기 margin-top 값으로 위/아래 미세 조정 */}
-        <div className="mt-[-12px] space-y-4">
+            → 여기 margin-top으로 더 위로 당김 (mt-[-24px]) */}
+        <div className="mt-[-24px] space-y-4">
           {/* 텍스트 */}
           <div className="text-center">
             <h1
