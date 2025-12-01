@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Mic } from 'lucide-react';
 import HomeHeader from '../components/HomeHeader';
 import { filterCustomersBySearch } from '../utils/customerListUtils';
@@ -23,6 +23,12 @@ function HomeScreen({
   setSelectedCustomerForRecord,
   startRecording,
 }) {
+  // 홈 화면이 렌더링될 때 스크롤을 항상 맨 위로 이동
+  useEffect(() => {
+    // 홈 화면이 렌더링될 때 스크롤을 항상 맨 위로 이동
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, []);
+
   // 고객 검색 필터링
   const filteredCustomers = filterCustomersBySearch(customers, searchQuery);
 
