@@ -330,13 +330,6 @@ function RecordScreen({
             {(() => {
               const allTagIds = [...new Set([...(recommendedTagIds || []), ...(selectedTagIds || [])])];
               
-              // 디버깅 로그
-              console.log('[태그 표시] recommendedTagIds:', recommendedTagIds);
-              console.log('[태그 표시] selectedTagIds:', selectedTagIds);
-              console.log('[태그 표시] allVisitTags:', allVisitTags);
-              console.log('[태그 표시] serviceTags:', serviceTags);
-              console.log('[태그 표시] allTagIds:', allTagIds);
-              
               const validTags = allTagIds
                 .map((tagId) => {
                   const tag = allVisitTags.find((t) => t.id === tagId);
@@ -347,10 +340,6 @@ function RecordScreen({
               // serviceTags도 추가 (문자열 배열인 경우)
               const serviceTagLabels = (serviceTags || []).filter(tag => typeof tag === 'string');
               const allTagLabels = [...new Set([...validTags, ...serviceTagLabels])];
-              
-              console.log('[태그 표시] validTags:', validTags);
-              console.log('[태그 표시] serviceTagLabels:', serviceTagLabels);
-              console.log('[태그 표시] 최종 allTagLabels:', allTagLabels);
               
               if (allTagLabels.length === 0) return null;
               
@@ -418,13 +407,6 @@ function RecordScreen({
             {(() => {
               const allTagIds = [...new Set([...(recommendedTagIds || []), ...(selectedTagIds || [])])];
               
-              // 디버깅 로그
-              console.log('[태그 표시] recommendedTagIds:', recommendedTagIds);
-              console.log('[태그 표시] selectedTagIds:', selectedTagIds);
-              console.log('[태그 표시] allVisitTags:', allVisitTags);
-              console.log('[태그 표시] serviceTags:', serviceTags);
-              console.log('[태그 표시] allTagIds:', allTagIds);
-              
               const validTags = allTagIds
                 .map((tagId) => {
                   const tag = allVisitTags.find((t) => t.id === tagId);
@@ -435,10 +417,6 @@ function RecordScreen({
               // serviceTags도 추가 (문자열 배열인 경우)
               const serviceTagLabels = (serviceTags || []).filter(tag => typeof tag === 'string');
               const allTagLabels = [...new Set([...validTags, ...serviceTagLabels])];
-              
-              console.log('[태그 표시] validTags:', validTags);
-              console.log('[태그 표시] serviceTagLabels:', serviceTagLabels);
-              console.log('[태그 표시] 최종 allTagLabels:', allTagLabels);
               
               if (allTagLabels.length === 0) return null;
               
