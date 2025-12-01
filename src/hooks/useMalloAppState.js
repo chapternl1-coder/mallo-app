@@ -844,18 +844,37 @@ export default function useMalloAppState() {
     if (!Array.isArray(content)) {
       return [];
     }
-    return content.map((item) => {
+    return content.map((item, index) => {
+      // 이미 문자열이면 그대로 반환
       if (typeof item === 'string') {
+        // 문자열이 JSON처럼 보이면 파싱해서 읽기 쉬운 형태로 변환
+        if (item.trim().startsWith('{') || item.trim().startsWith('[')) {
+          try {
+            const parsed = JSON.parse(item);
+            // 파싱 성공하면 객체를 읽기 쉬운 문자열로 변환
+            return Object.entries(parsed)
+              .map(([key, value]) => `${key}: ${value}`)
+              .join(', ');
+          } catch (e) {
+            // JSON 파싱 실패하면 원본 문자열 반환
+            return item;
+          }
+        }
         return item;
       }
+      
+      // 객체인 경우 읽기 쉬운 문자열로 변환
       if (typeof item === 'object' && item !== null) {
-        // 객체인 경우 JSON 문자열로 변환하되, 한 줄로 정리
         try {
-          return JSON.stringify(item, null, 2);
+          // 객체의 키-값 쌍을 읽기 쉬운 형태로 변환
+          return Object.entries(item)
+            .map(([key, value]) => `${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`)
+            .join(', ');
         } catch (e) {
           return String(item);
         }
       }
+      
       return String(item || '');
     });
   };
@@ -864,10 +883,20 @@ export default function useMalloAppState() {
     // sections의 content 배열을 정리하여 모든 항목이 문자열인지 확인
     const cleanedData = {
       ...summaryData,
-      sections: (summaryData.sections || []).map((section) => ({
-        ...section,
-        content: normalizeContentArray(section.content || []),
-      })),
+      sections: (summaryData.sections || []).map((section, sectionIndex) => {
+        const normalizedContent = normalizeContentArray(section.content || []);
+        
+        // 디버깅: 객체가 있는지 확인
+        const hasObjects = (section.content || []).some(item => typeof item === 'object' && item !== null);
+        if (hasObjects) {
+          console.warn(`[요약 변환] 섹션 "${section.title}"에 객체가 포함되어 있습니다.`, section.content);
+        }
+        
+        return {
+          ...section,
+          content: normalizedContent,
+        };
+      }),
     };
     
     setResultData(cleanedData);
