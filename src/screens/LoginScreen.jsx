@@ -28,10 +28,10 @@ function LoginScreen({
 
   return (
     <div
-      className="flex min-h-screen items-center justify-center px-8"
+      className="flex min-h-screen justify-center"
       style={{ backgroundColor: '#F2F0E6' }}
     >
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm space-y-6 px-8 pt-12 pb-8">
         {/* ✅ 로고 (이 위치는 그대로 유지) */}
         <div className="text-center">
           <img
