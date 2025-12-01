@@ -918,24 +918,36 @@ export default function useMalloAppState() {
       formData.append('model', 'whisper-1');
       formData.append('language', 'ko');
 
-      const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: formData
-      });
+      let whisperResponse;
+      try {
+        whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: formData
+        });
+      } catch (fetchError) {
+        if (fetchError.message.includes('CORS') || fetchError.message.includes('Failed to fetch')) {
+          throw new Error('음성 인식 API 연결에 실패했습니다.\n\n브라우저에서 OpenAI API를 직접 호출할 수 없습니다.\n백엔드 서버를 통해 API를 호출하도록 설정해주세요.');
+        }
+        throw fetchError;
+      }
 
       if (!whisperResponse.ok) {
         const errorData = await whisperResponse.json().catch(() => ({}));
         const errorMessage = errorData.error?.message || '';
-        if (errorMessage.includes('too short') || errorMessage.includes('too short') || recordingTime < 1) {
+        if (errorMessage.includes('too short') || recordingTime < 1) {
           setIsProcessing(false);
           setRecordState('idle');
           setCurrentScreen(SCREENS.HOME);
           return;
         }
-        throw new Error(errorMessage || `Whisper API 요청 실패: ${whisperResponse.status}`);
+        let userMessage = `음성 인식 실패 (상태 코드: ${whisperResponse.status})`;
+        if (whisperResponse.status === 401) {
+          userMessage = 'OpenAI API 키가 유효하지 않거나 만료되었습니다.';
+        }
+        throw new Error(userMessage + (errorMessage ? `\n\n${errorMessage}` : ''));
       }
 
       const whisperData = await whisperResponse.json();
@@ -959,42 +971,73 @@ export default function useMalloAppState() {
         reason_short: '뷰티샵 원장님 전용 앱'
       };
 
-      const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: SYSTEM_PROMPT
-            },
-            {
-              role: 'user',
-              content: `[역할 추론 결과(JSON)]\n${JSON.stringify(roleJson)}\n\n{TODAY}: ${getTodayDate()}\n\n[원문 텍스트]\n${transcript}`
-            }
-          ],
-          temperature: 0.7,
-          response_format: { type: 'json_object' }
-        })
-      });
+      let gptResponse;
+      try {
+        gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: SYSTEM_PROMPT
+              },
+              {
+                role: 'user',
+                content: `[역할 추론 결과(JSON)]\n${JSON.stringify(roleJson)}\n\n{TODAY}: ${getTodayDate()}\n\n[원문 텍스트]\n${transcript}`
+              }
+            ],
+            temperature: 0.7,
+            response_format: { type: 'json_object' }
+          })
+        });
+      } catch (fetchError) {
+        if (fetchError.message.includes('CORS') || fetchError.message.includes('Failed to fetch')) {
+          throw new Error('요약 API 연결에 실패했습니다.\n\n브라우저에서 OpenAI API를 직접 호출할 수 없습니다.\n백엔드 서버를 통해 API를 호출하도록 설정해주세요.');
+        }
+        throw fetchError;
+      }
 
       if (!gptResponse.ok) {
-        const errorData = await gptResponse.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || `GPT API 요청 실패: ${gptResponse.status}`);
+        let errorMessage = `요약 API 요청 실패 (상태 코드: ${gptResponse.status})`;
+        
+        if (gptResponse.status === 401) {
+          errorMessage = 'OpenAI API 키가 유효하지 않거나 만료되었습니다.\n\n.env 파일의 VITE_OPENAI_API_KEY를 확인해주세요.';
+        } else if (gptResponse.status === 429) {
+          errorMessage = 'API 사용량 한도에 도달했습니다.\n\n잠시 후 다시 시도해주세요.';
+        } else if (gptResponse.status >= 500) {
+          errorMessage = 'OpenAI 서버 오류가 발생했습니다.\n\n잠시 후 다시 시도해주세요.';
+        }
+        
+        try {
+          const errorData = await gptResponse.json();
+          if (errorData.error?.message) {
+            errorMessage += `\n\n상세: ${errorData.error.message}`;
+          }
+        } catch {
+          // JSON 파싱 실패 시 기본 메시지 사용
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const gptData = await gptResponse.json();
       const content = gptData.choices[0]?.message?.content;
       
       if (!content) {
-        throw new Error('GPT API 응답에 내용이 없습니다.');
+        throw new Error('API 응답에 내용이 없습니다.');
       }
 
-      const parsedResult = JSON.parse(content);
+      let parsedResult;
+      try {
+        parsedResult = JSON.parse(content);
+      } catch (parseError) {
+        throw new Error('API 응답을 파싱할 수 없습니다.');
+      }
       
       if (parsedResult.title && parsedResult.sections && Array.isArray(parsedResult.sections)) {
         handleSummaryResult(parsedResult);
@@ -1002,8 +1045,8 @@ export default function useMalloAppState() {
         throw new Error('API 응답 형식이 올바르지 않습니다.');
       }
     } catch (error) {
-      console.error('API 호출 오류:', error);
-      alert(`오류가 발생했습니다: ${error.message}\n\n개발자 도구 콘솔을 확인해주세요.`);
+      const errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+      alert(`오류가 발생했습니다\n\n${errorMessage}`);
       setCurrentScreen(SCREENS.HOME);
       setRecordState('idle');
     } finally {
@@ -1018,7 +1061,7 @@ export default function useMalloAppState() {
     try {
       const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
       if (!apiKey) {
-        throw new Error('OpenAI API 키가 설정되지 않았습니다. .env 파일에 VITE_OPENAI_API_KEY를 추가해주세요.');
+        throw new Error('OpenAI API 키가 설정되지 않았습니다.\n\n.env 파일에 VITE_OPENAI_API_KEY를 추가해주세요.');
       }
 
       const roleJson = {
@@ -1029,42 +1072,74 @@ export default function useMalloAppState() {
         reason_short: '뷰티샵 원장님 전용 앱'
       };
 
-      const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: SYSTEM_PROMPT
-            },
-            {
-              role: 'user',
-              content: `[역할 추론 결과(JSON)]\n${JSON.stringify(roleJson)}\n\n{TODAY}: ${getTodayDate()}\n\n[원문 텍스트]\n${testSummaryInput}`
-            }
-          ],
-          temperature: 0.7,
-          response_format: { type: 'json_object' }
-        })
-      });
+      let gptResponse;
+      try {
+        gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: SYSTEM_PROMPT
+              },
+              {
+                role: 'user',
+                content: `[역할 추론 결과(JSON)]\n${JSON.stringify(roleJson)}\n\n{TODAY}: ${getTodayDate()}\n\n[원문 텍스트]\n${testSummaryInput}`
+              }
+            ],
+            temperature: 0.7,
+            response_format: { type: 'json_object' }
+          })
+        });
+      } catch (fetchError) {
+        // 네트워크 에러나 CORS 에러 처리
+        if (fetchError.message.includes('CORS') || fetchError.message.includes('Failed to fetch')) {
+          throw new Error('API 연결에 실패했습니다.\n\n브라우저에서 OpenAI API를 직접 호출할 수 없습니다.\n백엔드 서버를 통해 API를 호출하도록 설정해주세요.');
+        }
+        throw fetchError;
+      }
 
       if (!gptResponse.ok) {
-        const errorData = await gptResponse.json().catch(() => ({}));
-        throw new Error(errorData.error?.message || `GPT API 요청 실패: ${gptResponse.status}`);
+        let errorMessage = `API 요청 실패 (상태 코드: ${gptResponse.status})`;
+        
+        if (gptResponse.status === 401) {
+          errorMessage = 'OpenAI API 키가 유효하지 않거나 만료되었습니다.\n\n.env 파일의 VITE_OPENAI_API_KEY를 확인해주세요.';
+        } else if (gptResponse.status === 429) {
+          errorMessage = 'API 사용량 한도에 도달했습니다.\n\n잠시 후 다시 시도해주세요.';
+        } else if (gptResponse.status >= 500) {
+          errorMessage = 'OpenAI 서버 오류가 발생했습니다.\n\n잠시 후 다시 시도해주세요.';
+        }
+        
+        try {
+          const errorData = await gptResponse.json();
+          if (errorData.error?.message) {
+            errorMessage += `\n\n상세: ${errorData.error.message}`;
+          }
+        } catch {
+          // JSON 파싱 실패 시 기본 메시지 사용
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const gptData = await gptResponse.json();
       const content = gptData.choices[0]?.message?.content;
       
       if (!content) {
-        throw new Error('GPT API 응답에 내용이 없습니다.');
+        throw new Error('API 응답에 내용이 없습니다.');
       }
 
-      const parsedResult = JSON.parse(content);
+      let parsedResult;
+      try {
+        parsedResult = JSON.parse(content);
+      } catch (parseError) {
+        throw new Error('API 응답을 파싱할 수 없습니다.');
+      }
       
       if (parsedResult.title && parsedResult.sections && Array.isArray(parsedResult.sections)) {
         handleSummaryResult(parsedResult);
@@ -1076,8 +1151,8 @@ export default function useMalloAppState() {
         throw new Error('API 응답 형식이 올바르지 않습니다.');
       }
     } catch (e) {
-      console.error("테스트 요약 실패", e);
-      alert(`테스트 요약 실패: ${e.message}`);
+      const errorMessage = e.message || '알 수 없는 오류가 발생했습니다.';
+      alert(`테스트 요약 실패\n\n${errorMessage}`);
     } finally {
       setIsTestingSummary(false);
     }
