@@ -119,33 +119,35 @@ function RecordScreen({
   // recordState에 따라 다른 화면 렌더링
   if (recordState === 'recording' || recordState === 'idle') {
     return (
-      <div className="flex flex-col h-full bg-white relative items-center justify-start overflow-hidden pt-[140px] pb-[120px]">
-        {/* 배경 효과 - 따뜻한 크림색 파동 */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div
-            className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse opacity-20"
-            style={{ backgroundColor: '#C9A27A', animationDuration: '4s' }}
-          ></div>
-          <div
-            className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl animate-pulse opacity-15"
-            style={{ backgroundColor: '#C9A27A', animationDuration: '5s', animationDelay: '1s' }}
-          ></div>
-          <div
-            className="absolute top-1/2 right-1/3 w-88 h-88 rounded-full blur-3xl animate-pulse opacity-20"
-            style={{ backgroundColor: '#F2F0E6', animationDuration: '6s', animationDelay: '0.5s' }}
-          ></div>
-          <div
-            className="absolute bottom-1/4 left-1/3 w-72 h-72 rounded-full blur-3xl animate-pulse opacity-15"
-            style={{ backgroundColor: '#F2F0E6', animationDuration: '4.5s', animationDelay: '2s' }}
-          ></div>
-        </div>
+      <div
+        className="flex flex-col min-h-screen pb-[60px]"
+        style={{ backgroundColor: '#F2F0E6' }}
+      >
+        <main className="relative flex-1 flex flex-col items-center justify-start pt-[140px] pb-[140px] overflow-hidden">
+          {/* 배경 효과 - 따뜻한 크림색 파동 */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div
+              className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse opacity-20"
+              style={{ backgroundColor: '#C9A27A', animationDuration: '4s' }}
+            ></div>
+            <div
+              className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl animate-pulse opacity-15"
+              style={{ backgroundColor: '#C9A27A', animationDuration: '5s', animationDelay: '1s' }}
+            ></div>
+            <div
+              className="absolute top-1/2 right-1/3 w-88 h-88 rounded-full blur-3xl animate-pulse opacity-20"
+              style={{ backgroundColor: '#F2F0E6', animationDuration: '6s', animationDelay: '0.5s' }}
+            ></div>
+            <div
+              className="absolute bottom-1/4 left-1/3 w-72 h-72 rounded-full blur-3xl animate-pulse opacity-15"
+              style={{ backgroundColor: '#F2F0E6', animationDuration: '4.5s', animationDelay: '2s' }}
+            ></div>
+          </div>
 
-        {/* 홈이랑 맞추기: 위에서 160px 내려와서 시작 */}
-        <main className="flex-1 flex flex-col items-center px-8 pt-[160px] pb-[150px]">
-          {/* 타이머 영역 + 안내문 */}
-          <div className="z-10 w-full text-center mb-8">
+          {/* 타이머 영역 */}
+          <div className="z-10 text-center mb-8 -mt-8">
             {/* 팁 박스 */}
-            <div className="w-full mb-6">
+            <div className="w-full px-8 mb-6 z-10 -mt-12">
               <div
                 className="bg-white/80 rounded-2xl px-6 py-4 shadow-sm border backdrop-blur-sm"
                 style={{ borderColor: '#f0e7d9' }}
@@ -180,14 +182,14 @@ function RecordScreen({
             </p>
           </div>
 
-          {/* 파형 + 정지 버튼 */}
-          <div className="z-10 flex flex-col items-center gap-4">
+          {/* Visualizer & Button */}
+          <div className="z-10 flex flex-col items-center gap-2 mt-2">
             <WaveBars />
 
-            {/* 정지 버튼 - 물결 애니메이션 */}
+            {/* 정지 버튼 - 물결(Ripple) 애니메이션 */}
             <button
               onClick={stopRecording}
-              className="group relative flex items-center justify-center mt-2"
+              className="group relative flex items-center justify-center mb-4"
               style={{ width: '136px', height: '136px' }}
             >
               {/* 물결 효과 - 여러 겹의 원 (골드 브라운 톤) */}
@@ -227,22 +229,22 @@ function RecordScreen({
               </div>
             </button>
           </div>
-        </main>
 
-        {/* 취소 버튼 - 화면 하단 근처 고정 */}
-        <div className="absolute bottom-16 w-full px-8 flex justify-center z-10">
-          <button
-            onClick={cancelRecording}
-            className="px-8 py-3 text-base font-medium rounded-full transition-all duration-200 hover:opacity-70"
-            style={{
-              color: '#232323',
-              backgroundColor: 'rgba(35, 35, 35, 0.05)',
-              border: '1px solid rgba(35, 35, 35, 0.1)',
-            }}
-          >
-            취소하기
-          </button>
-        </div>
+          {/* 취소 버튼 (맨 아래 고정) */}
+          <div className="absolute bottom-16 w-full px-8 flex justify-center z-10">
+            <button
+              onClick={cancelRecording}
+              className="px-8 py-3 text-base font-medium rounded-full transition-all duration-200 hover:opacity-70"
+              style={{
+                color: '#232323',
+                backgroundColor: 'rgba(35, 35, 35, 0.05)',
+                border: '1px solid rgba(35, 35, 35, 0.1)',
+              }}
+            >
+              취소하기
+            </button>
+          </div>
+        </main>
       </div>
     );
   }
