@@ -1,607 +1,254 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Calendar, ChevronLeft, ChevronRight, Check, Minus, Plus, GripVertical } from 'lucide-react';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { ArrowLeft, Plus, Clock, X } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
 
+/**
+ * 고객 예약 페이지
+ * - 시간과 이름을 간단하게 추가
+ * - 시간 빠른순으로 정렬
+ * - 말로 앱에 어울리는 디자인
+ */
 function ReservationScreen({
-  reservations,
+  reservations = [],
   addReservation,
-  toggleReservationComplete,
-  deleteReservation,
-  updateReservation,
   setReservations,
+  deleteReservation,
   setCurrentScreen,
   getTodayDateString,
-  currentTheme
 }) {
-  // 오늘 날짜 계산
-  const getTodayDateStr = () => {
+  const [time, setTime] = useState('');
+  const [name, setName] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+  const timeInputRef = useRef(null);
+  const nameInputRef = useRef(null);
+
+  // 오늘 날짜 문자열 가져오기
+  const todayDateStr = useMemo(() => {
     if (getTodayDateString) return getTodayDateString();
     const today = new Date();
-    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  };
-
-  const [selectedDate, setSelectedDate] = useState(getTodayDateStr());
-  const [editingIndex, setEditingIndex] = useState(null);
-  const [editingText, setEditingText] = useState('');
-  const [isAddingNew, setIsAddingNew] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const inputRef = useRef(null);
-
-  const bgColor = currentTheme?.pastel || '#F2F0E6';
-  const textColor = currentTheme?.text || '#232323';
-  const accentColor = currentTheme?.color || '#C9A27A';
-
-  // 선택된 날짜의 예약 필터링
-  const filteredReservations = (reservations || []).filter(res => res && res.date === selectedDate);
-  
-  // 저장 순서대로 정렬 (order 필드가 있으면 order로, 없으면 id 순서)
-  const sortedReservations = [...filteredReservations].sort((a, b) => {
-    // order 필드가 둘 다 있으면 order로 정렬
-    if (a.order !== undefined && b.order !== undefined) {
-      return a.order - b.order;
-    }
-    
-    // order 필드가 하나만 있으면 order가 있는 것이 위로
-    if (a.order !== undefined) return -1;
-    if (b.order !== undefined) return 1;
-    
-    // 둘 다 order가 없으면 id(저장 순서)로 정렬 - 먼저 저장한 것이 위에
-    const idA = a.id || 0;
-    const idB = b.id || 0;
-    return idA - idB;
-  });
-
-  // 날짜 포맷팅 (YYYY-MM-DD -> MM월 DD일)
-  const formatDateDisplay = (dateStr) => {
-    if (!dateStr) return '';
-    const [year, month, day] = dateStr.split('-');
-    return `${parseInt(month)}월 ${parseInt(day)}일`;
-  };
-
-  // 날짜 문자열을 Date 객체로 변환
-  const parseDateStr = (dateStr) => {
-    const [year, month, day] = dateStr.split('-').map(Number);
-    return new Date(year, month - 1, day);
-  };
-
-  // Date 객체를 날짜 문자열로 변환
-  const formatDateStr = (date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
-  };
+  }, [getTodayDateString]);
 
-  // 요일 반환
-  const getDayName = (dateStr) => {
-    const date = parseDateStr(dateStr);
-    const days = ['일', '월', '화', '수', '목', '금', '토'];
-    return days[date.getDay()];
-  };
-
-  // 날짜 레이블 (오늘, 내일, 모레 등)
-  const getDateLabel = (dateStr) => {
-    const todayStr = getTodayDateStr();
-    if (dateStr === todayStr) return '오늘';
+  // 오늘 예약만 필터링하고 시간순으로 정렬
+  const todaysReservations = useMemo(() => {
+    const filtered = (reservations || []).filter(
+      (res) => res && res.date === todayDateStr && !res.isCompleted
+    );
     
-    const today = parseDateStr(todayStr);
-    const target = parseDateStr(dateStr);
-    const diffTime = target - today;
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 1) return '내일';
-    if (diffDays === 2) return '모레';
-    if (diffDays === -1) return '어제';
-    if (diffDays < 0 && diffDays >= -7) return `${Math.abs(diffDays)}일 전`;
-    return null;
+    // 시간순으로 정렬 (시간이 없는 것은 맨 아래)
+    return filtered.sort((a, b) => {
+      const timeA = a.time || '99:99'; // 시간이 없으면 맨 아래
+      const timeB = b.time || '99:99';
+      return timeA.localeCompare(timeB);
+    });
+  }, [reservations, todayDateStr]);
+
+  // 추가 모드 시작
+  const startAdding = () => {
+    setIsAdding(true);
+    setTime('');
+    setName('');
+    setTimeout(() => timeInputRef.current?.focus(), 100);
   };
 
-  // 날짜 변경 함수
-  const changeDate = (direction) => {
-    const currentDate = parseDateStr(selectedDate);
-    const newDate = new Date(currentDate);
-    newDate.setDate(currentDate.getDate() + direction);
-    setSelectedDate(formatDateStr(newDate));
+  // 추가 취소
+  const cancelAdding = () => {
+    setIsAdding(false);
+    setTime('');
+    setName('');
   };
 
-  // 텍스트 파싱 (시간, 이름, 전화번호 추출)
-  const parseReservationText = (text) => {
-    // 예: "14:30 김철수 1234" 또는 "2시30분 김철수 1234"
-    const timeMatch = text.match(/(\d{1,2}):?(\d{2})/);
-    const parts = text.trim().split(/\s+/);
-    
-    let time = '';
-    let name = '';
-    let phoneLast4 = '';
-
-    if (timeMatch) {
-      const hours = timeMatch[1].padStart(2, '0');
-      const minutes = timeMatch[2] || '00';
-      time = `${hours}:${minutes}`;
-    }
-
-    // 숫자 4자리는 전화번호로 간주
-    const phoneMatch = parts.find(p => /^\d{4}$/.test(p));
-    if (phoneMatch) {
-      phoneLast4 = phoneMatch;
-    }
-
-    // 나머지가 이름
-    name = parts.filter(p => p !== timeMatch?.[0] && p !== phoneMatch).join(' ');
-
-    return { time, name, phoneLast4 };
-  };
-
-  // 새 항목 추가 시작
-  const startAddingNew = () => {
-    setIsAddingNew(true);
-    setEditingText('');
-    setEditingIndex(null);
-    setTimeout(() => inputRef.current?.focus(), 100);
-  };
-
-  // 편집 시작
-  const startEditing = (reservation, index) => {
-    // 기존 내용을 입력칸에 채우기
-    const parts = [];
-    if (reservation.time) parts.push(reservation.time);
-    if (reservation.name) parts.push(reservation.name);
-    setEditingText(parts.join(' '));
-    setEditingIndex(index);
-    setIsAddingNew(false);
-    setTimeout(() => inputRef.current?.focus(), 100);
-  };
-
-  // 완료 처리
-  const handleComplete = () => {
-    // 삭제 중이면 완료 처리 건너뛰기
-    if (isDeleting) {
-      return;
-    }
-    
-    if (!editingText.trim()) {
-      setIsAddingNew(false);
-      setEditingIndex(null);
+  // 예약 추가
+  const handleAdd = () => {
+    if (!name.trim()) {
+      alert('고객 이름을 입력해주세요.');
+      nameInputRef.current?.focus();
       return;
     }
 
-    const { time, name, phoneLast4 } = parseReservationText(editingText);
+    const reservationData = {
+      date: todayDateStr,
+      time: time.trim() || '',
+      name: name.trim(),
+      phoneLast4: '',
+      isCompleted: false,
+    };
 
-    if (editingIndex !== null) {
-      // 수정 모드
-      const reservation = sortedReservations[editingIndex];
-      const updatedData = {
-        time: time || reservation.time || '',
-        name: name || reservation.name || '',
-        phoneLast4: phoneLast4 || reservation.phoneLast4 || ''
+    if (addReservation) {
+      addReservation(reservationData);
+    } else if (setReservations) {
+      const newReservation = {
+        id: Date.now(),
+        ...reservationData,
       };
-
-      if (updateReservation) {
-        updateReservation(reservation.id, updatedData);
-      } else if (setReservations) {
-        setReservations(prev => prev.map(res => 
-          res.id === reservation.id ? { ...res, ...updatedData } : res
-        ));
-      }
-    } else {
-      // 추가 모드
-      if (!name) {
-        alert('고객 이름을 입력해주세요.');
-        return;
-      }
-
-      const reservationData = {
-        date: selectedDate,
-        time: time || '',
-        name: name,
-        phoneLast4: phoneLast4 || ''
-      };
-
-      if (addReservation) {
-        addReservation(reservationData);
-      } else if (setReservations) {
-        const newReservation = {
-          id: Date.now(),
-          ...reservationData,
-          isCompleted: false
-        };
-        // 새 항목을 맨 아래에 추가
-        setReservations(prev => {
-          const otherReservations = prev.filter(res => res.date !== selectedDate);
-          const sameDateReservations = prev.filter(res => res.date === selectedDate);
-          return [...otherReservations, ...sameDateReservations, newReservation];
-        });
-      }
+      setReservations((prev) => [...prev, newReservation]);
     }
 
-    setIsAddingNew(false);
-    setEditingIndex(null);
-    setEditingText('');
+    setIsAdding(false);
+    setTime('');
+    setName('');
   };
 
-  // 삭제 처리 (줄 삭제)
-  const handleDelete = (reservationId, e) => {
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-    
-    // 삭제 플래그 설정 (blur 이벤트 방지)
-    setIsDeleting(true);
-    
-    // 편집 모드 종료
-    setEditingIndex(null);
-    setIsAddingNew(false);
-    setEditingText('');
-    
-    // setReservations를 직접 사용하여 삭제
-    if (setReservations && typeof setReservations === 'function') {
-      setReservations(prev => {
-        if (!prev || !Array.isArray(prev)) {
-          setIsDeleting(false);
-          return [];
-        }
-        const filtered = prev.filter(res => res && res.id !== reservationId);
-        return filtered;
-      });
-      
-      // deleteReservation도 함께 호출
-      if (deleteReservation && typeof deleteReservation === 'function') {
-        try {
-          deleteReservation(reservationId);
-        } catch (error) {
-          console.error('[삭제 오류]', error);
-        }
-      }
-      
-      // 삭제 플래그 해제
-      setTimeout(() => {
-        setIsDeleting(false);
-      }, 100);
-    } else {
-      setIsDeleting(false);
-      if (deleteReservation && typeof deleteReservation === 'function') {
-        deleteReservation(reservationId);
+  // 예약 삭제
+  const handleDelete = (id) => {
+    if (window.confirm('이 예약을 삭제하시겠습니까?')) {
+      if (deleteReservation) {
+        deleteReservation(id);
+      } else if (setReservations) {
+        setReservations((prev) => prev.filter((res) => res.id !== id));
       }
     }
   };
 
   // 엔터 키 처리
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+  const handleTimeKeyDown = (e) => {
+    if (e.key === 'Enter') {
       e.preventDefault();
-      handleComplete();
+      nameInputRef.current?.focus();
+    }
+  };
+
+  const handleNameKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAdd();
     } else if (e.key === 'Escape') {
-      setIsAddingNew(false);
-      setEditingIndex(null);
-      setEditingText('');
+      cancelAdding();
     }
   };
 
-  // 드래그 앤 드롭 핸들러
-  const handleDragEnd = (result) => {
-    if (!result.destination) return;
-    
-    const sourceIndex = result.source.index;
-    const destinationIndex = result.destination.index;
-    
-    if (sourceIndex === destinationIndex) return;
-
-    // 순서 변경
-    const reordered = Array.from(sortedReservations);
-    const [removed] = reordered.splice(sourceIndex, 1);
-    reordered.splice(destinationIndex, 0, removed);
-
-    // order 필드 업데이트
-    const updatedReservations = reordered.map((res, idx) => ({
-      ...res,
-      order: idx
-    }));
-
-    // 전체 reservations 배열에서 업데이트
-    if (setReservations) {
-      setReservations(prev => {
-        const otherReservations = prev.filter(res => res.date !== selectedDate);
-        return [...otherReservations, ...updatedReservations];
-      });
-    }
-  };
-
-  // 입력 포커스 관리
-  useEffect(() => {
-    if ((isAddingNew || editingIndex !== null) && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isAddingNew, editingIndex]);
+  // 오늘 날짜 표시
+  const todayDisplay = useMemo(() => {
+    const today = new Date();
+    return `${today.getMonth() + 1}월 ${today.getDate()}일`;
+  }, []);
 
   return (
-    <div className="flex flex-col h-full relative pb-[60px]" style={{ backgroundColor: bgColor }}>
-      {/* Header */}
-      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm h-[80px]">
-        <button 
-          onClick={() => setCurrentScreen(SCREENS.HOME)}
-          className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
-          style={{ color: textColor }}
-        >
-          <ArrowLeft size={24} />
-        </button>
-        <div className="flex items-center gap-2">
-          <Calendar size={20} style={{ color: accentColor }} />
-          <h2 className="text-xl font-bold" style={{ color: textColor }}>예약 및 일정</h2>
+    <div
+      className="flex flex-col h-dvh bg-[#F2F0E6] font-sans"
+      style={{ fontFamily: 'Pretendard, -apple-system, sans-serif' }}
+    >
+      {/* Safe Area Top */}
+      <div className="pt-[env(safe-area-inset-top)]" />
+
+      {/* 헤더 */}
+      <header className="px-6 py-4 bg-white border-b border-gray-200 shadow-sm">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setCurrentScreen(SCREENS.HOME)}
+            className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+          >
+            <ArrowLeft size={20} className="text-gray-800" />
+          </button>
+          <div className="flex-1">
+            <h2 className="text-xl font-bold text-gray-800">오늘 예약</h2>
+            <p className="text-sm text-gray-600 mt-0.5">{todayDisplay}</p>
+          </div>
         </div>
-        <div className="w-10"></div>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-8 space-y-6 pb-20">
-        {/* 날짜 선택기 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
-          <div className="flex items-center justify-between gap-4">
-            <button
-              onClick={() => changeDate(-1)}
-              className="p-2 hover:bg-gray-50 rounded-xl transition-colors flex-shrink-0"
-              style={{ color: textColor }}
-            >
-              <ChevronLeft size={24} />
-            </button>
-
-            <button
-              onClick={() => setSelectedDate(getTodayDateStr())}
-              className="flex-1 flex flex-col items-center justify-center py-3 px-4 rounded-xl transition-colors hover:bg-gray-50"
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-medium" style={{ color: textColor, opacity: 0.6 }}>
-                  {getDateLabel(selectedDate) || formatDateDisplay(selectedDate)}
-                </span>
-                <span className="text-xs font-medium" style={{ color: textColor, opacity: 0.4 }}>
-                  {getDayName(selectedDate)}요일
-                </span>
+      {/* 메인 컨텐츠 */}
+      <main className="flex-1 overflow-y-auto px-4 py-6 pb-28">
+        {/* 예약 추가 폼 */}
+        {isAdding ? (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex-1">
+                <label className="block text-xs text-gray-600 mb-1">시간</label>
+                <input
+                  ref={timeInputRef}
+                  type="text"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  onKeyDown={handleTimeKeyDown}
+                  placeholder="예: 14:30"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-[#C9A27A] focus:ring-2 focus:ring-[#C9A27A] focus:outline-none text-gray-800"
+                />
               </div>
-              <div className="text-3xl font-bold" style={{ color: accentColor }}>
-                {parseDateStr(selectedDate).getDate()}
+              <div className="flex-1">
+                <label className="block text-xs text-gray-600 mb-1">이름</label>
+                <input
+                  ref={nameInputRef}
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={handleNameKeyDown}
+                  placeholder="고객 이름"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-[#C9A27A] focus:ring-2 focus:ring-[#C9A27A] focus:outline-none text-gray-800"
+                />
               </div>
-            </button>
-
-            <button
-              onClick={() => changeDate(1)}
-              className="p-2 hover:bg-gray-50 rounded-xl transition-colors flex-shrink-0"
-              style={{ color: textColor }}
-            >
-              <ChevronRight size={24} />
-            </button>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleAdd}
+                className="flex-1 px-4 py-2 bg-[#C9A27A] text-white rounded-lg font-medium hover:bg-[#B8926A] active:scale-95 transition-all"
+              >
+                추가
+              </button>
+              <button
+                onClick={cancelAdding}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 active:scale-95 transition-all"
+              >
+                취소
+              </button>
+            </div>
           </div>
-
-          {/* 빠른 날짜 선택 */}
-          <div className="flex gap-2 mt-4 pt-4 border-t border-gray-100">
-            {[-1, 0, 1, 2, 3].map((offset) => {
-              const today = parseDateStr(getTodayDateStr());
-              const quickDate = new Date(today);
-              quickDate.setDate(today.getDate() + offset);
-              const quickDateStr = formatDateStr(quickDate);
-              const isSelected = quickDateStr === selectedDate;
-              const dayOfMonth = quickDate.getDate();
-              const label = offset === -1 ? '어제' : offset === 0 ? '오늘' : offset === 1 ? '내일' : offset === 2 ? '모레' : `${quickDate.getMonth() + 1}/${dayOfMonth}`;
-
-              return (
-                <button
-                  key={quickDateStr}
-                  onClick={() => setSelectedDate(quickDateStr)}
-                  className={`flex-1 px-2 py-2 rounded-lg text-xs font-medium transition-colors ${
-                    isSelected ? 'text-white' : ''
-                  }`}
-                  style={{
-                    backgroundColor: isSelected ? accentColor : 'transparent',
-                    color: isSelected ? '#FFFFFF' : textColor,
-                    opacity: isSelected ? 1 : 0.7
-                  }}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 예약 리스트 헤더 (날짜 + 완료 버튼) */}
-        <div className="flex justify-between items-center">
-          <h3 className="text-base font-bold" style={{ color: textColor }}>
-            {formatDateDisplay(selectedDate)} 예약
-          </h3>
-          {!isAddingNew && editingIndex === null ? (
-            <button
-              onClick={startAddingNew}
-              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:opacity-90"
-              style={{ backgroundColor: accentColor }}
-            >
-              <Plus size={20} className="text-white" strokeWidth={3} />
-            </button>
-          ) : (
-            <button
-              onClick={handleComplete}
-              className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:opacity-90"
-              style={{ backgroundColor: accentColor }}
-            >
-              <Check size={20} className="text-white" strokeWidth={3} />
-            </button>
-          )}
-        </div>
+        ) : (
+          <button
+            onClick={startAdding}
+            className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-4 flex items-center justify-center gap-2 hover:border-[#C9A27A] transition-all"
+          >
+            <Plus size={20} className="text-[#C9A27A]" />
+            <span className="text-gray-800 font-medium">예약 추가</span>
+          </button>
+        )}
 
         {/* 예약 리스트 */}
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="reservations">
-            {(provided, snapshot) => (
+        <div className="space-y-3">
+          {todaysReservations.length === 0 ? (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
+              <Clock size={32} className="mx-auto mb-3 text-gray-400" />
+              <p className="text-sm text-gray-500 mb-1">오늘 등록된 예약이 없습니다</p>
+              <p className="text-xs text-gray-400">위 버튼을 눌러 예약을 추가하세요</p>
+            </div>
+          ) : (
+            todaysReservations.map((reservation) => (
               <div
-                {...provided.droppableProps}
-                ref={provided.innerRef}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
+                key={reservation.id}
+                className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 flex items-center justify-between hover:border-[#C9A27A] transition-all"
               >
-                {sortedReservations.map((reservation, index) => {
-                  const isEditing = editingIndex === index;
-                  const isLast = index === sortedReservations.length - 1;
-                  
-                  return (
-                    <Draggable
-                      key={reservation.id}
-                      draggableId={String(reservation.id)}
-                      index={index}
-                      isDragDisabled={isEditing || isAddingNew}
-                    >
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          className={`flex items-center gap-3 ${!isLast ? 'pb-2 mb-2 border-b border-gray-100' : ''} transition-all ${
-                            snapshot.isDragging ? 'opacity-60 shadow-lg' : ''
-                          }`}
-                          style={{
-                            ...provided.draggableProps.style,
-                          }}
-                        >
-                          {/* 드래그 핸들 아이콘 (왼쪽) */}
-                          {!isEditing && (
-                            <div
-                              {...provided.dragHandleProps}
-                              className="flex-shrink-0 cursor-grab active:cursor-grabbing p-1"
-                              onMouseDown={(e) => e.stopPropagation()}
-                            >
-                              <GripVertical size={18} className="text-gray-300" />
-                            </div>
-                          )}
-                          
-                          {/* 체크박스 (완료 토글) */}
-                <button
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (toggleReservationComplete) {
-                      toggleReservationComplete(reservation.id);
-                    } else if (setReservations) {
-                      setReservations(prev => prev.map(res => 
-                        res.id === reservation.id ? { ...res, isCompleted: !res.isCompleted } : res
-                      ));
-                    }
-                  }}
-                  className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
-                    reservation.isCompleted
-                      ? 'bg-[#C9A27A] border-[#C9A27A]'
-                      : 'border-gray-300 hover:border-[#C9A27A]'
-                  }`}
-                >
-                  {reservation.isCompleted && (
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
+                <div className="flex items-center gap-4 flex-1">
+                  {reservation.time ? (
+                    <div className="flex items-center gap-2 text-[#C9A27A]">
+                      <Clock size={16} />
+                      <span className="text-sm font-semibold">{reservation.time}</span>
+                    </div>
+                  ) : (
+                    <div className="w-16"></div>
                   )}
-                </button>
-
-                {/* 편집 모드일 때: 입력 필드 + 삭제 버튼 (오른쪽) */}
-                {isEditing ? (
-                  <>
-                    {/* 입력 필드 */}
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      draggable={false}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      value={editingText}
-                      onChange={(e) => setEditingText(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      onBlur={(e) => {
-                        // 삭제 버튼이 blur를 유발한 경우 무시
-                        if (!isDeleting) {
-                          handleComplete();
-                        }
-                      }}
-                      className="flex-1 px-3 py-2 rounded-lg border-2 focus:outline-none text-base"
-                      style={{ 
-                        borderColor: accentColor,
-                        color: textColor
-                      }}
-                      placeholder="예: 14:30 김철수"
-                    />
-                    {/* 삭제 버튼 (빨간 동그라미, 오른쪽) */}
-                    <button
-                      type="button"
-                      draggable={false}
-                      onMouseDown={(e) => {
-                        e.preventDefault(); // blur 이벤트 방지
-                        e.stopPropagation();
-                      }}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        console.log('[삭제 버튼 클릭]', reservation.id);
-                        handleDelete(reservation.id, e);
-                      }}
-                      className="w-6 h-6 rounded-full flex items-center justify-center transition-colors flex-shrink-0 hover:opacity-80"
-                      style={{ backgroundColor: '#EF4444', color: '#FFFFFF' }}
-                    >
-                      <Minus size={16} />
-                    </button>
-                  </>
-                ) : (
-                  /* 일반 모드일 때: 텍스트만 (체크박스 바로 옆) */
-                  <div
-                    draggable={false}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      startEditing(reservation, index);
-                    }}
-                    className={`flex-1 px-3 py-2 rounded-lg cursor-text hover:bg-gray-50 transition-colors flex items-center ${
-                      reservation.isCompleted ? 'line-through text-gray-400' : ''
-                    }`}
-                    style={{ color: reservation.isCompleted ? '#9CA3AF' : textColor }}
-                  >
-                    {[reservation.time, reservation.name].filter(Boolean).join(' ')}
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-base text-gray-800">
+                      {reservation.name || '이름 미입력'}
+                    </h4>
                   </div>
-                )}
-                        </div>
-                      )}
-                    </Draggable>
-                  );
-                })}
-                {provided.placeholder}
+                </div>
+                <button
+                  onClick={() => handleDelete(reservation.id)}
+                  className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <X size={18} className="text-gray-400 hover:text-red-500" />
+                </button>
               </div>
-            )}
-          </Droppable>
-        </DragDropContext>
-
-          {sortedReservations.length === 0 && !isAddingNew && (
-            <div className="text-center py-8">
-              <p className="font-light text-sm" style={{ color: textColor, opacity: 0.6 }}>
-                위에 + 버튼을 눌러 예약을 추가하세요
-              </p>
-            </div>
+            ))
           )}
-
-          {/* 새 항목 추가 입력 필드 (리스트 맨 아래) */}
-          {isAddingNew && (
-            <div className="flex items-center gap-3 pb-2 mb-2 border-t border-gray-100 pt-2 mt-2">
-              <div className="w-6 h-6 flex-shrink-0"></div>
-              <input
-                ref={inputRef}
-                type="text"
-                value={editingText}
-                onChange={(e) => setEditingText(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onBlur={(e) => {
-                  // 삭제 버튼이 blur를 유발한 경우 무시
-                  if (!isDeleting) {
-                    handleComplete();
-                  }
-                }}
-                className="flex-1 px-3 py-2 rounded-lg border-2 focus:outline-none text-base"
-                style={{ 
-                  borderColor: accentColor,
-                  color: textColor
-                }}
-                placeholder="예: 14:30 김철수"
-              />
-            </div>
-          )}
-
+        </div>
       </main>
+
+      {/* Safe Area Bottom */}
+      <div className="pb-[env(safe-area-inset-bottom)]" />
     </div>
   );
 }

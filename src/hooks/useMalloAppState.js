@@ -1299,8 +1299,6 @@ export default function useMalloAppState() {
       setActiveTab('Home');
     } else if (currentScreen === SCREENS.HISTORY) {
       setActiveTab('History');
-    } else if (currentScreen === SCREENS.RESERVATION) {
-      setActiveTab('Reservation');
     } else if (currentScreen === SCREENS.PROFILE) {
       setActiveTab('Settings');
     }
@@ -1312,8 +1310,6 @@ export default function useMalloAppState() {
       setCurrentScreen(SCREENS.HOME);
     } else if (tabId === 'History') {
       setCurrentScreen(SCREENS.HISTORY);
-    } else if (tabId === 'Reservation') {
-      setCurrentScreen(SCREENS.RESERVATION);
     } else if (tabId === 'Settings') {
       setCurrentScreen(SCREENS.PROFILE);
     }
