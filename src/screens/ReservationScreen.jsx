@@ -3,6 +3,8 @@ import { ArrowLeft, X, Clock } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
 import { formatPhoneNumber } from '../utils/formatters';
 import { filterCustomersBySearch } from '../utils/customerListUtils';
+import ExpandableCalendar from '../components/ExpandableCalendar';
+import { format } from 'date-fns';
 
 function ReservationScreen({
   reservations,
@@ -19,6 +21,12 @@ function ReservationScreen({
   const [selectedExistingCustomerId, setSelectedExistingCustomerId] =
     useState(null);
   const [showMatchingCustomers, setShowMatchingCustomers] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  // 선택된 날짜 문자열 (YYYY-MM-DD 형식)
+  const selectedDateStr = useMemo(() => {
+    return format(selectedDate, 'yyyy-MM-dd');
+  }, [selectedDate]);
 
   // 오늘 날짜 문자열
   const todayDateStr = useMemo(() => {
@@ -30,10 +38,10 @@ function ReservationScreen({
     return `${year}-${month}-${day}`;
   }, [getTodayDateString]);
 
-  // 오늘 예약만 필터링하고 시간순으로 정렬
-  const todaysReservations = useMemo(() => {
+  // 선택된 날짜의 예약만 필터링하고 시간순으로 정렬
+  const filteredReservations = useMemo(() => {
     const filtered = (reservations || []).filter(
-      (res) => res && res.date === todayDateStr && !res.isCompleted
+      (res) => res && res.date === selectedDateStr && !res.isCompleted
     );
     
     // 시간순으로 정렬 (시간이 없는 것은 맨 아래)
@@ -42,7 +50,7 @@ function ReservationScreen({
       const timeB = b.time || '99:99';
       return timeA.localeCompare(timeB);
     });
-  }, [reservations, todayDateStr]);
+  }, [reservations, selectedDateStr]);
 
   const todayLabel = useMemo(() => {
     const now = new Date();
@@ -94,7 +102,7 @@ function ReservationScreen({
     const customerIdToUse = selectedExistingCustomerId || null;
 
     const reservationData = {
-      date: todayDateStr,
+      date: selectedDateStr, // 선택된 날짜로 예약 추가
       time: timeInput,
       name: trimmedName,
       phone: trimmedPhone,
@@ -132,23 +140,27 @@ function ReservationScreen({
 
       {/* 헤더 영역 */}
       <header className="px-6 py-4 bg-white border-b border-gray-200 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setCurrentScreen(SCREENS.HOME)}
-              className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
-              style={{ color: '#232323' }}
-            >
-              <ArrowLeft size={24} />
-            </button>
-            <div className="flex flex-col">
-              <h2 className="text-xl font-bold text-gray-800">오늘 예약</h2>
-              <span className="text-sm font-light text-gray-600 mt-1">{todayLabel}</span>
-            </div>
-          </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setCurrentScreen(SCREENS.HOME)}
+            className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
+            style={{ color: '#232323' }}
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <h2 className="text-xl font-bold text-gray-800">예약 관리</h2>
         </div>
       </header>
+
+      {/* 캘린더 영역 */}
+      <div className="px-4 pt-4">
+        <ExpandableCalendar
+          selectedDate={selectedDate}
+          onDateSelect={setSelectedDate}
+          reservations={reservations}
+        />
+      </div>
 
       {/* 메인 컨텐츠 영역 */}
       <main className="flex-1 overflow-y-auto pb-28 px-4 py-4">
@@ -323,7 +335,7 @@ function ReservationScreen({
 
           {/* 예약 리스트 */}
           <section className="mt-4 space-y-2">
-                {todaysReservations.map((reservation) => {
+            {filteredReservations.map((reservation) => {
                   const displayPhone = reservation.phone || '';
                   return (
                     <div
@@ -361,9 +373,9 @@ function ReservationScreen({
                   );
                 })}
 
-            {todaysReservations.length === 0 && (
+            {filteredReservations.length === 0 && (
               <p className="mt-6 text-center text-xs text-[#B0A497]">
-                아직 오늘 예약이 없습니다. 상단에서 예약을 추가해 보세요.
+                선택한 날짜에 예약이 없습니다. 상단에서 예약을 추가해 보세요.
               </p>
             )}
           </section>
