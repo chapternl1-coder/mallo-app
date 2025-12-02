@@ -335,16 +335,16 @@ function HomeScreen({
 
                           {/* 고객 정보 (중앙) */}
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h4 className={`font-semibold text-base truncate ${isCompleted ? 'line-through text-gray-400' : isNew ? 'text-[#3F352B]' : 'text-gray-800'}`}>
-                                {displayName}
-                              </h4>
-                              {isNew && !isCompleted && (
-                                <span className="px-2.5 py-1 rounded-full bg-[#C9A27A] text-white text-[11px] font-semibold whitespace-nowrap shadow-sm">
-                                  신규
-                                </span>
-                              )}
-                            </div>
+                                <div className="flex items-center gap-2">
+                                  <h4 className={`font-semibold text-base truncate ${isCompleted ? 'line-through text-gray-400' : isNew ? 'text-[#3F352B]' : 'text-gray-800'}`}>
+                                    {displayName}
+                                  </h4>
+                                  {isNew && (
+                                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap shadow-sm ${isCompleted ? 'bg-gray-300 text-gray-500' : 'bg-[#C9A27A] text-white'}`}>
+                                      신규
+                                    </span>
+                                  )}
+                                </div>
                             <p className={`text-sm truncate mt-0.5 ${isCompleted ? 'line-through text-gray-400' : isNew ? 'text-[#7B6A58]' : 'text-gray-600'}`}>
                               {displayPhone}
                             </p>

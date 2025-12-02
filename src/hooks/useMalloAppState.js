@@ -1305,6 +1305,8 @@ export default function useMalloAppState() {
   useEffect(() => {
     if (currentScreen === SCREENS.HOME) {
       setActiveTab('Home');
+    } else if (currentScreen === SCREENS.RESERVATION) {
+      setActiveTab('Reservation');
     } else if (currentScreen === SCREENS.HISTORY) {
       setActiveTab('History');
     } else if (currentScreen === SCREENS.PROFILE) {
@@ -1316,6 +1318,8 @@ export default function useMalloAppState() {
     setActiveTab(tabId);
     if (tabId === 'Home') {
       setCurrentScreen(SCREENS.HOME);
+    } else if (tabId === 'Reservation') {
+      setCurrentScreen(SCREENS.RESERVATION);
     } else if (tabId === 'History') {
       setCurrentScreen(SCREENS.HISTORY);
     } else if (tabId === 'Settings') {

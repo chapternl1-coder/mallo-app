@@ -138,8 +138,8 @@ function ReservationScreen({
       {/* Safe Area Top */}
       <div className="pt-[env(safe-area-inset-top)]" />
 
-      {/* 헤더 영역 */}
-      <header className="px-6 py-4 bg-white border-b border-gray-200 shadow-sm">
+      {/* 헤더 영역 - 고정 */}
+      <header className="flex-shrink-0 px-6 py-4 bg-white border-b border-gray-200 shadow-sm">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -153,17 +153,18 @@ function ReservationScreen({
         </div>
       </header>
 
-      {/* 캘린더 영역 */}
-      <div className="px-4 pt-4">
-        <ExpandableCalendar
-          selectedDate={selectedDate}
-          onDateSelect={setSelectedDate}
-          reservations={reservations}
-        />
-      </div>
+      {/* 전체 컨텐츠 영역 - 스크롤 가능 */}
+      <main className="flex-1 overflow-y-auto min-h-0">
+        <div className="px-4 pt-4 pb-28">
+          {/* 캘린더 */}
+          <div className="mb-2">
+            <ExpandableCalendar
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+              reservations={reservations}
+            />
+          </div>
 
-      {/* 메인 컨텐츠 영역 */}
-      <main className="flex-1 overflow-y-auto pb-28 px-4 py-4">
           {/* 예약 추가 버튼 / 폼 */}
           {!showForm && (
             <button
@@ -379,6 +380,7 @@ function ReservationScreen({
               </p>
             )}
           </section>
+        </div>
       </main>
     </div>
   );

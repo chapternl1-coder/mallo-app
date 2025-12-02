@@ -12,6 +12,7 @@ export default function MalloApp() {
       <div className="w-full max-w-md h-full sm:h-[90vh] sm:rounded-[2rem] sm:shadow-md overflow-hidden relative border-0" style={{ backgroundColor: '#F2F0E6' }}>
         <ScreenRouter {...screenRouterProps} />
         {(currentScreen === SCREENS.HOME || 
+          currentScreen === SCREENS.RESERVATION ||
           currentScreen === SCREENS.HISTORY ||
           currentScreen === SCREENS.PROFILE) && (
           <BottomNavigation activeTab={activeTab} onTabChange={handleTabClick} />

@@ -140,11 +140,6 @@ function ExpandableCalendar({ selectedDate, onDateSelect, reservations = [] }) {
       dotColor = 'bg-gray-400'; // 회색 점: 1~3개 (한가함)
     }
 
-    // 선택된 날짜의 점은 흰색
-    if (isSelected && hasRes) {
-      dotColor = 'bg-white';
-    }
-
     return (
       <button
         key={formatDateKey(date)}
@@ -153,9 +148,9 @@ function ExpandableCalendar({ selectedDate, onDateSelect, reservations = [] }) {
           relative flex flex-col items-center justify-center py-2 rounded-lg transition-all
           ${!isInCurrentMonth ? 'opacity-30' : ''}
           ${isSelected 
-            ? 'bg-[#C9A27A] text-white shadow-md scale-105' 
+            ? 'border-2 border-[#C9A27A] bg-[#F9F5EF] text-[#C9A27A] font-bold shadow-md scale-105' 
             : isCurrentDay
-            ? 'bg-[#F9F5EF] text-[#C9A27A] font-semibold border border-[#C9A27A]'
+            ? 'bg-[#F9F5EF] text-[#C9A27A] font-semibold border border-[#E3D7C7]'
             : 'text-gray-700 hover:bg-[#F9F5EF]'
           }
         `}
@@ -165,7 +160,7 @@ function ExpandableCalendar({ selectedDate, onDateSelect, reservations = [] }) {
         </span>
         {hasRes && (
           <div className="absolute bottom-1">
-            <div className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+            <div className={`w-1.5 h-1.5 rounded-full ${dotColor} shadow-sm`} />
           </div>
         )}
       </button>

@@ -1,15 +1,16 @@
 import React from 'react';
-import { Home, History, User } from 'lucide-react';
+import { Home, Calendar, History, User } from 'lucide-react';
 
 export default function BottomNavigation({ activeTab, onTabChange }) {
   const tabs = [
     { id: 'Home', label: '홈', icon: Home },
+    { id: 'Reservation', label: '예약', icon: Calendar },
     { id: 'History', label: '기록', icon: History },
     { id: 'Settings', label: '설정', icon: User },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50">
       <div className="max-w-md mx-auto h-[60px] flex items-center justify-around">
         {tabs.map((tab) => {
           const Icon = tab.icon;
