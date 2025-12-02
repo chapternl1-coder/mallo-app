@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Clock, User, Plus, Calendar } from 'lucide-react';
+import { Search, Clock, User, Plus, Calendar, Circle } from 'lucide-react';
 import { filterCustomersBySearch } from '../utils/customerListUtils';
 import { SCREENS } from '../constants/screens';
 import logo from '../assets/logo.png';
@@ -24,6 +24,7 @@ function HomeScreen({
   setSelectedCustomerForRecord,
   startRecording,
   reservations = [],
+  toggleReservationComplete,
 }) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -51,10 +52,10 @@ function HomeScreen({
     return filterCustomersBySearch(customers, trimmedSearch);
   }, [customers, searchText]);
 
-  // 오늘 예약 손님 필터링 및 정렬
+  // 오늘 예약 손님 필터링 및 정렬 (완료된 것도 포함)
   const todaysReservations = useMemo(() => {
     const filtered = (reservations || []).filter(
-      (res) => res && res.date === todayDateStr && !res.isCompleted
+      (res) => res && res.date === todayDateStr
     );
     // 시간순으로 정렬
     return filtered.sort((a, b) => {
@@ -185,7 +186,7 @@ function HomeScreen({
       </header>
 
       {/* 고정 검색창 */}
-      <div className="px-4 py-3 bg-white border-b border-gray-100 sticky top-0 z-10">
+      <div className="px-4 py-3 bg-[#F2F0E6] sticky top-0 z-10">
         <div className="relative">
           <div className="absolute left-4 top-1/2 -translate-y-1/2">
             <Search size={18} className="text-gray-400" />
@@ -284,6 +285,8 @@ function HomeScreen({
                     const displayPhone = matchedCustomer?.phone || reservation.phone || '전화번호 미입력';
                     const isNew = !reservation.customerId || !matchedCustomer || reservation.isNew;
 
+                    const isCompleted = reservation.isCompleted || false;
+
                     return (
                       <div
                         key={reservation.id}
@@ -297,11 +300,34 @@ function HomeScreen({
                           className={`flex items-center gap-4 ${reservation.customerId ? 'cursor-pointer' : ''}`}
                           onClick={() => handleReservationCardClick(reservation)}
                         >
-                          {/* 시간 (왼쪽) */}
+                          {/* 동그라미 체크박스 (왼쪽) */}
+                          <div 
+                            className="flex-shrink-0" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (toggleReservationComplete) {
+                                toggleReservationComplete(reservation.id);
+                              }
+                            }}
+                          >
+                            {isCompleted ? (
+                              <div className="w-5 h-5 rounded-full bg-[#C9A27A] flex items-center justify-center">
+                                <div className="w-2 h-2 rounded-full bg-white"></div>
+                              </div>
+                            ) : (
+                              <Circle 
+                                size={20} 
+                                className="text-[#C9A27A] cursor-pointer hover:text-[#B8926A] transition-colors" 
+                                strokeWidth={2}
+                              />
+                            )}
+                          </div>
+
+                          {/* 시간 */}
                           <div className="flex-shrink-0 w-16">
                             <div className={`flex items-center gap-1.5 ${isNew ? 'text-[#B8926A]' : 'text-[#C9A27A]'}`}>
                               <Clock size={14} />
-                              <span className="text-sm font-semibold">
+                              <span className={`text-sm font-semibold ${isCompleted ? 'line-through text-gray-400' : ''}`}>
                                 {reservation.time || '--:--'}
                               </span>
                             </div>
@@ -309,24 +335,19 @@ function HomeScreen({
 
                           {/* 고객 정보 (중앙) */}
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <div className="text-2xl">{matchedCustomer?.avatar || '👤'}</div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <h4 className={`font-semibold text-base truncate ${isNew ? 'text-[#3F352B]' : 'text-gray-800'}`}>
-                                    {displayName}
-                                  </h4>
-                                  {isNew && (
-                                    <span className="px-2.5 py-1 rounded-full bg-[#C9A27A] text-white text-[11px] font-semibold whitespace-nowrap shadow-sm">
-                                      신규
-                                    </span>
-                                  )}
-                                </div>
-                                <p className={`text-sm truncate mt-0.5 ${isNew ? 'text-[#7B6A58]' : 'text-gray-600'}`}>
-                                  {displayPhone}
-                                </p>
-                              </div>
+                            <div className="flex items-center gap-2">
+                              <h4 className={`font-semibold text-base truncate ${isCompleted ? 'line-through text-gray-400' : isNew ? 'text-[#3F352B]' : 'text-gray-800'}`}>
+                                {displayName}
+                              </h4>
+                              {isNew && !isCompleted && (
+                                <span className="px-2.5 py-1 rounded-full bg-[#C9A27A] text-white text-[11px] font-semibold whitespace-nowrap shadow-sm">
+                                  신규
+                                </span>
+                              )}
                             </div>
+                            <p className={`text-sm truncate mt-0.5 ${isCompleted ? 'line-through text-gray-400' : isNew ? 'text-[#7B6A58]' : 'text-gray-600'}`}>
+                              {displayPhone}
+                            </p>
                           </div>
 
                           {/* 녹음/완료 버튼 (오른쪽) */}

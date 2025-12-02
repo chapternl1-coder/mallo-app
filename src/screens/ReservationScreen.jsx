@@ -300,14 +300,14 @@ function ReservationScreen({
                   <div className="mt-3 flex gap-2">
                     <button
                       type="submit"
-                      className="flex-[7] h-9 rounded-lg bg-[#C9A27A] text-xs font-semibold text-white"
+                      className="flex-[6.5] h-9 rounded-lg bg-[#C9A27A] text-xs font-semibold text-white"
                     >
                       추가
                     </button>
                     <button
                       type="button"
                       onClick={resetForm}
-                      className="flex-[3] h-9 rounded-lg bg-white text-xs text-[#8C7A68] border border-[#E3D7C7]"
+                      className="flex-[3.5] h-9 rounded-lg bg-white text-xs text-[#8C7A68] border border-[#E3D7C7]"
                     >
                       취소
                     </button>
