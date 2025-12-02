@@ -1,7 +1,9 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Clock, User, Plus, Calendar, Circle } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { Search, Clock, User, Plus, Calendar, Circle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { filterCustomersBySearch } from '../utils/customerListUtils';
 import { SCREENS } from '../constants/screens';
+import { format, isToday, addDays, subDays } from 'date-fns';
+import { ko } from 'date-fns/locale';
 import logo from '../assets/logo.png';
 
 /**
@@ -28,21 +30,31 @@ function HomeScreen({
 }) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const dateInputRef = useRef(null);
 
-  // 오늘 날짜를 YYYY-MM-DD 형식으로 변환
-  const todayDateStr = useMemo(() => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
+  // 선택된 날짜를 YYYY-MM-DD 형식으로 변환
+  const selectedDateStr = useMemo(() => {
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(selectedDate.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
-  }, []);
+  }, [selectedDate]);
 
-  // 오늘 날짜 표시용
+  // 오늘 날짜 표시용 (헤더)
   const todayStr = useMemo(() => {
     const today = new Date();
     return `${today.getMonth() + 1}월 ${today.getDate()}일`;
   }, []);
+
+  // 동적 제목 텍스트
+  const dateTitle = useMemo(() => {
+    if (isToday(selectedDate)) {
+      return '오늘 방문 예정 고객';
+    } else {
+      return `${format(selectedDate, 'M월 d일', { locale: ko })} 방문 예정 고객`;
+    }
+  }, [selectedDate]);
 
   // 검색어에 따른 고객 필터링 (최소 2글자)
   const filteredCustomers = useMemo(() => {
@@ -52,10 +64,10 @@ function HomeScreen({
     return filterCustomersBySearch(customers, trimmedSearch);
   }, [customers, searchText]);
 
-  // 오늘 예약 손님 필터링 및 정렬 (완료된 것도 포함)
+  // 선택된 날짜의 예약 손님 필터링 및 정렬 (완료된 것도 포함)
   const todaysReservations = useMemo(() => {
     const filtered = (reservations || []).filter(
-      (res) => res && res.date === todayDateStr
+      (res) => res && res.date === selectedDateStr
     );
     // 시간순으로 정렬
     return filtered.sort((a, b) => {
@@ -63,7 +75,7 @@ function HomeScreen({
       const timeB = b.time || '';
       return timeA.localeCompare(timeB);
     });
-  }, [reservations, todayDateStr]);
+    }, [reservations, selectedDateStr]);
 
   // 검색창 포커스 핸들러
   const handleSearchFocus = () => {
@@ -250,10 +262,42 @@ function HomeScreen({
         {/* 상태 B: 평소 (기본) - 오늘의 예약 */}
         {(!isSearching || !searchText.trim()) && (
           <div className="px-4 py-4">
-            {/* 섹션 1: 오늘 방문 예정 고객 */}
+            {/* 섹션 1: 선택된 날짜 방문 예정 고객 */}
             <div className="mb-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-bold text-gray-800">오늘 방문 예정 고객</h3>
+                {/* 날짜 네비게이션 */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedDate(prev => subDays(prev, 1))}
+                    className="p-1.5 hover:bg-[#F9F5EF] rounded-lg transition-colors"
+                  >
+                    <ChevronLeft size={20} className="text-[#C9A27A]" />
+                  </button>
+                  
+                  <button
+                    onClick={() => dateInputRef.current?.showPicker()}
+                    className="px-3 py-1.5 hover:bg-[#F9F5EF] rounded-lg transition-colors"
+                  >
+                    <h3 className="text-lg font-bold text-gray-800">
+                      {dateTitle}
+                    </h3>
+                  </button>
+                  <input
+                    ref={dateInputRef}
+                    type="date"
+                    value={selectedDateStr}
+                    onChange={(e) => setSelectedDate(new Date(e.target.value))}
+                    className="sr-only"
+                  />
+                  
+                  <button
+                    onClick={() => setSelectedDate(prev => addDays(prev, 1))}
+                    className="p-1.5 hover:bg-[#F9F5EF] rounded-lg transition-colors"
+                  >
+                    <ChevronRight size={20} className="text-[#C9A27A]" />
+                  </button>
+                </div>
+
                 <div className="flex items-center gap-2">
                   {todaysReservations.length > 0 && (
                     <span className="text-xs text-gray-500">
