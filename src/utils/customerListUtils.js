@@ -14,25 +14,29 @@ export function normalizePhone(phone) {
 }
 
 /**
- * 검색어로 고객 리스트를 필터링
+ * 검색어로 고객 리스트를 필터링 및 정렬
  * 이름과 전화번호로 검색 지원 (전화번호는 하이픈/공백 무시)
+ * 정확 일치 우선 정렬 적용
  * 
  * 사용처:
  * - HomeScreen.jsx: 고객 검색 기능
+ * - ReservationScreen.jsx: 고객 자동완성 기능
  * 
  * @param {Array} customers - 고객 리스트
  * @param {string} searchQuery - 검색어
- * @returns {Array} 필터링된 고객 리스트
+ * @param {number} maxResults - 최대 결과 개수 (기본값: 무제한)
+ * @returns {Array} 필터링 및 정렬된 고객 리스트
  */
-export function filterCustomersBySearch(customers, searchQuery) {
+export function filterCustomersBySearch(customers, searchQuery, maxResults = null) {
   if (!searchQuery || !searchQuery.trim()) {
     return customers;
   }
 
-  const query = searchQuery.toLowerCase();
+  const query = searchQuery.toLowerCase().trim();
   const normalizedQuery = normalizePhone(query);
 
-  return customers.filter(customer => {
+  // 필터링
+  const filtered = customers.filter(customer => {
     // 이름 검색
     const nameMatch = customer.name.toLowerCase().includes(query);
     
@@ -42,5 +46,33 @@ export function filterCustomersBySearch(customers, searchQuery) {
     
     return nameMatch || phoneMatch;
   });
+
+  // 정확 일치 우선 정렬
+  const sorted = filtered.sort((a, b) => {
+    const aName = a.name.toLowerCase();
+    const bName = b.name.toLowerCase();
+    
+    // 정확 일치 우선
+    const aExactMatch = aName === query;
+    const bExactMatch = bName === query;
+    if (aExactMatch && !bExactMatch) return -1;
+    if (!aExactMatch && bExactMatch) return 1;
+    
+    // 시작 일치 우선
+    const aStartsWith = aName.startsWith(query);
+    const bStartsWith = bName.startsWith(query);
+    if (aStartsWith && !bStartsWith) return -1;
+    if (!aStartsWith && bStartsWith) return 1;
+    
+    // 그 외는 원본 순서 유지
+    return 0;
+  });
+
+  // 최대 결과 개수 제한
+  if (maxResults && maxResults > 0) {
+    return sorted.slice(0, maxResults);
+  }
+
+  return sorted;
 }
 

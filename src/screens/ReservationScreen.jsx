@@ -1,28 +1,26 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { ArrowLeft, Plus, Clock, X } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { ArrowLeft, X, Clock } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
+import { formatPhoneNumber } from '../utils/formatters';
+import { filterCustomersBySearch } from '../utils/customerListUtils';
 
-/**
- * 고객 예약 페이지
- * - 시간과 이름을 간단하게 추가
- * - 시간 빠른순으로 정렬
- * - 말로 앱에 어울리는 디자인
- */
 function ReservationScreen({
-  reservations = [],
+  reservations,
   addReservation,
-  setReservations,
   deleteReservation,
+  customers,
   setCurrentScreen,
   getTodayDateString,
 }) {
-  const [time, setTime] = useState('');
-  const [name, setName] = useState('');
-  const [isAdding, setIsAdding] = useState(false);
-  const timeInputRef = useRef(null);
-  const nameInputRef = useRef(null);
+  const [showForm, setShowForm] = useState(false);
+  const [timeInput, setTimeInput] = useState('');
+  const [nameInput, setNameInput] = useState('');
+  const [phoneInput, setPhoneInput] = useState('');
+  const [selectedExistingCustomerId, setSelectedExistingCustomerId] =
+    useState(null);
+  const [showMatchingCustomers, setShowMatchingCustomers] = useState(false);
 
-  // 오늘 날짜 문자열 가져오기
+  // 오늘 날짜 문자열
   const todayDateStr = useMemo(() => {
     if (getTodayDateString) return getTodayDateString();
     const today = new Date();
@@ -40,91 +38,89 @@ function ReservationScreen({
     
     // 시간순으로 정렬 (시간이 없는 것은 맨 아래)
     return filtered.sort((a, b) => {
-      const timeA = a.time || '99:99'; // 시간이 없으면 맨 아래
+      const timeA = a.time || '99:99';
       const timeB = b.time || '99:99';
       return timeA.localeCompare(timeB);
     });
   }, [reservations, todayDateStr]);
 
-  // 추가 모드 시작
-  const startAdding = () => {
-    setIsAdding(true);
-    setTime('');
-    setName('');
-    setTimeout(() => timeInputRef.current?.focus(), 100);
+  const todayLabel = useMemo(() => {
+    const now = new Date();
+    return `${now.getMonth() + 1}월 ${now.getDate()}일`;
+  }, []);
+
+  // 이름 입력으로 기존 고객 자동완성 (최소 2글자, 최대 8개, 정확 일치 우선 정렬)
+  const matchingCustomers = useMemo(() => {
+    const q = nameInput.trim();
+    // 최소 2글자 제한
+    if (q.length < 2) return [];
+    if (!customers || customers.length === 0) return [];
+    return filterCustomersBySearch(customers, q, 8);
+  }, [nameInput, customers]);
+
+  const handleSelectExistingCustomer = (customer) => {
+    setNameInput(customer.name || '');
+    setPhoneInput(customer.phone || '');
+    setSelectedExistingCustomerId(customer.id);
+    setShowMatchingCustomers(false);
   };
 
-  // 추가 취소
-  const cancelAdding = () => {
-    setIsAdding(false);
-    setTime('');
-    setName('');
+  const resetForm = () => {
+    setShowForm(false);
+    setTimeInput('');
+    setNameInput('');
+    setPhoneInput('');
+    setSelectedExistingCustomerId(null);
+    setShowMatchingCustomers(false);
   };
 
-  // 예약 추가
-  const handleAdd = () => {
-    if (!name.trim()) {
-      alert('고객 이름을 입력해주세요.');
-      nameInputRef.current?.focus();
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const trimmedName = nameInput.trim();
+    const trimmedPhone = phoneInput.trim();
+
+    if (!timeInput || !trimmedName) {
+      alert('시간과 이름을 모두 입력해주세요.');
       return;
     }
 
+    if (!trimmedPhone) {
+      alert('전화번호를 입력해주세요.');
+      return;
+    }
+
+    // ✨ 자동완성에서 직접 선택했을 때만 기존 고객으로 연결
+    // 선택하지 않으면 customerId는 null로 신규 예약으로 추가됨
+    const customerIdToUse = selectedExistingCustomerId || null;
+
     const reservationData = {
       date: todayDateStr,
-      time: time.trim() || '',
-      name: name.trim(),
-      phoneLast4: '',
+      time: timeInput,
+      name: trimmedName,
+      phone: trimmedPhone,
+      customerId: customerIdToUse,
+      phoneLast4: trimmedPhone.slice(-4),
       isCompleted: false,
     };
 
+    console.log('[예약 추가]', reservationData);
+
     if (addReservation) {
-      addReservation(reservationData);
-    } else if (setReservations) {
-      const newReservation = {
-        id: Date.now(),
-        ...reservationData,
-      };
-      setReservations((prev) => [...prev, newReservation]);
+      const result = addReservation(reservationData);
+      console.log('[예약 추가 결과]', result);
+    } else {
+      console.error('[예약 추가 실패] addReservation 함수가 없습니다.');
     }
 
-    setIsAdding(false);
-    setTime('');
-    setName('');
+    resetForm();
   };
 
   // 예약 삭제
-  const handleDelete = (id) => {
-    if (window.confirm('이 예약을 삭제하시겠습니까?')) {
-      if (deleteReservation) {
-        deleteReservation(id);
-      } else if (setReservations) {
-        setReservations((prev) => prev.filter((res) => res.id !== id));
-      }
+  const handleRemoveReservation = (id) => {
+    if (deleteReservation) {
+      deleteReservation(id);
     }
   };
-
-  // 엔터 키 처리
-  const handleTimeKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      nameInputRef.current?.focus();
-    }
-  };
-
-  const handleNameKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAdd();
-    } else if (e.key === 'Escape') {
-      cancelAdding();
-    }
-  };
-
-  // 오늘 날짜 표시
-  const todayDisplay = useMemo(() => {
-    const today = new Date();
-    return `${today.getMonth() + 1}월 ${today.getDate()}일`;
-  }, []);
 
   return (
     <div
@@ -134,121 +130,244 @@ function ReservationScreen({
       {/* Safe Area Top */}
       <div className="pt-[env(safe-area-inset-top)]" />
 
-      {/* 헤더 */}
+      {/* 헤더 영역 */}
       <header className="px-6 py-4 bg-white border-b border-gray-200 shadow-sm">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setCurrentScreen(SCREENS.HOME)}
-            className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
-          >
-            <ArrowLeft size={20} className="text-gray-800" />
-          </button>
-          <div className="flex-1">
-            <h2 className="text-xl font-bold text-gray-800">오늘 예약</h2>
-            <p className="text-sm text-gray-600 mt-0.5">{todayDisplay}</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setCurrentScreen(SCREENS.HOME)}
+              className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
+              style={{ color: '#232323' }}
+            >
+              <ArrowLeft size={24} />
+            </button>
+            <div className="flex flex-col">
+              <h2 className="text-xl font-bold text-gray-800">오늘 예약</h2>
+              <span className="text-sm font-light text-gray-600 mt-1">{todayLabel}</span>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* 메인 컨텐츠 */}
-      <main className="flex-1 overflow-y-auto px-4 py-6 pb-28">
-        {/* 예약 추가 폼 */}
-        {isAdding ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex-1">
-                <label className="block text-xs text-gray-600 mb-1">시간</label>
-                <input
-                  ref={timeInputRef}
-                  type="text"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  onKeyDown={handleTimeKeyDown}
-                  placeholder="예: 14:30"
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-[#C9A27A] focus:ring-2 focus:ring-[#C9A27A] focus:outline-none text-gray-800"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="block text-xs text-gray-600 mb-1">이름</label>
-                <input
-                  ref={nameInputRef}
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  onKeyDown={handleNameKeyDown}
-                  placeholder="고객 이름"
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-[#C9A27A] focus:ring-2 focus:ring-[#C9A27A] focus:outline-none text-gray-800"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleAdd}
-                className="flex-1 px-4 py-2 bg-[#C9A27A] text-white rounded-lg font-medium hover:bg-[#B8926A] active:scale-95 transition-all"
-              >
-                추가
-              </button>
-              <button
-                onClick={cancelAdding}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 active:scale-95 transition-all"
-              >
-                취소
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            onClick={startAdding}
-            className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-4 flex items-center justify-center gap-2 hover:border-[#C9A27A] transition-all"
-          >
-            <Plus size={20} className="text-[#C9A27A]" />
-            <span className="text-gray-800 font-medium">예약 추가</span>
-          </button>
-        )}
-
-        {/* 예약 리스트 */}
-        <div className="space-y-3">
-          {todaysReservations.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
-              <Clock size={32} className="mx-auto mb-3 text-gray-400" />
-              <p className="text-sm text-gray-500 mb-1">오늘 등록된 예약이 없습니다</p>
-              <p className="text-xs text-gray-400">위 버튼을 눌러 예약을 추가하세요</p>
-            </div>
-          ) : (
-            todaysReservations.map((reservation) => (
-              <div
-                key={reservation.id}
-                className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 flex items-center justify-between hover:border-[#C9A27A] transition-all"
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  {reservation.time ? (
-                    <div className="flex items-center gap-2 text-[#C9A27A]">
-                      <Clock size={16} />
-                      <span className="text-sm font-semibold">{reservation.time}</span>
-                    </div>
-                  ) : (
-                    <div className="w-16"></div>
-                  )}
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-base text-gray-800">
-                      {reservation.name || '이름 미입력'}
-                    </h4>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleDelete(reservation.id)}
-                  className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <X size={18} className="text-gray-400 hover:text-red-500" />
-                </button>
-              </div>
-            ))
+      {/* 메인 컨텐츠 영역 */}
+      <main className="flex-1 overflow-y-auto pb-28 px-4 py-4">
+          {/* 예약 추가 버튼 / 폼 */}
+          {!showForm && (
+            <button
+              type="button"
+              onClick={() => setShowForm(true)}
+              className="flex h-11 w-full items-center justify-center rounded-xl border border-[#E1D7C6] bg-[#F8F5EE] text-sm font-medium text-[#A07B4F]"
+            >
+              + 예약 추가
+            </button>
           )}
-        </div>
-      </main>
 
-      {/* Safe Area Bottom */}
-      <div className="pb-[env(safe-area-inset-bottom)]" />
+          {showForm && (
+                <form
+                  onSubmit={handleSubmit}
+                  className="mb-4 rounded-2xl bg-[#F8F5EE] px-4 py-3 shadow-sm relative"
+                >
+                  {/* 시간과 이름 입력 (한 줄) */}
+                  <div className="mb-3 grid grid-cols-2 gap-3 relative">
+                    {/* 시간 입력 */}
+                    <div>
+                      <label className="mb-1 block text-[11px] text-[#9C8D7C]">
+                        시간
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="time"
+                          value={timeInput}
+                          onChange={(e) => setTimeInput(e.target.value)}
+                          className="h-[36px] w-full rounded-lg border border-[#E3D7C7] bg-white px-3 pr-10 text-[16px] text-[#3F352B] leading-normal box-border"
+                          style={{ 
+                            fontSize: '16px', 
+                            height: '36px',
+                            WebkitAppearance: 'none',
+                            MozAppearance: 'textfield'
+                          }}
+                        />
+                        <style dangerouslySetInnerHTML={{
+                          __html: `
+                            input[type="time"]::-webkit-calendar-picker-indicator {
+                              display: none;
+                              -webkit-appearance: none;
+                            }
+                            input[type="time"]::-webkit-inner-spin-button,
+                            input[type="time"]::-webkit-outer-spin-button {
+                              -webkit-appearance: none;
+                              margin: 0;
+                            }
+                          `
+                        }} />
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                          <Clock size={18} className="text-[#9C8D7C]" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 이름 입력 */}
+                    <div className="relative">
+                      <label className="mb-1 block text-[11px] text-[#9C8D7C]">
+                        이름
+                      </label>
+                      <input
+                        type="text"
+                        value={nameInput}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setNameInput(value);
+                          setSelectedExistingCustomerId(null);
+                          // 기존 고객 선택이 해제되면 전화번호도 초기화
+                          if (selectedExistingCustomerId) {
+                            setPhoneInput('');
+                          }
+                          // 이름 입력 시 자동완성 리스트 표시 (최소 2글자 이상일 때만)
+                          if (value.trim().length >= 2) {
+                            setShowMatchingCustomers(true);
+                          } else {
+                            setShowMatchingCustomers(false);
+                          }
+                        }}
+                        onFocus={() => {
+                          // 포커스 시 자동완성 리스트 표시 (최소 2글자 이상일 때만)
+                          if (nameInput.trim().length >= 2 && matchingCustomers.length > 0) {
+                            setShowMatchingCustomers(true);
+                          }
+                        }}
+                        onBlur={(e) => {
+                          // 포커스가 벗어날 때 약간의 지연을 두어 클릭 이벤트가 먼저 처리되도록
+                          setTimeout(() => {
+                            setShowMatchingCustomers(false);
+                          }, 200);
+                        }}
+                        placeholder="고객 이름"
+                        className="h-[36px] w-full rounded-lg border border-[#E3D7C7] bg-white px-3 text-[16px] text-[#3F352B] leading-normal box-border"
+                        style={{ fontSize: '16px', height: '36px' }}
+                      />
+                    </div>
+                    
+                    {/* 기존 고객 자동완성 리스트 (그리드 전체 너비) */}
+                    {showMatchingCustomers && matchingCustomers.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 z-[100] max-h-[120px] overflow-y-auto space-y-1 bg-white rounded-xl shadow-lg border border-gray-100 p-2">
+                        {matchingCustomers.map((customer) => (
+                          <button
+                            key={customer.id}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()} // blur 이벤트 방지
+                            onClick={() => handleSelectExistingCustomer(customer)}
+                            className="w-full bg-white rounded-lg p-2 shadow-sm border border-gray-100 hover:border-[#C9A27A] transition-all text-left"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1 min-w-0 flex items-center gap-2">
+                                <h4 className="font-semibold text-sm text-gray-800">
+                                  {customer.name || '이름 미입력'}
+                                </h4>
+                                {customer.phone && (
+                                  <span className="text-xs text-gray-600">{customer.phone}</span>
+                                )}
+                              </div>
+                              <span className="text-[10px] text-[#A07B4F] font-medium flex-shrink-0">
+                                기존 고객
+                              </span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 전화번호 입력 */}
+                  <div className="mb-2">
+                    <label className="mb-1 block text-[11px] text-[#9C8D7C]">
+                      전화번호
+                    </label>
+                    <input
+                      type="tel"
+                      value={phoneInput}
+                      onChange={(e) => {
+                        const formatted = formatPhoneNumber(e.target.value);
+                        setPhoneInput(formatted);
+                      }}
+                      placeholder="010-1234-5678"
+                      className="h-[36px] w-full rounded-lg border border-[#E3D7C7] bg-white px-3 text-[16px] text-[#3F352B] leading-normal box-border"
+                      style={{ fontSize: '16px', height: '36px' }}
+                    />
+                  </div>
+
+
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      type="submit"
+                      className="flex-[7] h-9 rounded-lg bg-[#C9A27A] text-xs font-semibold text-white"
+                    >
+                      추가
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetForm}
+                      className="flex-[3] h-9 rounded-lg bg-white text-xs text-[#8C7A68] border border-[#E3D7C7]"
+                    >
+                      취소
+                    </button>
+                  </div>
+
+                  <p className="mt-2 text-[10px] text-[#A79A8E]">
+                    이름을 입력하면 기존 고객이 자동으로 검색됩니다.
+                    자동완성 목록에서 고객을 선택하면 전화번호가 자동으로 입력되고 기존 고객과 연결됩니다.
+                    자동완성 목록을 선택하지 않고 다른 곳을 클릭하면 신규 고객으로 등록할 수 있습니다.
+                  </p>
+                </form>
+          )}
+
+          {/* 예약 리스트 */}
+          <section className="mt-4 space-y-2">
+                {todaysReservations.map((reservation) => {
+                  const displayPhone = reservation.phone || '';
+                  return (
+                    <div
+                      key={reservation.id}
+                      className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 shadow-sm"
+                    >
+                      <div className="flex flex-1 items-center gap-3">
+                        <span className="text-[11px] text-[#B18352]">
+                          {reservation.time}
+                        </span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-[#3F352B]">
+                            {reservation.name}
+                          </span>
+                          {displayPhone && (
+                            <span className="text-xs text-gray-600">
+                              {displayPhone}
+                            </span>
+                          )}
+                          {!reservation.customerId && (
+                            <span className="px-2 py-0.5 rounded-full border border-[#C9A27A] text-[10px] text-[#C9A27A] whitespace-nowrap">
+                              신규
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveReservation(reservation.id)}
+                        className="ml-2 text-[#C4B3A2] hover:text-[#A07B4F]"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  );
+                })}
+
+            {todaysReservations.length === 0 && (
+              <p className="mt-6 text-center text-xs text-[#B0A497]">
+                아직 오늘 예약이 없습니다. 상단에서 예약을 추가해 보세요.
+              </p>
+            )}
+          </section>
+      </main>
     </div>
   );
 }

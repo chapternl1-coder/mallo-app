@@ -43,10 +43,12 @@ function HomeScreen({
     return `${today.getMonth() + 1}월 ${today.getDate()}일`;
   }, []);
 
-  // 검색어에 따른 고객 필터링
+  // 검색어에 따른 고객 필터링 (최소 2글자)
   const filteredCustomers = useMemo(() => {
-    if (!searchText || !searchText.trim()) return [];
-    return filterCustomersBySearch(customers, searchText);
+    const trimmedSearch = searchText?.trim() || '';
+    // 최소 2글자 제한
+    if (trimmedSearch.length < 2) return [];
+    return filterCustomersBySearch(customers, trimmedSearch);
   }, [customers, searchText]);
 
   // 오늘 예약 손님 필터링 및 정렬
@@ -100,7 +102,23 @@ function HomeScreen({
     }
   };
 
-  // 예약 카드 클릭 핸들러 (녹음 화면으로 이동)
+  // 예약 카드 클릭 핸들러 (고객 상세 페이지로 이동)
+  const handleReservationCardClick = (reservation) => {
+    // 예약에 customerId가 있으면 고객 상세 페이지로 이동
+    if (reservation.customerId) {
+      const matchedCustomer = customers.find((c) => c.id === reservation.customerId);
+      if (matchedCustomer) {
+        setSelectedCustomerId(matchedCustomer.id);
+        // 홈 화면에서 고객 상세로 이동하므로 이전 화면이 홈임을 명시
+        setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+        return;
+      }
+    }
+    
+    // customerId가 없거나 매칭되는 고객이 없으면 아무 동작 안 함
+  };
+
+  // 녹음 버튼 클릭 핸들러 (녹음 화면으로 이동)
   const handleReservationClick = (reservation) => {
     // 예약에 customerId가 있으면 기존 고객 매칭
     const matchedCustomer = reservation.customerId
@@ -135,15 +153,10 @@ function HomeScreen({
 
   // 예약과 매칭되는 고객 찾기
   const findCustomerForReservation = (reservation) => {
+    // customerId가 있을 때만 기존 고객으로 매칭
+    // customerId가 없으면 신규 예약이므로 매칭하지 않음 (동명이인 방지)
     if (reservation.customerId) {
       return customers.find((c) => c.id === reservation.customerId);
-    }
-    // 이름이나 전화번호로 매칭 시도
-    if (reservation.name) {
-      return customers.find((c) => c.name === reservation.name);
-    }
-    if (reservation.phoneLast4) {
-      return customers.find((c) => c.phone?.endsWith(reservation.phoneLast4));
     }
     return null;
   };
@@ -202,7 +215,11 @@ function HomeScreen({
 
             {filteredCustomers.length === 0 ? (
               <div className="bg-white rounded-xl p-8 text-center shadow-sm">
-                <p className="text-sm text-gray-500">검색 결과가 없습니다.</p>
+                <p className="text-sm text-gray-500">
+                  {searchText.trim().length < 2 
+                    ? '검색어를 2글자 이상 입력해주세요.' 
+                    : '검색 결과가 없습니다.'}
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -213,25 +230,12 @@ function HomeScreen({
                     className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-[#C9A27A] transition-all cursor-pointer"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="text-3xl">{customer.avatar || '👤'}</div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-base text-gray-800 mb-1">
+                      <div className="flex-1 flex items-center gap-2">
+                        <h4 className="font-semibold text-base text-gray-800">
                           {customer.name || '이름 미입력'}
                         </h4>
                         {customer.phone && (
-                          <p className="text-sm text-gray-600">{customer.phone}</p>
-                        )}
-                        {customer.tags && customer.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {customer.tags.slice(0, 3).map((tag, idx) => (
-                              <span
-                                key={idx}
-                                className="px-2 py-0.5 rounded-full bg-[#F2F0E6] text-xs text-[#7A6A58]"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
+                          <span className="text-sm text-gray-600">{customer.phone}</span>
                         )}
                       </div>
                     </div>
@@ -278,16 +282,24 @@ function HomeScreen({
                     const matchedCustomer = findCustomerForReservation(reservation);
                     const displayName = reservation.name || matchedCustomer?.name || '이름 미입력';
                     const displayPhone = matchedCustomer?.phone || reservation.phone || '전화번호 미입력';
+                    const isNew = !reservation.customerId || !matchedCustomer || reservation.isNew;
 
                     return (
                       <div
                         key={reservation.id}
-                        className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-[#C9A27A] transition-all"
+                        className={`rounded-xl p-4 shadow-sm transition-all ${
+                          isNew
+                            ? 'bg-[#F9F5EF] border-2 border-[#C9A27A] hover:border-[#B8926A]'
+                            : 'bg-white border border-gray-100 hover:border-[#C9A27A]'
+                        }`}
                       >
-                        <div className="flex items-center gap-4">
+                        <div 
+                          className={`flex items-center gap-4 ${reservation.customerId ? 'cursor-pointer' : ''}`}
+                          onClick={() => handleReservationCardClick(reservation)}
+                        >
                           {/* 시간 (왼쪽) */}
                           <div className="flex-shrink-0 w-16">
-                            <div className="flex items-center gap-1.5 text-[#C9A27A]">
+                            <div className={`flex items-center gap-1.5 ${isNew ? 'text-[#B8926A]' : 'text-[#C9A27A]'}`}>
                               <Clock size={14} />
                               <span className="text-sm font-semibold">
                                 {reservation.time || '--:--'}
@@ -301,36 +313,24 @@ function HomeScreen({
                               <div className="text-2xl">{matchedCustomer?.avatar || '👤'}</div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <h4 className="font-semibold text-base text-gray-800 truncate">
+                                  <h4 className={`font-semibold text-base truncate ${isNew ? 'text-[#3F352B]' : 'text-gray-800'}`}>
                                     {displayName}
                                   </h4>
-                                  {(!matchedCustomer || reservation.isNew) && (
-                                    <span className="px-2 py-0.5 rounded-full border border-[#C9A27A] text-[10px] text-[#C9A27A] whitespace-nowrap">
+                                  {isNew && (
+                                    <span className="px-2.5 py-1 rounded-full bg-[#C9A27A] text-white text-[11px] font-semibold whitespace-nowrap shadow-sm">
                                       신규
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-sm text-gray-600 truncate mt-0.5">
+                                <p className={`text-sm truncate mt-0.5 ${isNew ? 'text-[#7B6A58]' : 'text-gray-600'}`}>
                                   {displayPhone}
                                 </p>
                               </div>
                             </div>
-                            {matchedCustomer?.tags && matchedCustomer.tags.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-2">
-                                {matchedCustomer.tags.slice(0, 3).map((tag, idx) => (
-                                  <span
-                                    key={idx}
-                                    className="px-2 py-0.5 rounded-full bg-[#F2F0E6] text-xs text-[#7A6A58]"
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
                           </div>
 
                           {/* 녹음/완료 버튼 (오른쪽) */}
-                          <div className="flex-shrink-0">
+                          <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                             <button
                               onClick={() => handleReservationClick(reservation)}
                               className="px-4 py-2 bg-[#C9A27A] text-white rounded-lg text-sm font-medium hover:bg-[#B8926A] active:scale-95 transition-all shadow-sm"

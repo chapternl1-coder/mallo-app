@@ -35,8 +35,15 @@ function clearMalloStorage() {
 }
 
 export default function useMalloAppState() {
-  const [currentScreen, setCurrentScreen] = useState(SCREENS.LOGIN);
+  const [currentScreen, setCurrentScreenState] = useState(SCREENS.LOGIN);
+  const [previousScreen, setPreviousScreen] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  
+  // setCurrentScreen을 래핑하여 이전 화면 추적
+  const setCurrentScreen = (screen) => {
+    setPreviousScreen(currentScreen);
+    setCurrentScreenState(screen);
+  };
   const [activeTab, setActiveTab] = useState('Home');
   const [userProfile, setUserProfile] = useState({ 
     sectorId: 'beauty', 
@@ -147,6 +154,7 @@ export default function useMalloAppState() {
   const [tempPhone, setTempPhone] = useState('');
   const nameInputRef = useRef(null);
   const phoneInputRef = useRef(null);
+  const [pendingReservationCustomerId, setPendingReservationCustomerId] = useState(null);
   
   const [customers, setCustomers] = useState(() => {
     const loadedCustomers = loadFromLocalStorage('mallo_customers', []);
@@ -1316,10 +1324,21 @@ export default function useMalloAppState() {
   };
 
   // 예약 관련 함수들
-  const addReservation = (reservation) => {
+  const addReservation = ({ time, name, customerId = null, date, phone, phoneLast4 }) => {
     const newReservation = {
-      id: Date.now(),
-      ...reservation,
+      id: `${Date.now()}_${Math.random().toString(16).slice(2, 6)}`,
+      time,
+      name,
+      customerId, // 고객 id 연결 (없으면 null)
+      date: date || (() => {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      })(),
+      phone: phone || '',
+      phoneLast4: phoneLast4 || (phone ? phone.slice(-4) : ''),
       isCompleted: false
     };
     setReservations(prev => [...prev, newReservation]);
@@ -1345,6 +1364,7 @@ export default function useMalloAppState() {
   const screenRouterProps = {
     currentScreen,
     setCurrentScreen,
+    previousScreen,
     email,
     setEmail,
     password,
@@ -1482,6 +1502,8 @@ export default function useMalloAppState() {
     toggleReservationComplete,
     deleteReservation,
     updateReservation,
+    pendingReservationCustomerId,
+    setPendingReservationCustomerId,
     bulkImportCustomers,
     fillDemoData,
     resetAllData

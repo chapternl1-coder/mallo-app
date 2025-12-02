@@ -15,6 +15,7 @@ import { extractServiceDateFromSummary } from '../utils/serviceUtils';
 
 function CustomerDetailScreen({
   setCurrentScreen,
+  previousScreen,
   selectedCustomerId,
   customers,
   setCustomers,
@@ -213,7 +214,15 @@ function CustomerDetailScreen({
     <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
       {/* Header */}
       <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
-        <button onClick={() => setCurrentScreen(SCREENS.HISTORY)} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
+        <button 
+          onClick={() => {
+            // 이전 화면이 홈이면 홈으로, 아니면 기록 화면으로
+            const targetScreen = previousScreen === SCREENS.HOME ? SCREENS.HOME : SCREENS.HISTORY;
+            setCurrentScreen(targetScreen);
+          }} 
+          className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
+          style={{ color: '#232323' }}
+        >
           <ArrowLeft size={24} />
         </button>
         <div className="text-center">
