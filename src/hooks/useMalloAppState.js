@@ -1413,7 +1413,10 @@ export default function useMalloAppState() {
 
   const getTodayDate = () => {
     const today = new Date();
-    return `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일 (${['일','월','화','수','목','금','토'][today.getDay()]})`;
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1;
+    const day = today.getDate();
+    return `${year}년 ${month}월 ${day}일`;
   };
 
   const handlePhoneChange = (e) => {
