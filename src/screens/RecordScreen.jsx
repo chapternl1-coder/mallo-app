@@ -387,22 +387,17 @@ function RecordScreen({
 
       <main className="flex-1 overflow-y-auto p-8 space-y-5 pb-32" style={{ backgroundColor: '#F2F0E6' }}>
          {selectedCustomerForRecord ? (
-           <div className="bg-white w-full rounded-[24px] p-8 flex flex-col items-center justify-center text-center shadow-[0_4px_20px_rgba(0,0,0,0.02)] border border-[#F2F0E6]">
-
-             {/* 1. 예약 시간 (작고 은은하게 포인트) */}
-             <div className="bg-[#F2F0E6] text-[#C9A27A] px-3 py-1 rounded-full text-xs font-bold tracking-wider mb-4">
+           <div className="w-full bg-white rounded-2xl px-6 py-5 flex items-center justify-between shadow-sm border border-[#E5E0D0] mb-5">
+             {/* 좌측: 시간 (한 줄, 킨포크 골드 컬러) */}
+             <div className="text-[#C9A27A] font-bold text-xl tracking-tight">
                {recordingDate ? `${String(recordingDate.getHours()).padStart(2, '0')}:${String(recordingDate.getMinutes()).padStart(2, '0')} 예약` : '--:-- 예약'}
              </div>
 
-             {/* 2. 고객 이름 (가장 크고 선명하게) */}
-             <h2 className="text-[32px] font-bold text-[#333333] leading-none mb-3 tracking-tight">
-               {selectedCustomerForRecord.name}
-             </h2>
-
-             {/* 3. 전화번호 (얇고 심플하게) */}
-             <p className="text-[#999999] text-sm font-light tracking-[0.05em]">
-               {selectedCustomerForRecord.phone || '전화번호 미등록'}
-             </p>
+             {/* 우측: 이름 & 번호 (두 줄, 우측 정렬) */}
+             <div className="flex flex-col items-end">
+               <h2 className="text-2xl font-bold text-[#333333] tracking-tight mb-0.5">{selectedCustomerForRecord.name}</h2>
+               <p className="text-[#999999] text-sm font-light tracking-wide">{selectedCustomerForRecord.phone || '전화번호 미등록'}</p>
+             </div>
            </div>
          ) : (
            <div className="bg-white rounded-xl shadow-sm border border-gray-200" style={{ padding: '12px 16px' }}>
