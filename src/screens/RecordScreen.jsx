@@ -172,7 +172,7 @@ function RecordScreen({
           {/* 중앙: 타이머 영역 */}
           <div className="z-10 flex flex-col items-center justify-center flex-1">
             {/* 녹음 상태 텍스트 */}
-            <div className="mb-6 text-center animate-in fade-in duration-700">
+            <div className="mb-4 text-center animate-in fade-in duration-700">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 backdrop-blur-sm shadow-sm">
                 <div 
                   className="w-2 h-2 rounded-full animate-pulse"
@@ -187,8 +187,27 @@ function RecordScreen({
               </div>
             </div>
 
+            {/* 안내 메시지 */}
+            <div className="mb-8 w-full max-w-xs px-4">
+              <div 
+                className={`bg-white/70 backdrop-blur-sm rounded-xl px-4 py-2 shadow-sm transition-all duration-300 ${
+                  isNearLimit ? 'ring-2 ring-red-400 bg-red-50/70' : ''
+                }`}
+              >
+                <p
+                  className={`text-xs text-center leading-relaxed ${
+                    isNearLimit ? 'text-red-600 font-medium' : 'text-[#8C7A68]'
+                  }`}
+                >
+                  {isNearLimit 
+                    ? '⚠️ 곧 최대 녹음 시간에 도달합니다!'
+                    : '💡 한 고객님 정보만 말씀해 주세요'}
+                </p>
+              </div>
+            </div>
+
             {/* 타이머 - 큰 숫자 */}
-            <div className="mb-8 animate-in zoom-in duration-500">
+            <div className="mb-6 animate-in zoom-in duration-500">
               <p
                 className="text-[72px] font-light tracking-tight tabular-nums leading-none"
                 style={{
@@ -202,7 +221,7 @@ function RecordScreen({
             </div>
 
             {/* 진행 바 시각화 */}
-            <div className="w-64 mb-12">
+            <div className="w-64 mb-8">
               <div className="relative h-1 bg-white/40 rounded-full overflow-hidden">
                 <div
                   className="absolute left-0 top-0 h-full rounded-full transition-all duration-300"
@@ -224,7 +243,7 @@ function RecordScreen({
             </div>
 
             {/* 파형 비주얼라이저 */}
-            <div className="mb-12">
+            <div className="mb-10">
               <WaveBars />
             </div>
 
@@ -266,25 +285,8 @@ function RecordScreen({
             </div>
           </div>
 
-          {/* 하단: 안내 메시지 & 취소 버튼 */}
-          <div className="w-full max-w-sm z-10 space-y-4">
-            {/* 안내 메시지 */}
-            <div 
-              className={`bg-white/70 backdrop-blur-sm rounded-2xl px-4 py-3 shadow-sm transition-all duration-300 ${
-                isNearLimit ? 'ring-2 ring-red-400 bg-red-50/70' : ''
-              }`}
-            >
-              <p
-                className={`text-sm text-center leading-relaxed ${
-                  isNearLimit ? 'text-red-600 font-medium' : 'text-[#8C7A68]'
-                }`}
-              >
-                {isNearLimit 
-                  ? '⚠️ 곧 최대 녹음 시간에 도달합니다!'
-                  : '💡 한 고객님 정보만 말씀해 주세요'}
-              </p>
-            </div>
-
+          {/* 하단: 취소 버튼 */}
+          <div className="w-full max-w-sm z-10">
             {/* 취소 버튼 */}
             <div className="flex justify-center">
               <button
