@@ -159,11 +159,11 @@ function RecordScreen({
           {selectedCustomerForRecord && (
             <div className="w-full max-w-sm z-10 animate-in fade-in slide-in-from-top duration-500">
               <div 
-                className="bg-white/90 backdrop-blur-sm rounded-3xl p-5 shadow-lg border border-white/50"
+                className="bg-white/90 backdrop-blur-sm rounded-3xl px-6 py-5 shadow-lg border border-white/50"
                 style={{ boxShadow: '0 8px 32px rgba(201, 162, 122, 0.15)' }}
               >
                 <div className="flex items-center justify-between gap-4">
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-1 flex-1">
                     <h3 className="text-lg font-bold" style={{ color: '#232323' }}>
                       {selectedCustomerForRecord.name}
                     </h3>
