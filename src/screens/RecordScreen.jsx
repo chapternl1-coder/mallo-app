@@ -152,18 +152,6 @@ function RecordScreen({
             ></div>
           </div>
 
-          {/* 우측 상단: 취소 버튼 (X) */}
-          <button
-            onClick={() => {
-              if (window.confirm('지금 나가면 현재 녹음은 저장되지 않습니다. 정말 취소하시겠습니까?')) {
-                cancelRecording();
-              }
-            }}
-            className="absolute top-6 right-6 z-20 w-10 h-10 rounded-full flex items-center justify-center bg-white/70 backdrop-blur-sm shadow-md hover:bg-white/90 active:scale-95 transition-all"
-            style={{ color: '#8C7A68' }}
-          >
-            <X size={20} />
-          </button>
 
           {/* 상단: 고객 정보 카드 */}
           {selectedCustomerForRecord && (
@@ -173,12 +161,6 @@ function RecordScreen({
                 style={{ boxShadow: '0 8px 32px rgba(201, 162, 122, 0.15)' }}
               >
                 <div className="flex items-center gap-4">
-                  <div 
-                    className="w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-md"
-                    style={{ backgroundColor: '#F8F5EE' }}
-                  >
-                    {selectedCustomerForRecord.avatar || '👤'}
-                  </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-bold mb-1" style={{ color: '#232323' }}>
                       {selectedCustomerForRecord.name}
@@ -188,8 +170,11 @@ function RecordScreen({
                     </p>
                   </div>
                   <div 
-                    className="w-3 h-3 rounded-full animate-pulse"
-                    style={{ backgroundColor: '#EF4444', boxShadow: '0 0 12px rgba(239, 68, 68, 0.6)' }}
+                    className={`w-3 h-3 rounded-full ${isCurrentlyPaused ? '' : 'animate-pulse'}`}
+                    style={{ 
+                      backgroundColor: isCurrentlyPaused ? '#FFA500' : '#EF4444', 
+                      boxShadow: isCurrentlyPaused ? '0 0 12px rgba(255, 165, 0, 0.6)' : '0 0 12px rgba(239, 68, 68, 0.6)' 
+                    }}
                   ></div>
                 </div>
               </div>
@@ -274,8 +259,8 @@ function RecordScreen({
               <WaveBars />
             </div>
 
-            {/* 컨트롤 버튼들 - 일시정지/재개 & 정지 */}
-            <div className="flex items-center justify-center gap-8 mt-8 animate-in zoom-in duration-700 delay-300">
+            {/* 컨트롤 버튼들 - 일시정지/재개 & 정지 & 취소 */}
+            <div className="flex items-center justify-center gap-6 mt-8 animate-in zoom-in duration-700 delay-300">
               {/* 왼쪽: 일시정지/이어 말하기 버튼 */}
               <button
                 onClick={() => {
@@ -324,6 +309,19 @@ function RecordScreen({
                 >
                   <Square size={24} fill="white" stroke="white" />
                 </div>
+              </button>
+
+              {/* 오른쪽: 취소 버튼 */}
+              <button
+                onClick={() => {
+                  if (window.confirm('지금 나가면 현재 녹음은 저장되지 않습니다. 정말 취소하시겠습니까?')) {
+                    cancelRecording();
+                  }
+                }}
+                className="w-12 h-12 rounded-full bg-white border border-[#E3D7C7] flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all duration-200"
+                style={{ color: '#8C7A68' }}
+              >
+                <X size={18} />
               </button>
             </div>
           </div>
