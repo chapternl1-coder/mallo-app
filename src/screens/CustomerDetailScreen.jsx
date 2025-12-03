@@ -42,13 +42,17 @@ function CustomerDetailScreen({
   startRecording,
   MOCK_CUSTOMERS
 }) {
-  // customers 배열에서 고객 찾기
-  let customer = customers.find(c => c.id === selectedCustomerId);
+  // customers 배열에서 고객 찾기 (숫자와 문자열 ID 모두 처리)
+  let customer = customers.find(c => {
+    return c.id === selectedCustomerId || String(c.id) === String(selectedCustomerId);
+  });
   
   // customers 배열에 없으면 MOCK_CUSTOMERS에서 직접 찾기
   if (!customer) {
     console.log('customers 배열에 고객이 없어서 MOCK_CUSTOMERS에서 찾는 중...');
-    const mockCustomer = MOCK_CUSTOMERS.find(c => c.id === selectedCustomerId);
+    const mockCustomer = MOCK_CUSTOMERS.find(c => {
+      return c.id === selectedCustomerId || String(c.id) === String(selectedCustomerId);
+    });
     if (mockCustomer) {
       console.log('MOCK_CUSTOMERS에서 찾은 고객:', mockCustomer);
       customer = { 
@@ -114,7 +118,9 @@ function CustomerDetailScreen({
   //       전화번호/이름 기반으로 실제 고객에게 재할당하는 마이그레이션 도구가 필요하면 추후 추가.
   
   // customerId가 null인 방문 기록 필터링
-  const customerVisits = (visits[selectedCustomerId] || []).filter(visit => {
+  // visits 객체에서 고객의 방문 기록 가져오기 (숫자와 문자열 ID 모두 처리)
+  const rawVisits = visits[selectedCustomerId] || visits[String(selectedCustomerId)] || [];
+  const customerVisits = rawVisits.filter(visit => {
     if (!visit || !visit.id) {
       console.warn('[CustomerDetailScreen] 유효하지 않은 방문 기록:', visit);
       return false;

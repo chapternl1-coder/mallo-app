@@ -414,8 +414,18 @@ function HistoryScreen({
               
               // 고객 상세 페이지로 이동 핸들러
               const handleCustomerClick = (record) => {
-                if (!record || !record.customerId) return;
-                setSelectedCustomerId(record.customerId);
+                if (!record) return;
+                
+                // customerId 우선, 없으면 customer 객체에서 가져오기
+                const targetCustomerId = record.customerId || customer?.id;
+                
+                if (!targetCustomerId) {
+                  console.warn('[HistoryScreen] 고객 ID를 찾을 수 없습니다.', record);
+                  return;
+                }
+                
+                console.log('[HistoryScreen] 고객 상세 페이지로 이동:', targetCustomerId);
+                setSelectedCustomerId(targetCustomerId);
                 setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
               };
 

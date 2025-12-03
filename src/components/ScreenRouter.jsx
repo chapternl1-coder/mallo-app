@@ -22,7 +22,14 @@ export default function ScreenRouter(props) {
     Object.keys(visits).forEach(customerId => {
       const customerVisits = visits[customerId];
       customerVisits.forEach(visit => {
-        const customer = customers.find(c => c.id === parseInt(customerId));
+        // customerId를 숫자와 문자열 모두 처리
+        // 숫자로 변환 가능하면 숫자로, 아니면 원본 문자열로 비교
+        const parsedId = isNaN(Number(customerId)) ? customerId : Number(customerId);
+        const customer = customers.find(c => {
+          // c.id도 숫자와 문자열 모두 가능하므로 동일하게 처리
+          const compareId = isNaN(Number(c.id)) ? c.id : Number(c.id);
+          return compareId === parsedId || String(c.id) === String(customerId);
+        });
         
         // serviceDate가 없으면 detail.sections에서 파싱 시도
         let finalServiceDate = visit.serviceDate;
@@ -44,7 +51,7 @@ export default function ScreenRouter(props) {
           ...visit,
           serviceDate: finalServiceDate || visit.serviceDate || visit.date,
           customerName: displayName,
-          customerId: parseInt(customerId),
+          customerId: customerId, // 원본 customerId 그대로 사용
           customer: customer
         });
       });
