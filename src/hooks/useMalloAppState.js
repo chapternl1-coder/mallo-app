@@ -1100,8 +1100,20 @@ export default function useMalloAppState() {
         throw new Error('요약 결과를 파싱할 수 없습니다.');
       }
       
+      // API 응답 형식을 정리하여 전달 (텍스트 테스트와 동일한 처리)
+      let cleanedResult = {};
+      
       if (parsedResult.title && parsedResult.sections && Array.isArray(parsedResult.sections)) {
-        handleSummaryResult(parsedResult);
+        // 올바른 형식: content 배열을 먼저 정리한 후 전달
+        cleanedResult = {
+          ...parsedResult,
+          customerInfo: parsedResult.customerInfo || { name: null, phone: null },
+          sections: (parsedResult.sections || []).map((section) => ({
+            ...section,
+            content: normalizeContentArray(section.content || []),
+          })),
+        };
+        handleSummaryResult(cleanedResult);
       } else {
         throw new Error('API 응답 형식이 올바르지 않습니다.');
       }
