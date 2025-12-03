@@ -126,7 +126,7 @@ export default function useMalloAppState() {
   const [selectedTagIds, setSelectedTagIds] = useState([]);
   const [isTagPickerOpen, setIsTagPickerOpen] = useState(false);
   
-  const DEV_MODE = true;
+  const DEV_MODE = true; // 개발용 요약 테스트 박스 표시 여부
   const [testSummaryInput, setTestSummaryInput] = useState('');
   const [isTestingSummary, setIsTestingSummary] = useState(false);
   
@@ -1082,18 +1082,30 @@ export default function useMalloAppState() {
 
       setRecordingDate(new Date());
 
-      // TODO: 음성 인식은 별도 서버 API가 필요합니다 (/api/transcribe 등)
-      // 현재는 DEV_MODE에서만 더미 데이터를 사용합니다.
-      // 실제 프로덕션에서는 서버 API를 통해 음성을 텍스트로 변환해야 합니다.
-      let transcript = '';
-      if (DEV_MODE) {
-        // 개발 모드에서는 더미 텍스트 사용 - 뷰티샵 시술 내용 예시
-        transcript = '오늘 오후 3시에 김민지 고객님 오셨어요. 속눈썹 리터치인데 저번에 C컬 했더니 처진다고 해서 이번엔 D컬 11mm로 올려드렸어요. 눈물이 좀 많으셔서 순한 글루 사용했고요. 회원권에서 5만원 차감했습니다.';
-        console.log('[개발 모드] 더미 음성 인식 텍스트 사용:', transcript);
-      } else {
-        // 실제 환경에서는 서버 API 호출 필요
-        throw new Error('음성 인식 기능은 서버 API를 통해 사용할 수 있습니다. 서버 API가 구현될 때까지 사용할 수 없습니다.');
+      // FormData를 사용하여 오디오 파일 전송
+      console.log('[음성 인식] FormData 준비 시작');
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+
+      console.log('[음성 인식] 오디오 파일 크기:', audioBlob.size, 'bytes');
+
+      // OpenAI Whisper API를 통해 음성을 텍스트로 변환
+      console.log('[음성 인식] /api/transcribe 호출 시작');
+      const transcribeResponse = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData, // FormData는 Content-Type을 자동으로 설정
+      });
+
+      if (!transcribeResponse.ok) {
+        const errorData = await transcribeResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || '음성 인식에 실패했습니다.');
       }
+
+      const transcribeData = await transcribeResponse.json();
+      const transcript = transcribeData.transcript || '';
+      
+      console.log('[음성 인식] 변환된 텍스트:', transcript);
+      console.log('[음성 인식] 텍스트 길이:', transcript.length);
       
       if (!transcript.trim() || recordingTime < 1) {
         setIsProcessing(false);
