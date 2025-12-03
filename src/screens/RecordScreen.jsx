@@ -388,31 +388,22 @@ function RecordScreen({
       <main className="flex-1 overflow-y-auto p-8 space-y-5 pb-32" style={{ backgroundColor: '#F2F0E6' }}>
          {/* 고객 정보 표시 - selectedCustomerForRecord가 있으면 카드, 없으면 입력창 */}
          {selectedCustomerForRecord ? (
-           <div className="bg-white rounded-xl shadow-sm border border-gray-200" style={{ padding: '12px 16px' }}>
-             <div className="flex items-center gap-2 justify-start ml-6">
-               {/* recordingDate && (
-                 <div className="flex items-center gap-2">
-                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A27A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                     <circle cx="12" cy="12" r="10"></circle>
-                     <polyline points="12 6 12 12 16 14"></polyline>
-                   </svg>
-                   <span className="text-base font-medium" style={{ color: '#C9A27A' }}>
+           <div className="bg-white rounded-xl shadow-sm border border-gray-200 py-3 px-6">
+             <div className="flex flex-col items-start">
+               <div className="flex items-center gap-2">
+                 {recordingDate && (
+                   <span className="text-sm font-medium" style={{ color: '#C9A27A' }}>
                      {(() => {
                        const hours = String(recordingDate.getHours()).padStart(2, '0');
                        const minutes = String(recordingDate.getMinutes()).padStart(2, '0');
                        return `${hours}:${minutes} 예약`;
-                     })()}
-                   </span>
-                 </div>
-               ) */}
-
-               {/* 이름과 번호를 감싸는 영역에 좌우 여백과 폭 제한 추가 */}
-               <div className="flex flex-col justify-center px-4 max-w-xs" style={{ minWidth: '220px' }}>
-                 <h3 className="font-bold text-base mb-0.5 text-left" style={{ color: '#232323' }}>{selectedCustomerForRecord.name}</h3>
-                 <div className="text-sm text-left" style={{ color: '#8C8C8C' }}>
-                   {selectedCustomerForRecord.phone}
-                 </div>
-               </div>
+                   })()}
+                 </span>
+               )}
+               <span className="font-bold text-base" style={{ color: '#232323' }}>{selectedCustomerForRecord.name}</span>
+             </div>
+             <div className="mt-2">
+               <span className="text-sm" style={{ color: '#8C8C8C' }}>{selectedCustomerForRecord.phone || '전화번호 미등록'}</span>
              </div>
            </div>
          ) : (
