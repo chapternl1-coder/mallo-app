@@ -115,18 +115,24 @@ function HomeScreen({
 
   // 예약 카드 클릭 핸들러 (고객 상세 페이지로 이동)
   const handleReservationCardClick = (reservation) => {
-    // 예약에 customerId가 있으면 고객 상세 페이지로 이동
-    if (reservation.customerId) {
-      const matchedCustomer = customers.find((c) => c.id === reservation.customerId);
-      if (matchedCustomer) {
-        setSelectedCustomerId(matchedCustomer.id);
-        // 홈 화면에서 고객 상세로 이동하므로 이전 화면이 홈임을 명시
-        setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
-        return;
-      }
+    // 예약에 customerId가 있을 때만 고객 상세 페이지로 이동
+    if (!reservation.customerId) {
+      console.log('[HomeScreen] 예약에 customerId가 없어 클릭 무시:', reservation.name);
+      return;
     }
     
-    // customerId가 없거나 매칭되는 고객이 없으면 아무 동작 안 함
+    // customerId로 고객 찾기 (숫자와 문자열 ID 모두 처리)
+    const matchedCustomer = customers.find((c) => {
+      return c.id === reservation.customerId || String(c.id) === String(reservation.customerId);
+    });
+    
+    if (matchedCustomer) {
+      console.log('[HomeScreen] 고객 상세 페이지로 이동:', matchedCustomer.id, matchedCustomer.name);
+      setSelectedCustomerId(matchedCustomer.id);
+      setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+    } else {
+      console.warn('[HomeScreen] 예약의 customerId로 고객을 찾을 수 없습니다:', reservation.customerId);
+    }
   };
 
   // 녹음 버튼 클릭 핸들러 (녹음 화면으로 이동)
@@ -137,7 +143,10 @@ function HomeScreen({
       : null;
 
     if (matchedCustomer) {
-      setSelectedCustomerForRecord(matchedCustomer);
+      setSelectedCustomerForRecord({
+        ...matchedCustomer,
+        reservationId: reservation.id  // 예약 ID 추가
+      });
       setSelectedCustomerId(matchedCustomer.id);
     } else {
       // 신규 손님: 최소 정보만 가진 임시 객체 생성
@@ -147,6 +156,7 @@ function HomeScreen({
         phone: reservation.phone || '',
         isNew: true,
         tags: [],
+        reservationId: reservation.id  // 예약 ID 추가
       };
       setSelectedCustomerForRecord(tempCustomer);
       setSelectedCustomerId(null);
@@ -335,10 +345,7 @@ function HomeScreen({
                             : 'bg-white border border-gray-100 hover:border-[#C9A27A]'
                         }`}
                       >
-                        <div 
-                          className={`flex items-center gap-4 ${reservation.customerId ? 'cursor-pointer' : ''}`}
-                          onClick={() => handleReservationCardClick(reservation)}
-                        >
+                        <div className="flex items-center gap-4">
                           {/* 동그라미 체크박스 (왼쪽) */}
                           <div 
                             className="flex-shrink-0" 
@@ -375,9 +382,23 @@ function HomeScreen({
                           {/* 고객 정보 (중앙) */}
                           <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <h4 className={`font-semibold text-base truncate ${isCompleted ? 'line-through text-gray-400' : isNew ? 'text-[#3F352B]' : 'text-gray-800'}`}>
-                                    {displayName}
-                                  </h4>
+                                  {/* 이름: 기존 고객이면 클릭 가능, 신규는 일반 텍스트 */}
+                                  {reservation.customerId ? (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleReservationCardClick(reservation);
+                                      }}
+                                      className={`font-semibold text-base truncate hover:text-[#C9A27A] underline transition-colors ${isCompleted ? 'line-through text-gray-400' : isNew ? 'text-[#3F352B]' : 'text-gray-800'}`}
+                                    >
+                                      {displayName}
+                                    </button>
+                                  ) : (
+                                    <h4 className={`font-semibold text-base truncate ${isCompleted ? 'line-through text-gray-400' : isNew ? 'text-[#3F352B]' : 'text-gray-800'}`}>
+                                      {displayName}
+                                    </h4>
+                                  )}
                                   {isNew && (
                                     <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap shadow-sm ${isCompleted ? 'bg-gray-300 text-gray-500' : 'bg-[#C9A27A] text-white'}`}>
                                       신규

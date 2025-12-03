@@ -12,6 +12,7 @@ function ReservationScreen({
   deleteReservation,
   customers,
   setCurrentScreen,
+  setSelectedCustomerId,
   getTodayDateString,
 }) {
   const [showForm, setShowForm] = useState(false);
@@ -348,9 +349,25 @@ function ReservationScreen({
                           {reservation.time}
                         </span>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium text-[#3F352B]">
-                            {reservation.name}
-                          </span>
+                          {/* 이름: 기존 고객이면 클릭 가능, 신규는 일반 텍스트 */}
+                          {reservation.customerId ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                console.log('[예약 화면] 고객 상세 페이지로 이동:', reservation.customerId);
+                                setSelectedCustomerId(reservation.customerId);
+                                setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+                              }}
+                              className="text-sm font-medium text-[#3F352B] hover:text-[#C9A27A] underline transition-colors"
+                            >
+                              {reservation.name}
+                            </button>
+                          ) : (
+                            <span className="text-sm font-medium text-[#3F352B]">
+                              {reservation.name}
+                            </span>
+                          )}
                           {displayPhone && (
                             <span className="text-xs text-gray-600">
                               {displayPhone}

@@ -106,6 +106,8 @@ function RecordScreen({
   setRecordingDate,
   setSelectedCustomerForRecord,
   setNewServiceTag,
+  reservations,
+  setReservations,
   TagPickerModal,
   CustomerTagPickerModal
 }) {
@@ -1112,6 +1114,43 @@ function RecordScreen({
               
               console.log('[고객 정보 업데이트] visitCount:', nextVisitCount);
               console.log('[고객 정보 업데이트] customerTags:', updatedCustomerTags);
+              
+              // ========================================
+              // 4.5단계: 예약에 customerId 연결 (만약 예약에서 녹음한 경우)
+              // ========================================
+              if (selectedCustomerForRecord?.reservationId && setReservations) {
+                console.log('[예약 업데이트] reservationId:', selectedCustomerForRecord.reservationId, 'customerId:', finalCustomerId);
+                setReservations(prev => prev.map(r => {
+                  if (r.id === selectedCustomerForRecord.reservationId) {
+                    return {
+                      ...r,
+                      customerId: finalCustomerId
+                    };
+                  }
+                  return r;
+                }));
+              } else if (selectedCustomerForRecord && setReservations) {
+                // reservationId가 없으면 이름/전화번호/시간으로 매칭
+                const recordedName = customerName.trim();
+                const recordedPhone = customerPhone.trim();
+                
+                console.log('[예약 업데이트] 이름/전화번호로 예약 찾기:', recordedName, recordedPhone);
+                setReservations(prev => prev.map(r => {
+                  // 이름과 전화번호가 모두 일치하고, customerId가 아직 없는 예약만 업데이트
+                  const nameMatch = r.name?.trim() === recordedName;
+                  const phoneMatch = r.phone?.trim() === recordedPhone || 
+                                     r.phone?.replace(/\D/g, '') === recordedPhone.replace(/\D/g, '');
+                  
+                  if (nameMatch && phoneMatch && !r.customerId) {
+                    console.log('[예약 업데이트] 매칭된 예약:', r.id);
+                    return {
+                      ...r,
+                      customerId: finalCustomerId
+                    };
+                  }
+                  return r;
+                }));
+              }
               
               // ========================================
               // 5단계: 화면 전환
