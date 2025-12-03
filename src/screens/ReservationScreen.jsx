@@ -340,17 +340,26 @@ function ReservationScreen({
             {filteredReservations.map((reservation) => {
                   const displayPhone = reservation.phone || '';
                   
-                  // 신규 판단: customerId로 고객 찾아서 visitCount 확인
-                  const matchedCustomer = reservation.customerId 
-                    ? customers.find(c => c.id === reservation.customerId || String(c.id) === String(reservation.customerId))
-                    : null;
+                  // 신규 판단: customerId나 전화번호로 기존 고객 찾기
+                  let matchedCustomer = null;
                   
-                  // 디버깅: visitCount 확인
-                  if (matchedCustomer) {
-                    console.log(`[예약] ${reservation.name} - visitCount: ${matchedCustomer.visitCount}`);
+                  // 1. customerId로 찾기
+                  if (reservation.customerId) {
+                    matchedCustomer = customers.find(c => 
+                      c.id === reservation.customerId || String(c.id) === String(reservation.customerId)
+                    );
                   }
                   
-                  const isNew = !matchedCustomer || matchedCustomer.visitCount === 1;
+                  // 2. customerId가 없으면 전화번호로 찾기
+                  if (!matchedCustomer && reservation.phone) {
+                    const normalizedPhone = reservation.phone.replace(/\D/g, '');
+                    matchedCustomer = customers.find(c => 
+                      c.phone && c.phone.replace(/\D/g, '') === normalizedPhone
+                    );
+                  }
+                  
+                  // 기존 고객이 있으면 신규 X, 없으면 신규 O
+                  const isNew = !matchedCustomer;
                   
                   return (
                     <div
