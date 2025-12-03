@@ -340,6 +340,12 @@ function ReservationScreen({
             {filteredReservations.map((reservation) => {
                   const displayPhone = reservation.phone || '';
                   
+                  // 신규 판단: customerId로 고객 찾아서 visitCount 확인
+                  const matchedCustomer = reservation.customerId 
+                    ? customers.find(c => c.id === reservation.customerId || String(c.id) === String(reservation.customerId))
+                    : null;
+                  const isNew = !matchedCustomer || matchedCustomer.visitCount <= 1;
+                  
                   return (
                     <div
                       key={reservation.id}
@@ -359,7 +365,7 @@ function ReservationScreen({
                               {displayPhone}
                             </span>
                           )}
-                          {!reservation.customerId && (
+                          {isNew && (
                             <span className="px-2 py-0.5 rounded-full border border-[#C9A27A] text-[10px] text-[#C9A27A] whitespace-nowrap">
                               신규
                             </span>

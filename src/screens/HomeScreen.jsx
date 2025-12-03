@@ -334,13 +334,19 @@ function HomeScreen({
                     const displayPhone = matchedCustomer?.phone || reservation.phone || '전화번호 미입력';
                     // 신규 판단: 고객이 없거나, visitCount가 1 이하면 신규 (녹음 후에도 유지)
                     const isNew = !matchedCustomer || matchedCustomer.visitCount <= 1;
+                    // 녹음 전 신규 판단: customerId가 없으면 아직 녹음 안 함
+                    const isNewNotRecorded = !reservation.customerId;
 
                     const isCompleted = reservation.isCompleted || false;
 
                     return (
                       <div
                         key={reservation.id}
-                        className="rounded-xl p-4 shadow-sm transition-all border bg-white border-gray-100 hover:border-[#C9A27A]"
+                        className={`rounded-xl p-4 shadow-sm transition-all border hover:border-[#C9A27A] ${
+                          isNewNotRecorded 
+                            ? 'bg-[#F9F5EF] border-[#F9F5EF]'  // 녹음 전 신규: 베이지
+                            : 'bg-white border-gray-100'         // 녹음 완료 또는 기존: 화이트
+                        }`}
                       >
                         <div className="flex items-center gap-4">
                           {/* 동그라미 체크박스 (왼쪽) */}
