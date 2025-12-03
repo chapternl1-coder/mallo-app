@@ -340,18 +340,10 @@ function ReservationScreen({
             {filteredReservations.map((reservation) => {
                   const displayPhone = reservation.phone || '';
                   
-                  // 신규 판단: customerId가 없거나, customer의 visitCount가 1인 경우
-                  const matchedCustomer = reservation.customerId 
-                    ? customers.find(c => c.id === reservation.customerId || String(c.id) === String(reservation.customerId))
-                    : null;
-                  const isNew = !matchedCustomer || matchedCustomer.visitCount === 1 || matchedCustomer.visitCount === 0;
-                  
                   return (
                     <div
                       key={reservation.id}
-                      className={`flex items-center justify-between rounded-2xl px-4 py-4 shadow-sm ${
-                        isNew ? 'bg-[#F9F5EF]' : 'bg-white'
-                      }`}
+                      className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 shadow-sm"
                     >
                       <div className="flex flex-1 items-center gap-3">
                         <span className="text-[11px] text-[#B18352]">
@@ -380,8 +372,8 @@ function ReservationScreen({
                               {displayPhone}
                             </span>
                           )}
-                          {isNew && (
-                            <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap shadow-sm bg-white text-[#C9A27A]">
+                          {!reservation.customerId && (
+                            <span className="px-2 py-0.5 rounded-full border border-[#C9A27A] text-[10px] text-[#C9A27A] whitespace-nowrap">
                               신규
                             </span>
                 )}
