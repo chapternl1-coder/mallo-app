@@ -503,7 +503,7 @@ function RecordScreen({
           </div>
 
           <div className="p-8 space-y-7">
-            {resultData.sections.map((section, idx) => {
+            {resultData.sections.filter(section => section.content && section.content.length > 0).map((section, idx) => {
               // section.title 안전하게 변환
               const safeSectionTitle = typeof section.title === 'string' 
                 ? section.title 

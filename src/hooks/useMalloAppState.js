@@ -1008,20 +1008,22 @@ export default function useMalloAppState() {
     // sections의 content 배열을 정리하여 모든 항목이 문자열인지 확인
     const cleanedData = {
       ...summaryData,
-      sections: (summaryData.sections || []).map((section, sectionIndex) => {
-        const normalizedContent = normalizeContentArray(section.content || []);
-        
-        // 디버깅: 객체가 있는지 확인
-        const hasObjects = (section.content || []).some(item => typeof item === 'object' && item !== null);
-        if (hasObjects) {
-          console.warn(`[요약 변환] 섹션 "${section.title}"에 객체가 포함되어 있습니다.`, section.content);
-        }
-        
-        return {
-          ...section,
-          content: normalizedContent,
-        };
-      }),
+      sections: (summaryData.sections || [])
+        .map((section, sectionIndex) => {
+          const normalizedContent = normalizeContentArray(section.content || []);
+          
+          // 디버깅: 객체가 있는지 확인
+          const hasObjects = (section.content || []).some(item => typeof item === 'object' && item !== null);
+          if (hasObjects) {
+            console.warn(`[요약 변환] 섹션 "${section.title}"에 객체가 포함되어 있습니다.`, section.content);
+          }
+          
+          return {
+            ...section,
+            content: normalizedContent,
+          };
+        })
+        .filter(section => section.content && section.content.length > 0), // 빈 섹션 제거
     };
     
     setResultData(cleanedData);
