@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Search, Clock, User, Plus, Calendar, Circle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Clock, User, Plus, Calendar, Circle, ChevronLeft, ChevronRight, Mic } from 'lucide-react';
 import { filterCustomersBySearch } from '../utils/customerListUtils';
 import { SCREENS } from '../constants/screens';
 import { format, isToday, addDays, subDays } from 'date-fns';
@@ -389,13 +389,13 @@ function HomeScreen({
                             </p>
                           </div>
 
-                          {/* 녹음/완료 버튼 (오른쪽) */}
-                          <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                          {/* 녹음 버튼 (오른쪽) */}
+                          <div className="flex-shrink-0 flex items-center" onClick={(e) => e.stopPropagation()}>
                             <button
                               onClick={() => handleReservationClick(reservation)}
-                              className="px-4 py-2 bg-[#C9A27A] text-white rounded-lg text-sm font-medium hover:bg-[#B8926A] active:scale-95 transition-all shadow-sm"
+                              className="w-10 h-10 rounded-full bg-[#C9A27A] text-white shadow-md hover:bg-[#B8926A] active:scale-95 transition-all flex items-center justify-center"
                             >
-                              녹음
+                              <Mic size={18} />
                             </button>
                           </div>
                         </div>
