@@ -529,14 +529,19 @@ function RecordScreen({
                           if (Array.isArray(item)) {
                             safeItem = item.map(i => typeof i === 'object' ? JSON.stringify(i) : String(i)).join(', ');
                           } else {
-                            // 객체를 키: 값 형태로 변환
+                            // 객체를 키: 값 형태로 변환하되, null 값을 필터링
                             safeItem = Object.entries(item)
                               .map(([key, value]) => {
+                                // null, undefined, 빈 문자열 필터링
+                                if (value === null || value === undefined || value === 'null' || (typeof value === 'string' && value.trim() === '')) {
+                                  return null;
+                                }
                                 const valStr = typeof value === 'object' && value !== null 
                                   ? JSON.stringify(value) 
-                                  : String(value || '');
+                                  : String(value);
                                 return `${key}: ${valStr}`;
                               })
+                              .filter(entry => entry !== null)
                               .join(', ');
                           }
                         } catch (e) {
@@ -546,12 +551,17 @@ function RecordScreen({
                         safeItem = String(item || '');
                       }
                       
+                      // null이나 빈 문자열인 경우 해당 항목을 렌더링하지 않음
+                      if (!safeItem || safeItem === 'null' || safeItem === 'undefined' || safeItem.trim() === '') {
+                        return null;
+                      }
+                      
                       return (
                         <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
                           {safeItem}
                         </li>
                       );
-                    })}
+                    }).filter(item => item !== null)}
                   </ul>
                 </div>
               );
