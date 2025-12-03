@@ -349,25 +349,23 @@ function ReservationScreen({
                           {reservation.time}
                         </span>
                         <div className="flex items-center gap-2 flex-wrap">
-                          {/* 이름: 기존 고객이면 클릭 가능, 신규는 일반 텍스트 */}
-                          {reservation.customerId ? (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
+                          {/* 이름: customerId가 있으면 클릭 가능하지만 UI는 동일 */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (reservation.customerId) {
                                 console.log('[예약 화면] 고객 상세 페이지로 이동:', reservation.customerId);
                                 setSelectedCustomerId(reservation.customerId);
                                 setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
-                              }}
-                              className="text-sm font-medium text-[#3F352B] hover:text-[#C9A27A] underline transition-colors"
-                            >
-                              {reservation.name}
-                            </button>
-                          ) : (
-                            <span className="text-sm font-medium text-[#3F352B]">
-                              {reservation.name}
-                            </span>
-                          )}
+                              }
+                            }}
+                            className={`text-sm font-medium text-[#3F352B] transition-colors ${
+                              reservation.customerId ? 'hover:text-[#C9A27A] cursor-pointer' : 'cursor-default'
+                            }`}
+                          >
+                            {reservation.name}
+                          </button>
                           {displayPhone && (
                             <span className="text-xs text-gray-600">
                               {displayPhone}

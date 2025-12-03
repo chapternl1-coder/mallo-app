@@ -382,23 +382,21 @@ function HomeScreen({
                           {/* 고객 정보 (중앙) */}
                           <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  {/* 이름: 기존 고객이면 클릭 가능, 신규는 일반 텍스트 */}
-                                  {reservation.customerId ? (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
+                                  {/* 이름: customerId가 있으면 클릭 가능하지만 UI는 동일 */}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (reservation.customerId) {
                                         handleReservationCardClick(reservation);
-                                      }}
-                                      className={`font-semibold text-base truncate hover:text-[#C9A27A] underline transition-colors ${isCompleted ? 'line-through text-gray-400' : isNew ? 'text-[#3F352B]' : 'text-gray-800'}`}
-                                    >
-                                      {displayName}
-                                    </button>
-                                  ) : (
-                                    <h4 className={`font-semibold text-base truncate ${isCompleted ? 'line-through text-gray-400' : isNew ? 'text-[#3F352B]' : 'text-gray-800'}`}>
-                                      {displayName}
-                                    </h4>
-                                  )}
+                                      }
+                                    }}
+                                    className={`font-semibold text-base truncate transition-colors ${
+                                      reservation.customerId ? 'hover:text-[#C9A27A] cursor-pointer' : 'cursor-default'
+                                    } ${isCompleted ? 'line-through text-gray-400' : isNew ? 'text-[#3F352B]' : 'text-gray-800'}`}
+                                  >
+                                    {displayName}
+                                  </button>
                                   {isNew && (
                                     <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap shadow-sm ${isCompleted ? 'bg-gray-300 text-gray-500' : 'bg-[#C9A27A] text-white'}`}>
                                       신규
