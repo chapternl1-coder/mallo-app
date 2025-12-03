@@ -182,7 +182,7 @@ function RecordScreen({
           )}
 
           {/* 중앙: 타이머 영역 */}
-          <div className="z-10 flex flex-col items-center justify-center flex-1">
+          <div className="z-10 flex flex-col items-center justify-center flex-1 -mt-12">
             {/* 안내 메시지 */}
             <div className="mb-4 w-full max-w-xs px-4">
               <div 
