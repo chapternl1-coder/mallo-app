@@ -388,7 +388,7 @@ function RecordScreen({
          {/* 고객 정보 표시 - selectedCustomerForRecord가 있으면 카드, 없으면 입력창 */}
          {selectedCustomerForRecord ? (
            <div className="bg-white rounded-xl shadow-sm border border-gray-200" style={{ padding: '12px 16px' }}>
-             <div className="flex items-center justify-start gap-4">
+             <div className="flex items-center gap-4">
                {recordingDate && (
                  <div className="flex items-center gap-2">
                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A27A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -404,11 +404,13 @@ function RecordScreen({
                    </span>
                  </div>
                )}
-               <h3 className="font-bold text-base mb-0.5" style={{ color: '#232323' }}>
-                 {selectedCustomerForRecord.name}
-               </h3>
-               <div className="text-sm" style={{ color: '#8C8C8C' }}>
-                 {selectedCustomerForRecord.phone}
+
+               {/* 이름과 번호를 감싸는 영역에 좌우 여백과 폭 제한 추가 */}
+               <div className="flex flex-col justify-center px-4" style={{ minWidth: '220px' }}>
+                 <h3 className="font-bold text-base mb-0.5" style={{ color: '#232323' }}>{selectedCustomerForRecord.name}</h3>
+                 <div className="text-sm" style={{ color: '#8C8C8C' }}>
+                   {selectedCustomerForRecord.phone}
+                 </div>
                </div>
              </div>
            </div>
