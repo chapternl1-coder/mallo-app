@@ -477,7 +477,7 @@ function RecordScreen({
                 <span className="ml-2">{userProfile.roleTitle}</span>
               </span>
               <h3 className="font-bold text-white text-lg mb-2">
-                📝 {selectedCustomerForRecord?.name || tempName || '고객'}님 시술요약
+                📝 {selectedCustomerForRecord?.name || tempName || '고객'}님 시술 요약
               </h3>
               <p className="text-base font-medium text-white/90 leading-relaxed">
                 {(() => {
