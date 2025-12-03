@@ -207,6 +207,48 @@ export default function useMalloAppState() {
     saveToLocalStorage('mallo_reservations', reservations);
   }, [reservations]);
 
+  // 기존 예약 데이터에 isNew 플래그 마이그레이션
+  useEffect(() => {
+    const needsMigration = reservations.some(r => r.isNew === undefined);
+    if (needsMigration) {
+      console.log('[예약 마이그레이션] isNew 플래그 추가 시작');
+      setReservations(prev => prev.map(reservation => {
+        if (reservation.isNew !== undefined) {
+          return reservation; // 이미 isNew가 있으면 그대로
+        }
+        
+        // isNew 플래그가 없는 기존 예약은 신규로 처리 (기존 동작 유지)
+        let isNewReservation = true;
+        
+        // 1. customerId로 기존 고객 찾기
+        if (reservation.customerId) {
+          const existingCustomer = customers.find(c => 
+            c.id === reservation.customerId || String(c.id) === String(reservation.customerId)
+          );
+          if (existingCustomer) {
+            isNewReservation = false;
+          }
+        }
+        
+        // 2. 전화번호로 기존 고객 찾기
+        if (isNewReservation && reservation.phone) {
+          const normalizedPhone = reservation.phone.replace(/\D/g, '');
+          const existingCustomer = customers.find(c => 
+            c.phone && c.phone.replace(/\D/g, '') === normalizedPhone
+          );
+          if (existingCustomer) {
+            isNewReservation = false;
+          }
+        }
+        
+        return {
+          ...reservation,
+          isNew: isNewReservation
+        };
+      }));
+    }
+  }, [reservations, customers]);
+
   // 데모용 예약 데이터
   const DEMO_RESERVATIONS = [
     {
@@ -1487,6 +1529,30 @@ export default function useMalloAppState() {
 
   // 예약 관련 함수들
   const addReservation = ({ time, name, customerId = null, date, phone, phoneLast4 }) => {
+    // 예약 생성 시점에 신규 여부 판단
+    let isNewReservation = true;
+    
+    // 1. customerId로 기존 고객 찾기
+    if (customerId) {
+      const existingCustomer = customers.find(c => 
+        c.id === customerId || String(c.id) === String(customerId)
+      );
+      if (existingCustomer) {
+        isNewReservation = false;
+      }
+    }
+    
+    // 2. customerId가 없으면 전화번호로 찾기
+    if (isNewReservation && phone) {
+      const normalizedPhone = phone.replace(/\D/g, '');
+      const existingCustomer = customers.find(c => 
+        c.phone && c.phone.replace(/\D/g, '') === normalizedPhone
+      );
+      if (existingCustomer) {
+        isNewReservation = false;
+      }
+    }
+    
     const newReservation = {
       id: `${Date.now()}_${Math.random().toString(16).slice(2, 6)}`,
       time,
@@ -1501,7 +1567,8 @@ export default function useMalloAppState() {
       })(),
       phone: phone || '',
       phoneLast4: phoneLast4 || (phone ? phone.slice(-4) : ''),
-      isCompleted: false
+      isCompleted: false,
+      isNew: isNewReservation  // 생성 시점의 신규 여부 저장
     };
     setReservations(prev => [...prev, newReservation]);
     return newReservation;
