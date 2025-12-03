@@ -150,7 +150,8 @@ function HomeScreen({
     if (matchedCustomer) {
       setSelectedCustomerForRecord({
         ...matchedCustomer,
-        reservationId: reservation.id  // 예약 ID 추가
+        reservationId: reservation.id,  // 예약 ID 추가
+        time: reservation.time || matchedCustomer.time  // 예약 시간 추가 (예약 시간 우선, 없으면 고객 시간)
       });
       setSelectedCustomerId(matchedCustomer.id);
     } else {
@@ -161,7 +162,8 @@ function HomeScreen({
         phone: reservation.phone || '',
         isNew: true,
         tags: [],
-        reservationId: reservation.id  // 예약 ID 추가
+        reservationId: reservation.id,  // 예약 ID 추가
+        time: reservation.time  // 예약 시간 추가
       };
       setSelectedCustomerForRecord(tempCustomer);
       setSelectedCustomerId(null);
