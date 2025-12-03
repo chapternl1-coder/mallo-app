@@ -49,7 +49,9 @@ function HomeScreen({
 
   // 동적 제목 텍스트 (항상 "M월 D일" 형식으로 표시)
   const dateTitle = useMemo(() => {
-    return `${format(selectedDate, 'M월 d일', { locale: ko })} 방문 예정 고객`;
+    const month = selectedDate.getMonth() + 1;
+    const day = selectedDate.getDate();
+    return `${month}월 ${day}일 방문 예정 고객`;
   }, [selectedDate]);
 
   // 검색어에 따른 고객 필터링 (최소 2글자)
@@ -270,21 +272,24 @@ function HomeScreen({
                     <ChevronLeft size={20} className="text-[#C9A27A]" />
                   </button>
                   
-                  <button
-                    onClick={() => dateInputRef.current?.showPicker()}
-                    className="px-3 py-1.5 hover:bg-[#F9F5EF] rounded-lg transition-colors"
-                  >
-                    <h3 className="text-lg font-bold text-gray-800">
-                      {dateTitle}
-                    </h3>
-                  </button>
-                  <input
-                    ref={dateInputRef}
-                    type="date"
-                    value={selectedDateStr}
-                    onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                    className="sr-only"
-                  />
+                  <div className="relative">
+                    <button
+                      onClick={() => dateInputRef.current?.click()}
+                      className="px-3 py-1.5 hover:bg-[#F9F5EF] rounded-lg transition-colors"
+                    >
+                      <h3 className="text-lg font-bold text-gray-800">
+                        {dateTitle}
+                      </h3>
+                    </button>
+                    <input
+                      ref={dateInputRef}
+                      type="date"
+                      value={selectedDateStr}
+                      onChange={(e) => setSelectedDate(new Date(e.target.value))}
+                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                      style={{ pointerEvents: 'none' }}
+                    />
+                  </div>
                   
                   <button
                     onClick={() => setSelectedDate(prev => addDays(prev, 1))}
