@@ -1003,22 +1003,30 @@ function RecordScreen({
                   return c;
                 }));
                 
-                // state 업데이트 후 화면 전환 및 초기화 (비동기 처리 대기)
-                setTimeout(() => {
-                  setSelectedCustomerId(customerId);
-                  setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
-                  
-                  // 상태 초기화
-                  setResultData(null);
-                  setTranscript('');
-                  setRawTranscript('');
-                  setRecordingDate(null);
-                  setSelectedCustomerForRecord(null);
-                  setTempName('');
-                  setTempPhone('');
-                  setServiceTags([]);
-                  setNewServiceTag('');
-                }, 100);
+                console.log('[기존 고객 저장] 고객 ID:', customerId);
+                console.log('[기존 고객 저장] 방문 기록:', newVisit);
+                
+                // state 업데이트 완료 후 화면 전환 (React 렌더링 사이클 고려)
+                requestAnimationFrame(() => {
+                  setTimeout(() => {
+                    console.log('[기존 고객 저장] 화면 전환 시작, 고객 ID:', customerId);
+                    setSelectedCustomerId(customerId);
+                    setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+                    
+                    // 화면 전환 후 상태 초기화
+                    setTimeout(() => {
+                      setResultData(null);
+                      setTranscript('');
+                      setRawTranscript('');
+                      setRecordingDate(null);
+                      setSelectedCustomerForRecord(null);
+                      setTempName('');
+                      setTempPhone('');
+                      setServiceTags([]);
+                      setNewServiceTag('');
+                    }, 50);
+                  }, 200);
+                });
               } else {
                 // 신규 고객인 경우 이름 필수 검증
                 if (!tempName || !tempName.trim()) {
@@ -1099,28 +1107,38 @@ function RecordScreen({
                   serviceTags
                 });
                 
+                // 먼저 고객과 방문 기록 저장
                 setCustomers(prev => [...prev, newCustomer]);
                 setVisits(prev => ({
                   ...prev,
                   [newCustomer.id]: [newVisit]
                 }));
                 
-                // state 업데이트 후 화면 전환 및 초기화 (비동기 처리 대기)
-                setTimeout(() => {
-                  setSelectedCustomerId(newCustomer.id);
-                  setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
-                  
-                  // 상태 초기화
-                  setResultData(null);
-                  setTranscript('');
-                  setRawTranscript('');
-                  setRecordingDate(null);
-                  setSelectedCustomerForRecord(null);
-                  setTempName('');
-                  setTempPhone('');
-                  setServiceTags([]);
-                  setNewServiceTag('');
-                }, 100);
+                console.log('[신규 고객 저장] 고객 ID:', newCustomer.id);
+                console.log('[신규 고객 저장] 고객 정보:', newCustomer);
+                console.log('[신규 고객 저장] 방문 기록:', newVisit);
+                
+                // state 업데이트 완료 후 화면 전환 (React 렌더링 사이클 고려)
+                requestAnimationFrame(() => {
+                  setTimeout(() => {
+                    console.log('[신규 고객 저장] 화면 전환 시작, 고객 ID:', newCustomer.id);
+                    setSelectedCustomerId(newCustomer.id);
+                    setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+                    
+                    // 화면 전환 후 상태 초기화
+                    setTimeout(() => {
+                      setResultData(null);
+                      setTranscript('');
+                      setRawTranscript('');
+                      setRecordingDate(null);
+                      setSelectedCustomerForRecord(null);
+                      setTempName('');
+                      setTempPhone('');
+                      setServiceTags([]);
+                      setNewServiceTag('');
+                    }, 50);
+                  }, 200);
+                });
               }
             }}
             className="flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-medium text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all"
