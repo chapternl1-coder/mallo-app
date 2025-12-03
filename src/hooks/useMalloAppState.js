@@ -1416,7 +1416,9 @@ export default function useMalloAppState() {
     const year = today.getFullYear();
     const month = today.getMonth() + 1;
     const day = today.getDate();
-    return `${year}년 ${month}월 ${day}일`;
+    const dayNames = ['일','월','화','수','목','금','토'];
+    const dayName = dayNames[today.getDay()];
+    return `${year}년 ${month}월 ${day}일 (${dayName})`;
   };
 
   const handlePhoneChange = (e) => {
