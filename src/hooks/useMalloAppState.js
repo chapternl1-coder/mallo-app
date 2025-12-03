@@ -884,28 +884,60 @@ export default function useMalloAppState() {
       return [];
     }
     
+    // null 값을 확인하는 헬퍼 함수
+    const isNullValue = (value) => {
+      if (value === null || value === undefined) return true;
+      if (typeof value === 'string') {
+        const trimmed = value.trim().toLowerCase();
+        return trimmed === '' || trimmed === 'null' || trimmed === 'undefined';
+      }
+      return false;
+    };
+    
+    // 문자열에서 "키: null" 형태를 필터링하는 함수
+    const cleanNullFromString = (str) => {
+      // "이름: null", "전화번호: null" 같은 패턴 제거
+      const parts = str.split('/').map(part => part.trim()).filter(part => {
+        // "키: null" 형태를 체크
+        if (part.includes(':')) {
+          const [, value] = part.split(':').map(s => s.trim());
+          return !isNullValue(value);
+        }
+        return !isNullValue(part);
+      });
+      
+      return parts.length > 0 ? parts.join(' / ') : null;
+    };
+    
     const result = [];
     
     content.forEach((item) => {
       // 이미 문자열이면 처리
       if (typeof item === 'string') {
-        // 빈 문자열이면 스킵
-        if (!item.trim()) {
+        // 빈 문자열이나 null 문자열이면 스킵
+        if (isNullValue(item)) {
+          return;
+        }
+        
+        // "키: null" 형태가 포함된 경우 정리
+        const cleaned = cleanNullFromString(item);
+        if (!cleaned || isNullValue(cleaned)) {
           return;
         }
         
         // 문자열이 JSON처럼 보이면 파싱해서 개별 항목으로 변환
-        const trimmed = item.trim();
+        const trimmed = cleaned.trim();
         if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
           try {
-            const parsed = JSON.parse(item);
+            const parsed = JSON.parse(cleaned);
             // 파싱 성공하면 객체를 각 키-값을 개별 항목으로 변환
             if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-              // 객체를 각 키-값을 개별 문자열 항목으로 변환
+              // 객체를 각 키-값을 개별 문자열 항목으로 변환 (null 값 필터링)
               Object.entries(parsed).forEach(([key, value]) => {
+                if (isNullValue(value)) return;
                 const valStr = typeof value === 'object' && value !== null 
                   ? JSON.stringify(value) 
-                  : String(value || '');
+                  : String(value);
                 result.push(`${key}: ${valStr}`);
               });
               return;
@@ -914,12 +946,12 @@ export default function useMalloAppState() {
             result.push(JSON.stringify(parsed));
             return;
           } catch (e) {
-            // JSON 파싱 실패하면 원본 문자열 반환
-            result.push(item);
+            // JSON 파싱 실패하면 정리된 문자열 반환
+            result.push(cleaned);
             return;
           }
         }
-        result.push(item);
+        result.push(cleaned);
         return;
       }
       
@@ -930,38 +962,46 @@ export default function useMalloAppState() {
             // 배열인 경우 각 항목을 처리
             item.forEach(i => {
               if (typeof i === 'object' && i !== null) {
-                // 배열 안의 객체도 키-값으로 분리
+                // 배열 안의 객체도 키-값으로 분리 (null 값 필터링)
                 Object.entries(i).forEach(([key, value]) => {
-                  result.push(`${key}: ${String(value || '')}`);
+                  if (!isNullValue(value)) {
+                    result.push(`${key}: ${String(value)}`);
+                  }
                 });
-              } else {
-                result.push(String(i || ''));
+              } else if (!isNullValue(i)) {
+                result.push(String(i));
               }
             });
             return;
           }
-          // 객체의 각 키-값을 개별 문자열 항목으로 변환
+          // 객체의 각 키-값을 개별 문자열 항목으로 변환 (null 값 필터링)
           Object.entries(item).forEach(([key, value]) => {
+            if (isNullValue(value)) return;
             const valStr = typeof value === 'object' && value !== null 
               ? JSON.stringify(value) 
-              : String(value || '');
+              : String(value);
             result.push(`${key}: ${valStr}`);
           });
           return;
         } catch (e) {
-          result.push(String(item));
+          const str = String(item);
+          if (!isNullValue(str)) {
+            result.push(str);
+          }
           return;
         }
       }
       
       // 그 외의 경우 문자열로 변환
-      const str = String(item || '');
-      if (str.trim()) {
-        result.push(str);
+      if (!isNullValue(item)) {
+        const str = String(item);
+        if (!isNullValue(str)) {
+          result.push(str);
+        }
       }
     });
     
-    return result.filter(item => item && item.trim()); // 빈 항목 제거
+    return result.filter(item => item && !isNullValue(item)); // 빈 항목 및 null 제거
   };
 
   const handleSummaryResult = (summaryData) => {

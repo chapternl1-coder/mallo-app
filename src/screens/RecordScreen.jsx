@@ -518,6 +518,16 @@ function RecordScreen({
                   </h4>
                   <ul className="space-y-3">
                     {section.content.map((item, i) => {
+                      // null 값을 확인하는 헬퍼 함수
+                      const isNullValue = (value) => {
+                        if (value === null || value === undefined) return true;
+                        if (typeof value === 'string') {
+                          const trimmed = value.trim().toLowerCase();
+                          return trimmed === '' || trimmed === 'null' || trimmed === 'undefined';
+                        }
+                        return false;
+                      };
+                      
                       // item을 안전하게 문자열로 변환
                       let safeItem = '';
                       
@@ -527,13 +537,16 @@ function RecordScreen({
                         // 객체인 경우 키-값 형태로 읽기 쉽게 변환
                         try {
                           if (Array.isArray(item)) {
-                            safeItem = item.map(i => typeof i === 'object' ? JSON.stringify(i) : String(i)).join(', ');
+                            safeItem = item
+                              .filter(i => !isNullValue(i))
+                              .map(i => typeof i === 'object' ? JSON.stringify(i) : String(i))
+                              .join(', ');
                           } else {
                             // 객체를 키: 값 형태로 변환하되, null 값을 필터링
                             safeItem = Object.entries(item)
                               .map(([key, value]) => {
                                 // null, undefined, 빈 문자열 필터링
-                                if (value === null || value === undefined || value === 'null' || (typeof value === 'string' && value.trim() === '')) {
+                                if (isNullValue(value)) {
                                   return null;
                                 }
                                 const valStr = typeof value === 'object' && value !== null 
@@ -552,7 +565,7 @@ function RecordScreen({
                       }
                       
                       // null이나 빈 문자열인 경우 해당 항목을 렌더링하지 않음
-                      if (!safeItem || safeItem === 'null' || safeItem === 'undefined' || safeItem.trim() === '') {
+                      if (isNullValue(safeItem)) {
                         return null;
                       }
                       
