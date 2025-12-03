@@ -387,13 +387,13 @@ function RecordScreen({
 
       <main className="flex-1 overflow-y-auto p-8 space-y-5 pb-32" style={{ backgroundColor: '#F2F0E6' }}>
          {selectedCustomerForRecord ? (
-           <div className="w-full bg-white rounded-2xl px-6 py-5 flex items-center justify-center gap-6 shadow-sm border border-[#E5E0D0] mb-4">
+           <div className="w-full bg-white rounded-2xl px-6 py-5 flex items-center justify-center gap-10 shadow-sm border border-[#E5E0D0] mb-4">
              {/* 좌측: 시간 */}
              <div className="text-[#C9A27A] font-bold text-base tracking-tight">
                {recordingDate ? `${String(recordingDate.getHours()).padStart(2, '0')}:${String(recordingDate.getMinutes()).padStart(2, '0')} 예약` : '--:-- 예약'}
              </div>
 
-             {/* 구분선 (선택사항 - 필요 없으면 삭제 가능) */}
+             {/* 구분선 */}
              <div className="h-8 w-[1px] bg-[#E5E0D0]"></div>
 
              {/* 우측: 이름 & 번호 */}
