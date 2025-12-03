@@ -120,139 +120,185 @@ function RecordScreen({
   if (recordState === 'recording' || recordState === 'idle') {
     return (
       <div
-        className="flex flex-col min-h-screen pb-[60px]"
-        style={{ backgroundColor: '#F2F0E6' }}
+        className="flex flex-col min-h-screen"
+        style={{ 
+          background: 'linear-gradient(to bottom, #FDFBF7 0%, #F2F0E6 100%)'
+        }}
       >
-        <main className="relative flex-1 flex flex-col items-center justify-start pt-[150px] pb-[140px] overflow-hidden">
-          {/* 배경 효과 - 따뜻한 크림색 파동 */}
-          <div className="absolute inset-0 pointer-events-none">
+        <main className="relative flex-1 flex flex-col items-center justify-between px-6 pt-12 pb-8 overflow-hidden">
+          {/* 배경 효과 - 부드러운 펄스 */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
             <div
-              className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse opacity-20"
-              style={{ backgroundColor: '#C9A27A', animationDuration: '4s' }}
-            ></div>
-            <div
-              className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full blur-3xl animate-pulse opacity-15"
-              style={{ backgroundColor: '#C9A27A', animationDuration: '5s', animationDelay: '1s' }}
-            ></div>
-            <div
-              className="absolute top-1/2 right-1/3 w-88 h-88 rounded-full blur-3xl animate-pulse opacity-20"
-              style={{ backgroundColor: '#F2F0E6', animationDuration: '6s', animationDelay: '0.5s' }}
-            ></div>
-            <div
-              className="absolute bottom-1/4 left-1/3 w-72 h-72 rounded-full blur-3xl animate-pulse opacity-15"
-              style={{ backgroundColor: '#F2F0E6', animationDuration: '4.5s', animationDelay: '2s' }}
+              className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full blur-3xl animate-pulse opacity-10"
+              style={{ 
+                backgroundColor: '#C9A27A', 
+                animationDuration: '3s',
+                animationTimingFunction: 'ease-in-out'
+              }}
             ></div>
           </div>
 
-          {/* 타이머 영역 */}
-          <div
-            className="z-10 text-center mb-0"
-            style={{
-              height: '96px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-            }}
-          >
-            {/* 팁 박스 - 2줄, 더 위로 올림 */}
-            <div className="w-full px-8 mb-1 z-10 mt-[-14px]">
-              <div
-                className="bg-white/80 rounded-xl px-4 py-2 shadow-sm border backdrop-blur-sm"
-                style={{ borderColor: '#f0e7d9' }}
+          {/* 상단: 고객 정보 카드 */}
+          {selectedCustomerForRecord && (
+            <div className="w-full max-w-sm z-10 animate-in fade-in slide-in-from-top duration-500">
+              <div 
+                className="bg-white/90 backdrop-blur-sm rounded-3xl p-5 shadow-lg border border-white/50"
+                style={{ boxShadow: '0 8px 32px rgba(201, 162, 122, 0.15)' }}
               >
-                <p
-                  className={`text-[14px] text-center leading-tight ${
-                    isNearLimit ? 'text-[#e05252]' : 'text-[#9b8b7a]'
-                  }`}
+                <div className="flex items-center gap-4">
+                  <div 
+                    className="w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-md"
+                    style={{ backgroundColor: '#F8F5EE' }}
+                  >
+                    {selectedCustomerForRecord.avatar || '👤'}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold mb-1" style={{ color: '#232323' }}>
+                      {selectedCustomerForRecord.name}
+                    </h3>
+                    <p className="text-sm" style={{ color: '#8C7A68' }}>
+                      {selectedCustomerForRecord.phone || '전화번호 미등록'}
+                    </p>
+                  </div>
+                  <div 
+                    className="w-3 h-3 rounded-full animate-pulse"
+                    style={{ backgroundColor: '#EF4444', boxShadow: '0 0 12px rgba(239, 68, 68, 0.6)' }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 중앙: 타이머 영역 */}
+          <div className="z-10 flex flex-col items-center justify-center flex-1">
+            {/* 녹음 상태 텍스트 */}
+            <div className="mb-6 text-center animate-in fade-in duration-700">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 backdrop-blur-sm shadow-sm">
+                <div 
+                  className="w-2 h-2 rounded-full animate-pulse"
+                  style={{ backgroundColor: '#EF4444' }}
+                ></div>
+                <span 
+                  className="text-sm font-medium tracking-wide"
+                  style={{ color: '#C9A27A' }}
                 >
-                  한 번에 최대 2분까지 녹음돼요.
-                  <br />
-                  한 고객님 정보만 말씀해 주세요.
-                </p>
+                  Recording
+                </span>
               </div>
             </div>
 
-            {/* Recording 텍스트 - 살짝 더 내려줌 */}
-            <h2
-              className="text-[11px] font-medium tracking-widest uppercase mt-11 mb-1"
-              style={{ color: '#C9A27A', opacity: 0.8 }}
-            >
-              Recording
-            </h2>
-
-            {/* 타이머 - 조금 더 아래 */}
-            <p
-              className="mt-8 text-[64px] font-mono font-light tracking-tighter tabular-nums leading-none"
-              style={{
-                color: '#232323',
-                textShadow: '0 2px 10px rgba(201, 162, 122, 0.2)',
-              }}
-            >
-              {formatTime(recordingTime)}
-            </p>
-          </div>
-
-          {/* Visualizer & 버튼 */}
-          <div className="z-10 flex flex-col items-center gap-2 mt-[105px]">
-            <WaveBars />
-
-            {/* 정지 버튼 - 물결(Ripple) 애니메이션 */}
-            <button
-              onClick={stopRecording}
-              className="group relative flex items-center justify-center mb-4"
-              style={{ width: '136px', height: '136px' }}
-            >
-              {/* 물결 효과 - 여러 겹의 원 (골드 브라운 톤) */}
-              {[...Array(5)].map((_, i) => (
-                <div
-                  key={i}
-                  className="absolute rounded-full border-2"
-                  style={{
-                    width: '136px',
-                    height: '136px',
-                    borderColor: 'rgba(201, 162, 122, 0.3)',
-                    animation: `ping ${2.5 + i * 0.4}s cubic-bezier(0, 0, 0.2, 1) infinite`,
-                    animationDelay: `${i * 0.25}s`,
-                    left: '50%',
-                    top: '50%',
-                    transform: 'translate(-50%, -50%)',
-                  }}
-                ></div>
-              ))}
-
-              {/* 버튼 본체 */}
-              <div
-                className="absolute inset-0 rounded-full blur-xl transition-colors"
-                style={{ backgroundColor: 'rgba(201, 162, 122, 0.15)' }}
-              ></div>
-              <div
-                className="relative rounded-full flex items-center justify-center group-hover:scale-105 group-active:scale-95 transition-all duration-200 z-10"
+            {/* 타이머 - 큰 숫자 */}
+            <div className="mb-8 animate-in zoom-in duration-500">
+              <p
+                className="text-[72px] font-light tracking-tight tabular-nums leading-none"
                 style={{
-                  width: '136px',
-                  height: '136px',
-                  backgroundColor: '#C9A27A',
-                  boxShadow:
-                    '0 10px 40px rgba(201, 162, 122, 0.4), 0 0 20px rgba(201, 162, 122, 0.2)',
+                  color: '#232323',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  textShadow: '0 4px 24px rgba(201, 162, 122, 0.15)',
                 }}
               >
-                <Square size={32} fill="white" stroke="white" className="ml-0.5" />
+                {formatTime(recordingTime)}
+              </p>
+            </div>
+
+            {/* 진행 바 시각화 */}
+            <div className="w-64 mb-12">
+              <div className="relative h-1 bg-white/40 rounded-full overflow-hidden">
+                <div
+                  className="absolute left-0 top-0 h-full rounded-full transition-all duration-300"
+                  style={{
+                    backgroundColor: isNearLimit ? '#EF4444' : '#C9A27A',
+                    width: `${Math.min((elapsedSeconds / MAX_SECONDS) * 100, 100)}%`,
+                    boxShadow: isNearLimit 
+                      ? '0 0 12px rgba(239, 68, 68, 0.6)' 
+                      : '0 0 8px rgba(201, 162, 122, 0.4)'
+                  }}
+                ></div>
               </div>
-            </button>
+              <div className="flex justify-between mt-2 text-xs" style={{ color: '#A79A8E' }}>
+                <span>0:00</span>
+                <span className={isNearLimit ? 'text-red-500 font-medium' : ''}>
+                  {Math.floor(MAX_SECONDS / 60)}:{String(MAX_SECONDS % 60).padStart(2, '0')}
+                </span>
+              </div>
+            </div>
+
+            {/* 파형 비주얼라이저 */}
+            <div className="mb-12">
+              <WaveBars />
+            </div>
+
+            {/* 정지 버튼 - 음악 플레이어 스타일 */}
+            <div className="animate-in zoom-in duration-700 delay-300">
+              <button
+                onClick={stopRecording}
+                className="group relative flex items-center justify-center"
+                style={{ width: '88px', height: '88px' }}
+              >
+                {/* 물결 효과 */}
+                {[...Array(3)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="absolute rounded-full"
+                    style={{
+                      width: '88px',
+                      height: '88px',
+                      border: '2px solid rgba(201, 162, 122, 0.3)',
+                      animation: `ping ${2 + i * 0.5}s cubic-bezier(0, 0, 0.2, 1) infinite`,
+                      animationDelay: `${i * 0.3}s`,
+                    }}
+                  ></div>
+                ))}
+
+                {/* 버튼 본체 */}
+                <div
+                  className="relative rounded-full flex items-center justify-center group-hover:scale-110 group-active:scale-95 transition-all duration-200 shadow-2xl"
+                  style={{
+                    width: '88px',
+                    height: '88px',
+                    backgroundColor: '#C9A27A',
+                    boxShadow: '0 12px 40px rgba(201, 162, 122, 0.4)',
+                  }}
+                >
+                  <Square size={28} fill="white" stroke="white" />
+                </div>
+              </button>
+            </div>
           </div>
 
-          {/* 취소 버튼 (맨 아래 고정) */}
-          <div className="absolute bottom-16 w-full px-8 flex justify-center z-10">
-            <button
-              onClick={cancelRecording}
-              className="px-8 py-3 text-base font-medium rounded-full transition-all duration-200 hover:opacity-70"
-              style={{
-                color: '#232323',
-                backgroundColor: 'rgba(35, 35, 35, 0.05)',
-                border: '1px solid rgba(35, 35, 35, 0.1)',
-              }}
+          {/* 하단: 안내 메시지 & 취소 버튼 */}
+          <div className="w-full max-w-sm z-10 space-y-4">
+            {/* 안내 메시지 */}
+            <div 
+              className={`bg-white/70 backdrop-blur-sm rounded-2xl px-4 py-3 shadow-sm transition-all duration-300 ${
+                isNearLimit ? 'ring-2 ring-red-400 bg-red-50/70' : ''
+              }`}
             >
-              취소하기
-            </button>
+              <p
+                className={`text-sm text-center leading-relaxed ${
+                  isNearLimit ? 'text-red-600 font-medium' : 'text-[#8C7A68]'
+                }`}
+              >
+                {isNearLimit 
+                  ? '⚠️ 곧 최대 녹음 시간에 도달합니다!'
+                  : '💡 한 고객님 정보만 말씀해 주세요'}
+              </p>
+            </div>
+
+            {/* 취소 버튼 */}
+            <div className="flex justify-center">
+              <button
+                onClick={cancelRecording}
+                className="px-8 py-3 text-sm font-medium rounded-full transition-all duration-200 hover:bg-white/80 active:scale-95 shadow-sm"
+                style={{
+                  color: '#8C7A68',
+                  backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                  border: '1.5px solid rgba(140, 122, 104, 0.2)',
+                }}
+              >
+                취소하기
+              </button>
+            </div>
           </div>
         </main>
       </div>
