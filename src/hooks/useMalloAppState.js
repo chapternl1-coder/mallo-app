@@ -1118,6 +1118,9 @@ export default function useMalloAppState() {
       setRawTranscript(transcript);
 
       // 서버 API로 요약 요청
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일 (${['일','월','화','수','목','금','토'][today.getDay()]})`;
+      
       const summarizeResponse = await fetch('/api/summarize', {
         method: 'POST',
         headers: {
@@ -1125,6 +1128,8 @@ export default function useMalloAppState() {
         },
         body: JSON.stringify({
           sourceText: transcript,
+          systemPrompt: SYSTEM_PROMPT,
+          today: todayStr,
         }),
       });
 
@@ -1176,6 +1181,9 @@ export default function useMalloAppState() {
     try {
       console.log('[요약 API] 요청 시작');
 
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일 (${['일','월','화','수','목','금','토'][today.getDay()]})`;
+
       const response = await fetch('/api/summarize', {
         method: 'POST',
         headers: {
@@ -1183,6 +1191,8 @@ export default function useMalloAppState() {
         },
         body: JSON.stringify({
           sourceText: testSummaryInput,
+          systemPrompt: SYSTEM_PROMPT,
+          today: todayStr,
         }),
       });
 
