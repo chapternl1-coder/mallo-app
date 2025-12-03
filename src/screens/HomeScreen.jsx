@@ -44,7 +44,12 @@ function HomeScreen({
   // 오늘 날짜 표시용 (헤더)
   const todayStr = useMemo(() => {
     const today = new Date();
-    return `${today.getMonth() + 1}월 ${today.getDate()}일`;
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1;
+    const day = today.getDate();
+    const dayNames = ['일','월','화','수','목','금','토'];
+    const dayName = dayNames[today.getDay()];
+    return `${year}년 ${month}월 ${day}일 (${dayName})`;
   }, []);
 
   // 동적 제목 텍스트 (항상 "M월 D일" 형식으로 표시)
