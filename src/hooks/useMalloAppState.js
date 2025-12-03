@@ -757,8 +757,22 @@ export default function useMalloAppState() {
   }, [currentScreen]);
 
   useEffect(() => {
-    if (currentScreen === SCREENS.HOME) {
+    if (currentScreen === SCREENS.HOME || currentScreen === SCREENS.HISTORY) {
+      // 홈이나 히스토리 화면으로 이동 시 녹음 관련 상태 초기화
       setSearchQuery('');
+      setResultData(null);
+      setTranscript('');
+      setRawTranscript('');
+      setRecordingDate(null);
+      setSelectedCustomerForRecord(null);
+      setTempName('');
+      setTempPhone('');
+      setServiceTags([]);
+      setNewServiceTag('');
+      setRecommendedTagIds([]);
+      setSelectedTagIds([]);
+      setSelectedCustomerTagIds([]);
+      setNewCustomerTagIds([]);
     }
   }, [currentScreen]);
 

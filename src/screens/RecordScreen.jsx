@@ -1006,26 +1006,14 @@ function RecordScreen({
                 console.log('[기존 고객 저장] 고객 ID:', customerId);
                 console.log('[기존 고객 저장] 방문 기록:', newVisit);
                 
-                // state 업데이트 완료 후 화면 전환 (React 렌더링 사이클 고려)
+                // 화면 전환 (초기화는 절대 하지 않음)
+                setSelectedCustomerId(customerId);
+                
                 requestAnimationFrame(() => {
                   setTimeout(() => {
-                    console.log('[기존 고객 저장] 화면 전환 시작, 고객 ID:', customerId);
-                    setSelectedCustomerId(customerId);
+                    console.log('[기존 고객 저장] 화면 전환 실행, 고객 ID:', customerId);
                     setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
-                    
-                    // 화면 전환 후 상태 초기화
-                    setTimeout(() => {
-                      setResultData(null);
-                      setTranscript('');
-                      setRawTranscript('');
-                      setRecordingDate(null);
-                      setSelectedCustomerForRecord(null);
-                      setTempName('');
-                      setTempPhone('');
-                      setServiceTags([]);
-                      setNewServiceTag('');
-                    }, 50);
-                  }, 200);
+                  }, 300);
                 });
               } else {
                 // 신규 고객인 경우 이름 필수 검증
@@ -1118,26 +1106,14 @@ function RecordScreen({
                 console.log('[신규 고객 저장] 고객 정보:', newCustomer);
                 console.log('[신규 고객 저장] 방문 기록:', newVisit);
                 
-                // state 업데이트 완료 후 화면 전환 (React 렌더링 사이클 고려)
+                // 화면 전환 (초기화는 절대 하지 않음)
+                setSelectedCustomerId(newCustomer.id);
+                
                 requestAnimationFrame(() => {
                   setTimeout(() => {
-                    console.log('[신규 고객 저장] 화면 전환 시작, 고객 ID:', newCustomer.id);
-                    setSelectedCustomerId(newCustomer.id);
+                    console.log('[신규 고객 저장] 화면 전환 실행, 고객 ID:', newCustomer.id);
                     setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
-                    
-                    // 화면 전환 후 상태 초기화
-                    setTimeout(() => {
-                      setResultData(null);
-                      setTranscript('');
-                      setRawTranscript('');
-                      setRecordingDate(null);
-                      setSelectedCustomerForRecord(null);
-                      setTempName('');
-                      setTempPhone('');
-                      setServiceTags([]);
-                      setNewServiceTag('');
-                    }, 50);
-                  }, 200);
+                  }, 300);
                 });
               }
             }}
