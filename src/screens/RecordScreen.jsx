@@ -944,176 +944,182 @@ function RecordScreen({
           {/* 저장하기 버튼 */}
           <button 
             onClick={() => {
-              // 저장 전 검증
-              if (selectedCustomerForRecord) {
-                // 기존 고객 선택 시 - 기록 저장
-                const customerId = selectedCustomerForRecord.id;
-                const { dateStr, timeStr, recordedAt } = createDateTimeStrings();
-                
-                const parsedServiceDate = extractServiceDateFromSummary(resultData);
-                const serviceDate = parsedServiceDate || dateStr;
-                
-                const cleanedTitle = cleanTitle(resultData.title, selectedCustomerForRecord?.name);
-                
-                const newVisit = createVisitRecord({
-                  dateStr,
-                  timeStr,
-                  recordedAt,
-                  serviceDate,
-                  title: cleanedTitle,
-                  summary: resultData.sections[0]?.content[0] || cleanedTitle,
-                  rawTranscript: rawTranscript || transcript,
-                  sections: resultData.sections,
-                  selectedTagIds,
-                  allVisitTags,
-                  serviceTags
-                });
-                
-                setVisits(prev => ({
-                  ...prev,
-                  [customerId]: [newVisit, ...(prev[customerId] || [])]
-                }));
-                
-                const currentVisitCount = selectedCustomerForRecord.visitCount || 0;
-                const nextVisitCount = currentVisitCount + 1;
-                
-                const updatedCustomerTags = updateCustomerTags({
-                  existingCustomerTags: selectedCustomerForRecord.customerTags || {
-                    caution: [],
-                    trait: [],
-                    payment: [],
-                    pattern: []
-                  },
-                  selectedCustomerTagIds,
-                  allCustomerTags,
-                  visitCount: nextVisitCount,
-                  resultTitle: resultData.title,
-                  resultSections: resultData.sections
-                });
-                
-                setCustomers(prev => prev.map(c => {
-                  if (c.id === customerId) {
-                    return { 
-                      ...c, 
-                      visitCount: c.visitCount + 1, 
-                      lastVisit: dateStr,
-                      customerTags: updatedCustomerTags
-                    };
-                  }
-                  return c;
-                }));
-                
-                console.log('[기존 고객 저장] 고객 ID:', customerId);
-                console.log('[기존 고객 저장] 방문 기록:', newVisit);
-                
-                // 고객 ID 설정 후 화면 전환
-                setSelectedCustomerId(customerId);
-                
-                // React의 다음 렌더링 사이클에서 화면 전환
-                setTimeout(() => {
-                  console.log('[기존 고객 저장] 화면 전환 실행, 고객 ID:', customerId);
-                  setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
-                }, 100);
-              } else {
-                // 신규 고객인 경우 이름 필수 검증
-                if (!tempName || !tempName.trim()) {
+              // ========================================
+              // 1단계: customerId 확보 (기존/신규/자동생성)
+              // ========================================
+              let finalCustomerId = selectedCustomerForRecord?.id ?? null;
+              let customerName = selectedCustomerForRecord?.name ?? tempName;
+              let customerPhone = selectedCustomerForRecord?.phone ?? tempPhone;
+              
+              console.log('[저장 시작] selectedCustomerForRecord:', selectedCustomerForRecord);
+              console.log('[저장 시작] tempName:', tempName, 'tempPhone:', tempPhone);
+              console.log('[저장 시작] 초기 customerId:', finalCustomerId);
+              
+              // 기존 고객이 선택되지 않은 경우 (신규 고객)
+              if (finalCustomerId == null) {
+                // 이름/전화번호 검증
+                if (!customerName || !customerName.trim()) {
                   alert('고객님의 이름을 입력해주세요!');
                   if (nameInputRef.current) {
                     nameInputRef.current.focus();
-                    nameInputRef.current.style.borderColor = '#EF4444';
-                    nameInputRef.current.style.borderWidth = '2px';
-                    setTimeout(() => {
-                      if (nameInputRef.current) {
-                        nameInputRef.current.style.borderColor = '';
-                        nameInputRef.current.style.borderWidth = '';
-                      }
-                    }, 2000);
                   }
                   return;
                 }
                 
-                // 신규 고객인 경우 전화번호 필수 검증
-                if (!tempPhone || !tempPhone.trim()) {
+                if (!customerPhone || !customerPhone.trim()) {
                   alert('고객님의 전화번호를 입력해주세요!');
                   if (phoneInputRef.current) {
                     phoneInputRef.current.focus();
-                    phoneInputRef.current.style.borderColor = '#EF4444';
-                    phoneInputRef.current.style.borderWidth = '2px';
-                    setTimeout(() => {
-                      if (phoneInputRef.current) {
-                        phoneInputRef.current.style.borderColor = '';
-                        phoneInputRef.current.style.borderWidth = '';
-                      }
-                    }, 2000);
                   }
                   return;
                 }
                 
-                // 신규 고객 생성 및 기록 저장
-                const { dateStr, timeStr, recordedAt } = createDateTimeStrings();
+                // normalizePhone을 사용하여 전화번호 정규화
+                const normalizePhone = (phone) => {
+                  if (!phone) return '';
+                  return phone.replace(/[^0-9]/g, '');
+                };
                 
-                const parsedServiceDate = extractServiceDateFromSummary(resultData);
-                const serviceDate = parsedServiceDate || dateStr;
+                const normalizedPhone = normalizePhone(customerPhone);
+                console.log('[신규 고객] 정규화된 전화번호:', normalizedPhone);
                 
-                // 신규 고객 태그 생성 (방문 횟수 1이므로 신규)
-                const newCustomerTags = updateCustomerTags({
-                  existingCustomerTags: {
-                    caution: [],
-                    trait: [],
-                    payment: [],
-                    pattern: []
-                  },
-                  selectedCustomerTagIds,
-                  allCustomerTags,
-                  visitCount: 1,
-                  resultTitle: resultData.title,
-                  resultSections: resultData.sections
-                });
+                // 같은 전화번호의 기존 고객이 있는지 확인
+                let existingCustomer = null;
+                if (normalizedPhone) {
+                  existingCustomer = customers.find(
+                    (c) => normalizePhone(c.phone || '') === normalizedPhone
+                  );
+                }
                 
-                const newCustomer = createNewCustomer({
-                  name: tempName,
-                  phone: tempPhone,
-                  dateStr,
-                  customers,
-                  customerTags: newCustomerTags
-                });
-                
-                const cleanedTitle = cleanTitle(resultData.title, tempName);
-                
-                const newVisit = createVisitRecord({
-                  dateStr,
-                  timeStr,
-                  recordedAt,
-                  serviceDate,
-                  title: cleanedTitle,
-                  summary: resultData.sections[0]?.content[0] || cleanedTitle,
-                  rawTranscript: rawTranscript || transcript,
-                  sections: resultData.sections,
-                  selectedTagIds,
-                  allVisitTags,
-                  serviceTags
-                });
-                
-                // 먼저 고객과 방문 기록 저장
-                setCustomers(prev => [...prev, newCustomer]);
-                setVisits(prev => ({
-                  ...prev,
-                  [newCustomer.id]: [newVisit]
-                }));
-                
-                console.log('[신규 고객 저장] 고객 ID:', newCustomer.id);
-                console.log('[신규 고객 저장] 고객 정보:', newCustomer);
-                console.log('[신규 고객 저장] 방문 기록:', newVisit);
-                
-                // 고객 ID 설정 후 화면 전환
-                setSelectedCustomerId(newCustomer.id);
-                
-                // React의 다음 렌더링 사이클에서 화면 전환
-                setTimeout(() => {
-                  console.log('[신규 고객 저장] 화면 전환 실행, 고객 ID:', newCustomer.id);
-                  setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
-                }, 100);
+                if (existingCustomer) {
+                  // 같은 번호의 기존 고객이 있으면 그 고객으로 연결
+                  console.log('[신규 고객] 기존 고객 발견:', existingCustomer);
+                  finalCustomerId = existingCustomer.id;
+                  customerName = existingCustomer.name;
+                } else {
+                  // 진짜 완전 신규 고객이면 새 customer 생성
+                  const timestamp = Date.now();
+                  const randomStr = Math.random().toString(36).substring(2, 9);
+                  const newCustomerId = `c_${timestamp}_${randomStr}`;
+                  
+                  console.log('[신규 고객 생성] 새 고객 ID:', newCustomerId);
+                  
+                  const { dateStr } = createDateTimeStrings();
+                  
+                  const newCustomer = {
+                    id: newCustomerId,
+                    name: customerName.trim(),
+                    phone: customerPhone.trim(),
+                    visitCount: 0, // 방문 기록 추가 후 1로 증가
+                    lastVisit: dateStr,
+                    avatar: '👤',
+                    tags: [],
+                    customerTags: {
+                      caution: [],
+                      trait: [],
+                      payment: [],
+                      pattern: []
+                    }
+                  };
+                  
+                  // customers 상태에 새 고객 추가
+                  setCustomers((prev) => [...prev, newCustomer]);
+                  console.log('[신규 고객 생성] 고객 추가 완료:', newCustomer);
+                  
+                  finalCustomerId = newCustomerId;
+                }
               }
+              
+              // ========================================
+              // 2단계: finalCustomerId 검증
+              // ========================================
+              if (finalCustomerId == null) {
+                console.error('[저장 오류] finalCustomerId가 null입니다!');
+                alert('고객 정보를 확인할 수 없습니다. 다시 시도해주세요.');
+                return;
+              }
+              
+              console.log('[저장 계속] 최종 customerId:', finalCustomerId);
+              console.log('[저장 계속] 고객 이름:', customerName);
+              
+              // ========================================
+              // 3단계: 방문 기록 생성 및 저장
+              // ========================================
+              const { dateStr, timeStr, recordedAt } = createDateTimeStrings();
+              
+              const parsedServiceDate = extractServiceDateFromSummary(resultData);
+              const serviceDate = parsedServiceDate || dateStr;
+              
+              const cleanedTitle = cleanTitle(resultData.title, customerName);
+              
+              const newVisit = createVisitRecord({
+                dateStr,
+                timeStr,
+                recordedAt,
+                serviceDate,
+                title: cleanedTitle,
+                summary: resultData.sections[0]?.content[0] || cleanedTitle,
+                rawTranscript: rawTranscript || transcript,
+                sections: resultData.sections,
+                selectedTagIds,
+                allVisitTags,
+                serviceTags
+              });
+              
+              console.log('[방문 기록 생성] customerId:', finalCustomerId);
+              console.log('[방문 기록 생성] newVisit:', newVisit);
+              
+              // visits 상태에 방문 기록 추가 (customerId를 키로 사용)
+              setVisits(prev => ({
+                ...prev,
+                [finalCustomerId]: [newVisit, ...(prev[finalCustomerId] || [])]
+              }));
+              
+              // ========================================
+              // 4단계: 고객 정보 업데이트 (visitCount, lastVisit, customerTags)
+              // ========================================
+              const targetCustomer = customers.find(c => c.id === finalCustomerId);
+              const currentVisitCount = targetCustomer?.visitCount || 0;
+              const nextVisitCount = currentVisitCount + 1;
+              
+              const updatedCustomerTags = updateCustomerTags({
+                existingCustomerTags: targetCustomer?.customerTags || {
+                  caution: [],
+                  trait: [],
+                  payment: [],
+                  pattern: []
+                },
+                selectedCustomerTagIds,
+                allCustomerTags,
+                visitCount: nextVisitCount,
+                resultTitle: resultData.title,
+                resultSections: resultData.sections
+              });
+              
+              setCustomers(prev => prev.map(c => {
+                if (c.id === finalCustomerId) {
+                  return { 
+                    ...c, 
+                    visitCount: nextVisitCount,
+                    lastVisit: dateStr,
+                    customerTags: updatedCustomerTags
+                  };
+                }
+                return c;
+              }));
+              
+              console.log('[고객 정보 업데이트] visitCount:', nextVisitCount);
+              console.log('[고객 정보 업데이트] customerTags:', updatedCustomerTags);
+              
+              // ========================================
+              // 5단계: 화면 전환
+              // ========================================
+              setSelectedCustomerId(finalCustomerId);
+              
+              setTimeout(() => {
+                console.log('[화면 전환] CUSTOMER_DETAIL로 이동, customerId:', finalCustomerId);
+                setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+              }, 100);
             }}
             className="flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-medium text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all"
             style={{ backgroundColor: '#C9A27A' }}

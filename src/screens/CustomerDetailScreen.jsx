@@ -86,12 +86,43 @@ function CustomerDetailScreen({
     };
   }
   
-  const customerVisits = visits[selectedCustomerId] || [];
+  // ========================================
+  // selectedCustomerId === null 방어
+  // ========================================
+  if (selectedCustomerId == null) {
+    console.warn(
+      '[CustomerDetailScreen] selectedCustomerId가 null입니다. 녹음/히스토리 저장 로직을 확인하세요.'
+    );
+
+    return (
+      <div className="flex flex-col h-full items-center justify-center" style={{ backgroundColor: '#F2F0E6' }}>
+        <p className="text-center text-sm mb-4" style={{ color: '#8A7A6A' }}>
+          고객 정보가 제대로 연결되지 않았습니다.
+        </p>
+        <button
+          className="px-6 py-2 rounded-xl font-medium text-white shadow-md hover:opacity-90 transition-all"
+          style={{ backgroundColor: '#C9A27A' }}
+          onClick={() => setCurrentScreen(SCREENS.HISTORY)}
+        >
+          히스토리로 돌아가기
+        </button>
+      </div>
+    );
+  }
+  
+  // TODO: null customerId로 저장된 예전 방문 기록들을,
+  //       전화번호/이름 기반으로 실제 고객에게 재할당하는 마이그레이션 도구가 필요하면 추후 추가.
+  
+  // customerId가 null인 방문 기록 필터링
+  const customerVisits = (visits[selectedCustomerId] || []).filter(visit => {
+    if (!visit || !visit.id) {
+      console.warn('[CustomerDetailScreen] 유효하지 않은 방문 기록:', visit);
+      return false;
+    }
+    return true;
+  });
   
   console.log('[CustomerDetailScreen] selectedCustomerId:', selectedCustomerId);
-  console.log('[CustomerDetailScreen] visits 전체:', visits);
-  console.log('[CustomerDetailScreen] visits[selectedCustomerId]:', visits[selectedCustomerId]);
-  console.log('[CustomerDetailScreen] customerVisits:', customerVisits);
   console.log('[CustomerDetailScreen] customerVisits.length:', customerVisits.length);
   
   // 시간 추출 헬퍼 함수 (HistoryScreen과 동일)
@@ -193,14 +224,24 @@ function CustomerDetailScreen({
   console.log('CustomerDetailScreen - 최종 찾은 고객:', customer);
   console.log('CustomerDetailScreen - customer.customerTags:', customer?.customerTags);
   console.log('CustomerDetailScreen - customerVisits:', customerVisits);
-  console.log('CustomerDetailScreen - sortedCustomerVisits:', sortedCustomerVisits);
-  console.log('CustomerDetailScreen - 첫 번째 방문 tags:', sortedCustomerVisits[0]?.tags);
+  console.log('[CustomerDetailScreen] customer:', customer);
+  console.log('[CustomerDetailScreen] sortedCustomerVisits.length:', sortedCustomerVisits.length);
 
-  if (!customer) {
+  // selectedCustomerId는 있지만 customers 배열에서 못 찾았을 때
+  if (selectedCustomerId && !customer) {
     return (
       <div className="flex flex-col h-full items-center justify-center" style={{ backgroundColor: '#F2F0E6' }}>
-        <p style={{ color: '#232323' }}>고객 정보를 찾을 수 없습니다.</p>
-        <button onClick={() => setCurrentScreen(SCREENS.HISTORY)} className="mt-4 font-medium" style={{ color: '#232323' }}>히스토리로 돌아가기</button>
+        <p className="text-center text-sm mb-4" style={{ color: '#8A7A6A' }}>
+          고객 정보를 찾을 수 없습니다.<br/>
+          (ID: {selectedCustomerId})
+        </p>
+        <button 
+          onClick={() => setCurrentScreen(SCREENS.HISTORY)} 
+          className="px-6 py-2 rounded-xl font-medium text-white shadow-md hover:opacity-90 transition-all"
+          style={{ backgroundColor: '#C9A27A' }}
+        >
+          히스토리로 돌아가기
+        </button>
       </div>
     );
   }
