@@ -139,7 +139,7 @@ function RecordScreen({
           background: 'linear-gradient(to bottom, #FDFBF7 0%, #F2F0E6 100%)'
         }}
       >
-        <main className="relative flex-1 flex flex-col items-center justify-between px-6 pt-12 pb-8 overflow-hidden">
+        <main className="relative flex-1 flex flex-col items-center justify-start px-6 pt-12 pb-8 overflow-hidden gap-6">
           {/* 배경 효과 - 부드러운 펄스 (일시정지 시 멈춤) */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
             <div
@@ -182,9 +182,9 @@ function RecordScreen({
           )}
 
           {/* 중앙: 타이머 영역 */}
-          <div className="z-10 flex flex-col items-center justify-center flex-1">
+          <div className="z-10 flex flex-col items-center justify-center flex-1 mt-4">
             {/* 안내 메시지 */}
-            <div className="mb-4 w-full max-w-xs px-4">
+            <div className="mb-3 w-full max-w-xs px-4">
               <div 
                 className={`bg-white/70 backdrop-blur-sm rounded-xl px-4 py-2 shadow-sm transition-all duration-300 ${
                   isNearLimit ? 'ring-2 ring-red-400 bg-red-50/70' : ''
@@ -203,7 +203,7 @@ function RecordScreen({
             </div>
 
             {/* 녹음 상태 텍스트 */}
-            <div className="mb-8 text-center animate-in fade-in duration-700">
+            <div className="mb-3 text-center animate-in fade-in duration-700">
               <div className="inline-flex items-center gap-2">
                 <div 
                   className={`w-2 h-2 rounded-full ${isCurrentlyPaused ? '' : 'animate-pulse'}`}
@@ -219,7 +219,7 @@ function RecordScreen({
             </div>
 
             {/* 타이머 - 큰 숫자 */}
-            <div className="mb-6 animate-in zoom-in duration-500">
+            <div className="mb-4 animate-in zoom-in duration-500">
               <p
                 className="text-[72px] font-light tracking-tight tabular-nums leading-none"
                 style={{
@@ -233,7 +233,7 @@ function RecordScreen({
             </div>
 
             {/* 진행 바 시각화 */}
-            <div className="w-64 mb-8">
+            <div className="w-64 mb-6">
               <div className="relative h-1 bg-white/40 rounded-full overflow-hidden">
                 <div
                   className="absolute left-0 top-0 h-full rounded-full transition-all duration-300"
@@ -255,12 +255,12 @@ function RecordScreen({
             </div>
 
             {/* 파형 비주얼라이저 */}
-            <div className="mb-10">
+            <div className="mb-8">
               <WaveBars />
             </div>
 
             {/* 컨트롤 버튼들 - 일시정지/재개 & 정지 & 취소 */}
-            <div className="flex items-center justify-center gap-6 mt-8 animate-in zoom-in duration-700 delay-300">
+            <div className="flex items-center justify-center gap-10 animate-in zoom-in duration-700 delay-300">
               {/* 왼쪽: 일시정지/이어 말하기 버튼 */}
               <button
                 onClick={() => {
@@ -324,11 +324,6 @@ function RecordScreen({
                 <X size={18} />
               </button>
             </div>
-          </div>
-
-          {/* 하단: 여백 */}
-          <div className="w-full max-w-sm z-10">
-            {/* 빈 공간 - 레이아웃 균형용 */}
           </div>
         </main>
       </div>
