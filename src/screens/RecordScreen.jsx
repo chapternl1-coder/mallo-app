@@ -157,22 +157,35 @@ function RecordScreen({
 
           {/* 상단: 고객 정보 카드 */}
           {selectedCustomerForRecord ? (
-            <div className="bg-white rounded-xl px-4 py-3 flex items-center justify-between shadow-sm">
-              <div className="flex flex-col flex-1 items-center">
-                <span className="text-[13px] font-semibold text-neutral-900">
-                  {selectedCustomerForRecord.name}
-                </span>
-                <span className="mt-[2px] text-[11px] text-neutral-500">
-                  {selectedCustomerForRecord.phone}
-                </span>
-              </div>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200" style={{ padding: '12px 16px' }}>
+              <div className="flex items-center justify-center gap-2">
+                {recordingDate && (
+                  <div className="flex items-center gap-2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A27A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span className="text-base font-medium" style={{ color: '#C9A27A' }}>
+                      {(() => {
+                        const hours = String(recordingDate.getHours()).padStart(2, '0');
+                        const minutes = String(recordingDate.getMinutes()).padStart(2, '0');
+                        return `${hours}:${minutes} 예약`;
+                      })()}
+                    </span>
+                  </div>
+                )}
 
-              <button className="ml-3 shrink-0" onClick={() => {/* 기존 옵션 기능 유지 */}}>
-                <MoreHorizontal size={24} style={{ color: '#232323', opacity: 0.5 }} />
-              </button>
+                {/* 이름과 번호를 감싸는 영역에 좌우 여백과 폭 제한 추가 */}
+                <div className="flex flex-col justify-center px-4 max-w-xs mx-auto" style={{ minWidth: '220px' }}>
+                  <h3 className="font-bold text-base mb-0.5" style={{ color: '#232323' }}>{selectedCustomerForRecord.name}</h3>
+                  <div className="text-sm" style={{ color: '#8C8C8C' }}>
+                    {selectedCustomerForRecord.phone}
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
-            /* 기존 신규 고객 입력 UI 유지 */
+            /* 신규 고객 입력 UI 유지 */
             <div className="w-full max-w-sm z-10 animate-in fade-in slide-in-from-top duration-500">
               <div 
                 className="bg-white/90 backdrop-blur-sm rounded-3xl p-5 shadow-lg border border-white/50"
