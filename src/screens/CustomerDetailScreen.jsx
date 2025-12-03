@@ -88,6 +88,12 @@ function CustomerDetailScreen({
   
   const customerVisits = visits[selectedCustomerId] || [];
   
+  console.log('[CustomerDetailScreen] selectedCustomerId:', selectedCustomerId);
+  console.log('[CustomerDetailScreen] visits 전체:', visits);
+  console.log('[CustomerDetailScreen] visits[selectedCustomerId]:', visits[selectedCustomerId]);
+  console.log('[CustomerDetailScreen] customerVisits:', customerVisits);
+  console.log('[CustomerDetailScreen] customerVisits.length:', customerVisits.length);
+  
   // 시간 추출 헬퍼 함수 (HistoryScreen과 동일)
   const extractTimeFromVisit = (visit) => {
     // UI에서 serviceDateTimeLabel을 생성하는 방식과 동일하게
