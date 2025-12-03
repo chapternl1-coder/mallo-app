@@ -341,7 +341,7 @@ function HomeScreen({
                         key={reservation.id}
                         className={`rounded-xl p-4 shadow-sm transition-all ${
                           isNew
-                            ? 'bg-[#F9F5EF] border-2 border-[#C9A27A] hover:border-[#B8926A]'
+                            ? 'bg-[#F9F5EF]'
                             : 'bg-white border border-gray-100 hover:border-[#C9A27A]'
                         }`}
                       >
@@ -398,7 +398,7 @@ function HomeScreen({
                                     {displayName}
                                   </button>
                                   {isNew && (
-                                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap shadow-sm ${isCompleted ? 'bg-gray-300 text-gray-500' : 'bg-[#C9A27A] text-white'}`}>
+                                    <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap shadow-sm bg-[#C9A27A] text-white">
                                       신규
                                     </span>
                                   )}
