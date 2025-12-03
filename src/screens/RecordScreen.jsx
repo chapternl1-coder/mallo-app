@@ -406,7 +406,7 @@ function RecordScreen({
                )}
 
                {/* 이름과 번호를 감싸는 영역에 좌우 여백과 폭 제한 추가 */}
-               <div className="flex flex-col justify-center px-4" style={{ minWidth: '220px' }}>
+               <div className="flex flex-col justify-center px-4 max-w-xs mx-auto" style={{ minWidth: '220px' }}>
                  <h3 className="font-bold text-base mb-0.5" style={{ color: '#232323' }}>{selectedCustomerForRecord.name}</h3>
                  <div className="text-sm" style={{ color: '#8C8C8C' }}>
                    {selectedCustomerForRecord.phone}
