@@ -340,10 +340,23 @@ export default function useMalloAppState() {
   const normalizeRecordWithCustomer = (visit, customer) => {
     if (!visit) return null;
     
+    // displayName 계산 (우선순위: visit.customerName > customer.name > '이름 오류')
+    let displayName = visit.customerName?.trim() || customer?.name?.trim();
+    if (!displayName) {
+      console.warn('[normalizeRecordWithCustomer] 이름이 비어 있는 방문 기록입니다.', visit);
+      displayName = '이름 오류';
+    }
+    
+    // displayPhone 계산
+    let displayPhone = visit.customerPhone?.trim() || customer?.phone?.trim();
+    if (!displayPhone) {
+      displayPhone = '전화번호 미기재';
+    }
+    
     return {
       ...visit,
-      customerName: visit.customerName || customer?.name || '미기재',
-      customerPhone: visit.customerPhone || customer?.phone || '미기재',
+      customerName: displayName,
+      customerPhone: displayPhone,
       detail: visit.detail || {
         sections: visit.summary ? [
           { title: '시술 내용', content: [visit.summary] }

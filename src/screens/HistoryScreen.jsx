@@ -327,12 +327,17 @@ function HistoryScreen({
               const { name: extractedName, phone: extractedPhone } = 
                 extractCustomerInfoFromSummary(summaryText);
 
-              // displayName 계산 (우선순위: record.customerName > customer.name > extractedName > '이름 미기재')
-              const displayName = 
-                record.customerName || 
-                customer?.name || 
-                extractedName || 
-                '이름 미기재';
+              // displayName 계산 (우선순위: customer.name > record.customerName > extractedName > '이름 오류')
+              let displayName = 
+                customer?.name?.trim() || 
+                record.customerName?.trim() || 
+                extractedName?.trim();
+              
+              // 논리상 이름은 반드시 존재하지만, 혹시 몰라 방어 코드
+              if (!displayName) {
+                console.warn('[HistoryScreen] 이름이 비어 있는 방문 기록입니다.', record);
+                displayName = '이름 오류';
+              }
 
               // displayPhone 계산 (우선순위: customer.phone > extractedPhone > 가짜 번호)
               let displayPhone = null;
@@ -446,7 +451,7 @@ function HistoryScreen({
                         </div>
                       )}
                       {/* 아랫줄: 이름과 전화번호 */}
-                      {displayName && displayName !== '이름 미기재' && (
+                      {displayName && displayName !== '이름 오류' && (
                         <div className="flex flex-row items-center">
                           <button
                             type="button"
@@ -516,7 +521,7 @@ function HistoryScreen({
                           let cleanedTitle = record.title || '';
                           if (cleanedTitle) {
                             // 고객 이름 제거
-                            if (displayName && displayName !== '이름 미기재') {
+                            if (displayName && displayName !== '이름 오류') {
                               cleanedTitle = cleanedTitle.replace(new RegExp(displayName, 'g'), '').trim();
                             }
                             // '기존 고객', '신규 고객' 등 제거
@@ -537,7 +542,7 @@ function HistoryScreen({
                       {record.detail.sections.map((section, idx) => {
                         // 고객 정보 준비 (record.customer 또는 customer 객체 사용)
                         const customerInfoForOverride = record.customer || customer || {
-                          name: displayName !== '이름 미기재' ? displayName : undefined,
+                          name: displayName !== '이름 오류' ? displayName : undefined,
                           phone: displayPhone !== '전화번호 미기재' ? displayPhone : undefined
                         };
                         

@@ -33,10 +33,17 @@ export default function ScreenRouter(props) {
           finalServiceDate = extractServiceDateFromSummary(visitData);
         }
         
+        // displayName 계산 (우선순위: customer.name > visit.customerName > '이름 오류')
+        let displayName = customer?.name?.trim() || visit.customerName?.trim();
+        if (!displayName) {
+          console.warn('[ScreenRouter] 이름이 비어 있는 방문 기록입니다. customerId:', customerId, 'visit:', visit);
+          displayName = '이름 오류';
+        }
+        
         allRecords.push({
           ...visit,
           serviceDate: finalServiceDate || visit.serviceDate || visit.date,
-          customerName: customer?.name || '알 수 없음',
+          customerName: displayName,
           customerId: parseInt(customerId),
           customer: customer
         });
