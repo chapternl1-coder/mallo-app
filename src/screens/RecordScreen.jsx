@@ -161,8 +161,8 @@ function RecordScreen({
                 style={{ boxShadow: '0 8px 32px rgba(201, 162, 122, 0.15)' }}
               >
                 <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold mb-1" style={{ color: '#232323' }}>
+                  <div className="flex-1 flex items-center gap-2">
+                    <h3 className="text-lg font-bold" style={{ color: '#232323' }}>
                       {selectedCustomerForRecord.name}
                     </h3>
                     <p className="text-sm" style={{ color: '#8C7A68' }}>
