@@ -339,11 +339,7 @@ function HomeScreen({
                     return (
                       <div
                         key={reservation.id}
-                        className={`rounded-xl p-4 shadow-sm transition-all ${
-                          isNew
-                            ? 'bg-[#F9F5EF]'
-                            : 'bg-white border border-gray-100 hover:border-[#C9A27A]'
-                        }`}
+                        className="rounded-xl p-4 shadow-sm transition-all border bg-white border-gray-100 hover:border-[#C9A27A]"
                       >
                         <div className="flex items-center gap-4">
                           {/* 동그라미 체크박스 (왼쪽) */}
@@ -371,7 +367,7 @@ function HomeScreen({
 
                           {/* 시간 */}
                           <div className="flex-shrink-0 w-16">
-                            <div className={`flex items-center gap-1.5 ${isNew ? 'text-[#B8926A]' : 'text-[#C9A27A]'}`}>
+                            <div className="flex items-center gap-1.5 text-[#C9A27A]">
                               <Clock size={14} />
                               <span className={`text-sm font-semibold ${isCompleted ? 'line-through text-gray-400' : ''}`}>
                                 {reservation.time || '--:--'}
@@ -393,7 +389,7 @@ function HomeScreen({
                                     }}
                                     className={`font-semibold text-base truncate transition-colors ${
                                       reservation.customerId ? 'hover:text-[#C9A27A] cursor-pointer' : 'cursor-default'
-                                    } ${isCompleted ? 'line-through text-gray-400' : isNew ? 'text-[#3F352B]' : 'text-gray-800'}`}
+                                    } ${isCompleted ? 'line-through text-gray-400' : 'text-gray-800'}`}
                                   >
                                     {displayName}
                                   </button>
@@ -403,7 +399,7 @@ function HomeScreen({
                                     </span>
                                   )}
                                 </div>
-                            <p className={`text-sm truncate mt-0.5 ${isCompleted ? 'line-through text-gray-400' : isNew ? 'text-[#7B6A58]' : 'text-gray-600'}`}>
+                            <p className={`text-sm truncate mt-0.5 ${isCompleted ? 'line-through text-gray-400' : 'text-gray-600'}`}>
                               {displayPhone}
                             </p>
                           </div>
