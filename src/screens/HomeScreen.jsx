@@ -332,7 +332,8 @@ function HomeScreen({
                     const matchedCustomer = findCustomerForReservation(reservation);
                     const displayName = reservation.name || matchedCustomer?.name || '이름 미입력';
                     const displayPhone = matchedCustomer?.phone || reservation.phone || '전화번호 미입력';
-                    const isNew = !reservation.customerId || !matchedCustomer || reservation.isNew;
+                    // 신규 판단: 고객이 없거나, visitCount가 1 이하면 신규 (녹음 후에도 유지)
+                    const isNew = !matchedCustomer || matchedCustomer.visitCount <= 1;
 
                     const isCompleted = reservation.isCompleted || false;
 
