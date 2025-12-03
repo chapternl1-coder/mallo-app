@@ -1111,6 +1111,21 @@ export default function useMalloAppState() {
 
       setRecordingDate(new Date());
 
+      // 녹음 시간이 1초 이하면 STT 건너뛰고 바로 결과 화면으로 (텍스트 테스트용)
+      if (recordingTime <= 1) {
+        console.log('[빠른 테스트] 1초 이하 녹음 - STT 건너뛰고 결과 화면으로 이동');
+        setTranscript('');
+        setRawTranscript('');
+        setResultData({
+          title: '텍스트 테스트 모드',
+          customerInfo: { name: null, phone: null },
+          sections: []
+        });
+        setIsProcessing(false);
+        setRecordState('result');
+        return;
+      }
+
       // FormData를 사용하여 오디오 파일 전송
       console.log('[음성 인식] FormData 준비 시작');
       const formData = new FormData();
