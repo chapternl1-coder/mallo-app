@@ -387,27 +387,22 @@ function RecordScreen({
 
       <main className="flex-1 overflow-y-auto p-8 space-y-5 pb-32" style={{ backgroundColor: '#F2F0E6' }}>
          {selectedCustomerForRecord ? (
-           <div className="px-4 mt-4">
-             <div className="flex items-center justify-between bg-white rounded-2xl shadow-sm px-4 py-3">
-               <div className="flex items-center gap-3">
-                 <div className="flex flex-col items-center justify-center w-[60px] h-[60px] rounded-xl bg-[#F7F4ED]">
-                   <span className="text-[11px] font-semibold leading-none" style={{ color: '#C9A27A' }}>
-                     {recordingDate ? `${String(recordingDate.getHours()).padStart(2, '0')}:${String(recordingDate.getMinutes()).padStart(2, '0')}` : '--:--'}
-                   </span>
-                   <span className="mt-1 text-[9px] tracking-[0.08em] text-[#B0AAA3]">
-                     예약
-                   </span>
-                 </div>
-                 <div className="flex flex-col">
-                   <span className="text-[15px] font-semibold text-[#3A2F29]">
-                     {selectedCustomerForRecord.name}
-                   </span>
-                   <span className="mt-[2px] text-[11px] text-[#8B8680] tracking-[0.04em]">
-                     {selectedCustomerForRecord.phone || '전화번호 미등록'}
-                   </span>
-                 </div>
-               </div>
+           <div className="bg-white w-full rounded-[24px] p-8 flex flex-col items-center justify-center text-center shadow-[0_4px_20px_rgba(0,0,0,0.02)] border border-[#F2F0E6]">
+
+             {/* 1. 예약 시간 (작고 은은하게 포인트) */}
+             <div className="bg-[#F2F0E6] text-[#C9A27A] px-3 py-1 rounded-full text-xs font-bold tracking-wider mb-4">
+               {recordingDate ? `${String(recordingDate.getHours()).padStart(2, '0')}:${String(recordingDate.getMinutes()).padStart(2, '0')} 예약` : '--:-- 예약'}
              </div>
+
+             {/* 2. 고객 이름 (가장 크고 선명하게) */}
+             <h2 className="text-[32px] font-bold text-[#333333] leading-none mb-3 tracking-tight">
+               {selectedCustomerForRecord.name}
+             </h2>
+
+             {/* 3. 전화번호 (얇고 심플하게) */}
+             <p className="text-[#999999] text-sm font-light tracking-[0.05em]">
+               {selectedCustomerForRecord.phone || '전화번호 미등록'}
+             </p>
            </div>
          ) : (
            <div className="bg-white rounded-xl shadow-sm border border-gray-200" style={{ padding: '12px 16px' }}>
