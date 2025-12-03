@@ -813,6 +813,8 @@ export default function useMalloAppState() {
       
       setCurrentScreen(SCREENS.RECORD);
       setRecordingTime(0);
+      setRecordState('recording');
+      setIsPaused(false);
       timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
     } catch (error) {
       console.error('녹음 시작 오류:', error);
@@ -838,6 +840,7 @@ export default function useMalloAppState() {
     
     setRecordingTime(0);
     setRecordState('idle');
+    setIsPaused(false);
     setResultData(null);
     setTranscript('');
     setRawTranscript('');
@@ -845,6 +848,33 @@ export default function useMalloAppState() {
     audioChunksRef.current = [];
     
     setCurrentScreen(SCREENS.HOME);
+  };
+
+  const pauseRecording = () => {
+    // 타이머 일시정지
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    // MediaRecorder 일시정지
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.pause();
+    }
+    
+    setIsPaused(true);
+  };
+
+  const resumeRecording = () => {
+    // MediaRecorder 재개
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
+      mediaRecorderRef.current.resume();
+    }
+    
+    // 타이머 재개
+    timerRef.current = setInterval(() => setRecordingTime(prev => prev + 1), 1000);
+    
+    setIsPaused(false);
   };
 
   // content 배열의 모든 항목을 문자열로 변환하는 헬퍼 함수
@@ -976,6 +1006,7 @@ export default function useMalloAppState() {
     
     setIsProcessing(true);
     setRecordState('processing');
+    setIsPaused(false);
 
     try {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
@@ -1273,34 +1304,40 @@ export default function useMalloAppState() {
 
   const [recordState, setRecordState] = useState('idle');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     if (currentScreen === SCREENS.RECORD) {
       if (isProcessing) {
         setRecordState('processing');
-      } else if (recordingTime > 0 && !resultData) {
+      } else if (recordingTime > 0 && !resultData && !isPaused) {
         setRecordState('recording');
       } else if (resultData) {
         setRecordState('result');
       } else {
-        setRecordState('idle');
+        // isPaused 상태일 때는 recordState를 유지 (idle로 바꾸지 않음)
+        if (!isPaused) {
+          setRecordState('idle');
+        }
       }
     } else {
       setRecordState('idle');
       setIsProcessing(false);
+      setIsPaused(false);
     }
-  }, [currentScreen, recordingTime, resultData, isProcessing]);
+  }, [currentScreen, recordingTime, resultData, isProcessing, isPaused]);
 
   // 2분 제한 도달 시 자동으로 녹음 종료
   useEffect(() => {
     if (recordState !== 'recording') return;
+    if (isPaused) return; // 일시정지 중이면 무시
     if (isProcessing) return; // 이미 처리 중이면 무시
     
     if (recordingTime >= MAX_RECORD_SECONDS) {
       console.log('⏱ 2분 제한 도달, 자동으로 녹음 종료');
       stopRecording();
     }
-  }, [recordState, recordingTime, isProcessing]);
+  }, [recordState, recordingTime, isProcessing, isPaused]);
 
   useEffect(() => {
     if (currentScreen === SCREENS.HOME) {
@@ -1429,6 +1466,9 @@ export default function useMalloAppState() {
     formatTime,
     stopRecording,
     cancelRecording,
+    pauseRecording,
+    resumeRecording,
+    isPaused,
     startRecording,
     resultData,
     setResultData,

@@ -1,6 +1,6 @@
 // 음성 녹음 → 처리 → 결과 미리보기까지 담당하는 화면
 import React from 'react';
-import { Square, ArrowLeft, MoreHorizontal, Phone, Edit, ChevronRight } from 'lucide-react';
+import { Square, ArrowLeft, MoreHorizontal, Phone, Edit, ChevronRight, X, Pause, Play } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
 import logo from '../assets/logo.png';
 import {
@@ -50,6 +50,9 @@ function RecordScreen({
   formatTime,
   stopRecording,
   cancelRecording,
+  pauseRecording,
+  resumeRecording,
+  isPaused,
   resultData,
   resetFlow,
   getTodayDate,
@@ -116,6 +119,10 @@ function RecordScreen({
   // 1분 40초가 넘어갔는지 여부 확인
   const isNearLimit = elapsedSeconds >= NEAR_LIMIT_SECONDS;
 
+  // 녹음 상태 플래그 (작업 1)
+  const isRecording = recordState === 'recording' && !isPaused;
+  const isCurrentlyPaused = isPaused === true;
+
   // recordState에 따라 다른 화면 렌더링
   if (recordState === 'recording' || recordState === 'idle') {
     return (
@@ -137,6 +144,19 @@ function RecordScreen({
               }}
             ></div>
           </div>
+
+          {/* 우측 상단: 취소 버튼 (X) */}
+          <button
+            onClick={() => {
+              if (window.confirm('지금 나가면 현재 녹음은 저장되지 않습니다. 정말 취소하시겠습니까?')) {
+                cancelRecording();
+              }
+            }}
+            className="absolute top-6 right-6 z-20 w-10 h-10 rounded-full flex items-center justify-center bg-white/70 backdrop-blur-sm shadow-md hover:bg-white/90 active:scale-95 transition-all"
+            style={{ color: '#8C7A68' }}
+          >
+            <X size={20} />
+          </button>
 
           {/* 상단: 고객 정보 카드 */}
           {selectedCustomerForRecord && (
@@ -194,14 +214,14 @@ function RecordScreen({
             <div className="mb-8 text-center animate-in fade-in duration-700">
               <div className="inline-flex items-center gap-2">
                 <div 
-                  className="w-2 h-2 rounded-full animate-pulse"
-                  style={{ backgroundColor: '#EF4444' }}
+                  className={`w-2 h-2 rounded-full ${isCurrentlyPaused ? '' : 'animate-pulse'}`}
+                  style={{ backgroundColor: isCurrentlyPaused ? '#FFA500' : '#EF4444' }}
                 ></div>
                 <span 
                   className="text-sm font-medium tracking-wide"
                   style={{ color: '#C9A27A' }}
                 >
-                  Recording
+                  {isCurrentlyPaused ? 'Paused' : 'Recording'}
                 </span>
               </div>
             </div>
@@ -247,60 +267,71 @@ function RecordScreen({
               <WaveBars />
             </div>
 
-            {/* 정지 버튼 - 음악 플레이어 스타일 */}
-            <div className="animate-in zoom-in duration-700 delay-300">
-              <button
-                onClick={stopRecording}
-                className="group relative flex items-center justify-center"
-                style={{ width: '88px', height: '88px' }}
-              >
-                {/* 물결 효과 */}
-                {[...Array(3)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="absolute rounded-full"
-                    style={{
-                      width: '88px',
-                      height: '88px',
-                      border: '2px solid rgba(201, 162, 122, 0.3)',
-                      animation: `ping ${2 + i * 0.5}s cubic-bezier(0, 0, 0.2, 1) infinite`,
-                      animationDelay: `${i * 0.3}s`,
-                    }}
-                  ></div>
-                ))}
-
-                {/* 버튼 본체 */}
-                <div
-                  className="relative rounded-full flex items-center justify-center group-hover:scale-110 group-active:scale-95 transition-all duration-200 shadow-2xl"
-                  style={{
-                    width: '88px',
-                    height: '88px',
-                    backgroundColor: '#C9A27A',
-                    boxShadow: '0 12px 40px rgba(201, 162, 122, 0.4)',
+            {/* 컨트롤 버튼들 - 일시정지/재개 & 정지 */}
+            <div className="flex items-center justify-center gap-8 mt-8 animate-in zoom-in duration-700 delay-300">
+              {/* 왼쪽: 일시정지/이어 말하기 버튼 */}
+              <div className="flex flex-col items-center">
+                <button
+                  onClick={() => {
+                    if (isCurrentlyPaused && resumeRecording) {
+                      resumeRecording();
+                    } else if (!isCurrentlyPaused && pauseRecording) {
+                      pauseRecording();
+                    }
                   }}
+                  className="w-12 h-12 rounded-full bg-white border border-[#E3D7C7] flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all duration-200"
                 >
-                  <Square size={28} fill="white" stroke="white" />
-                </div>
-              </button>
+                  {isCurrentlyPaused ? (
+                    <Play size={18} fill="#A07B4F" style={{ color: '#A07B4F' }} />
+                  ) : (
+                    <Pause size={18} style={{ color: '#A07B4F' }} />
+                  )}
+                </button>
+                <span className="mt-1 text-[10px] text-[#A79A8E]">
+                  {isCurrentlyPaused ? '이어 말하기' : '일시정지'}
+                </span>
+              </div>
+
+              {/* 가운데: 녹음 끝내기 버튼 */}
+              <div className="flex flex-col items-center">
+                <button
+                  onClick={stopRecording}
+                  className="group relative flex items-center justify-center"
+                  style={{ width: '64px', height: '64px' }}
+                >
+                  {/* 물결 효과 - 일시정지 시 멈춤 */}
+                  {!isCurrentlyPaused && [...Array(3)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="absolute rounded-full"
+                      style={{
+                        width: '64px',
+                        height: '64px',
+                        border: '2px solid rgba(201, 162, 122, 0.3)',
+                        animation: `ping ${2 + i * 0.5}s cubic-bezier(0, 0, 0.2, 1) infinite`,
+                        animationDelay: `${i * 0.3}s`,
+                      }}
+                    ></div>
+                  ))}
+
+                  {/* 버튼 본체 */}
+                  <div
+                    className="relative w-16 h-16 rounded-full bg-[#C9A27A] flex items-center justify-center shadow-md group-hover:scale-110 group-active:scale-95 transition-all duration-200"
+                    style={{
+                      boxShadow: '0 8px 24px rgba(201, 162, 122, 0.4)',
+                    }}
+                  >
+                    <Square size={24} fill="white" stroke="white" />
+                  </div>
+                </button>
+                <span className="mt-1 text-[10px] text-[#A79A8E]">끝내기</span>
+              </div>
             </div>
           </div>
 
-          {/* 하단: 취소 버튼 */}
+          {/* 하단: 여백 */}
           <div className="w-full max-w-sm z-10">
-            {/* 취소 버튼 */}
-            <div className="flex justify-center">
-              <button
-                onClick={cancelRecording}
-                className="px-8 py-3 text-sm font-medium rounded-full transition-all duration-200 hover:bg-white/80 active:scale-95 shadow-sm"
-                style={{
-                  color: '#8C7A68',
-                  backgroundColor: 'rgba(255, 255, 255, 0.5)',
-                  border: '1.5px solid rgba(140, 122, 104, 0.2)',
-                }}
-              >
-                취소하기
-              </button>
-            </div>
+            {/* 빈 공간 - 레이아웃 균형용 */}
           </div>
         </main>
       </div>
