@@ -1,5 +1,5 @@
 // 음성 녹음 → 처리 → 결과 미리보기까지 담당하는 화면
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Square, ArrowLeft, MoreHorizontal, Phone, Edit, ChevronRight, X, Pause, Play } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
 import logo from '../assets/logo.png';
@@ -123,6 +123,13 @@ function RecordScreen({
   const isRecording = recordState === 'recording' && !isPaused;
   const isCurrentlyPaused = isPaused === true;
 
+  // 녹음 화면 진입 시 스크롤을 맨 위로
+  useEffect(() => {
+    if (recordState === 'recording' || recordState === 'idle') {
+      window.scrollTo(0, 0);
+    }
+  }, [recordState]);
+
   // recordState에 따라 다른 화면 렌더링
   if (recordState === 'recording' || recordState === 'idle') {
     return (
@@ -133,10 +140,10 @@ function RecordScreen({
         }}
       >
         <main className="relative flex-1 flex flex-col items-center justify-between px-6 pt-12 pb-8 overflow-hidden">
-          {/* 배경 효과 - 부드러운 펄스 */}
+          {/* 배경 효과 - 부드러운 펄스 (일시정지 시 멈춤) */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
             <div
-              className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full blur-3xl animate-pulse opacity-10"
+              className={`absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full blur-3xl opacity-10 ${isCurrentlyPaused ? '' : 'animate-pulse'}`}
               style={{ 
                 backgroundColor: '#C9A27A', 
                 animationDuration: '3s',

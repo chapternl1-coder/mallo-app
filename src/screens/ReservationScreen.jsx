@@ -91,7 +91,7 @@ function ReservationScreen({
       alert('시간과 이름을 모두 입력해주세요.');
       return;
     }
-
+    
     if (!trimmedPhone) {
       alert('전화번호를 입력해주세요.');
       return;
@@ -101,7 +101,7 @@ function ReservationScreen({
     // 선택하지 않으면 customerId는 null로 신규 예약으로 추가됨
     const customerIdToUse = selectedExistingCustomerId || null;
 
-    const reservationData = {
+      const reservationData = {
       date: selectedDateStr, // 선택된 날짜로 예약 추가
       time: timeInput,
       name: trimmedName,
@@ -113,12 +113,12 @@ function ReservationScreen({
 
     console.log('[예약 추가]', reservationData);
 
-    if (addReservation) {
+      if (addReservation) {
       const result = addReservation(reservationData);
       console.log('[예약 추가 결과]', result);
     } else {
       console.error('[예약 추가 실패] addReservation 함수가 없습니다.');
-    }
+      }
 
     resetForm();
   };
@@ -141,14 +141,14 @@ function ReservationScreen({
       {/* 헤더 영역 - 고정 */}
       <header className="flex-shrink-0 px-6 py-4 bg-white border-b border-gray-200 shadow-sm">
         <div className="flex items-center gap-3">
-          <button
+        <button 
             type="button"
-            onClick={() => setCurrentScreen(SCREENS.HOME)}
-            className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
+          onClick={() => setCurrentScreen(SCREENS.HOME)}
+          className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
             style={{ color: '#232323' }}
-          >
-            <ArrowLeft size={24} />
-          </button>
+        >
+          <ArrowLeft size={24} />
+        </button>
           <h2 className="text-xl font-bold text-gray-800">예약 관리</h2>
         </div>
       </header>
@@ -180,7 +180,7 @@ function ReservationScreen({
                 <form
                   onSubmit={handleSubmit}
                   className="mb-4 rounded-2xl bg-[#F8F5EE] px-4 py-3 shadow-sm relative"
-                >
+              >
                   {/* 시간과 이름 입력 (한 줄) */}
                   <div className="mb-3 grid grid-cols-2 gap-3 relative">
                     {/* 시간 입력 */}
@@ -194,7 +194,7 @@ function ReservationScreen({
                           value={timeInput}
                           onChange={(e) => setTimeInput(e.target.value)}
                           className="h-[36px] w-full rounded-lg border border-[#E3D7C7] bg-white px-3 pr-10 text-[16px] text-[#3F352B] leading-normal box-border"
-                          style={{ 
+                          style={{
                             fontSize: '16px', 
                             height: '36px',
                             WebkitAppearance: 'none',
@@ -218,8 +218,8 @@ function ReservationScreen({
                           <Clock size={18} className="text-[#9C8D7C]" />
                         </div>
                       </div>
-                    </div>
-
+                            </div>
+                          
                     {/* 이름 입력 */}
                     <div className="relative">
                       <label className="mb-1 block text-[11px] text-[#9C8D7C]">
@@ -285,7 +285,7 @@ function ReservationScreen({
                                 기존 고객
                               </span>
                             </div>
-                          </button>
+                </button>
                         ))}
                       </div>
                     )}
@@ -360,7 +360,7 @@ function ReservationScreen({
                             <span className="px-2 py-0.5 rounded-full border border-[#C9A27A] text-[10px] text-[#C9A27A] whitespace-nowrap">
                               신규
                             </span>
-                          )}
+                )}
                         </div>
                       </div>
                       <button
@@ -380,7 +380,7 @@ function ReservationScreen({
               </p>
             )}
           </section>
-        </div>
+            </div>
       </main>
     </div>
   );
