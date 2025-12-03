@@ -1003,8 +1003,22 @@ function RecordScreen({
                   return c;
                 }));
                 
-                setSelectedCustomerId(customerId);
-                setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+                // state 업데이트 후 화면 전환 및 초기화 (비동기 처리 대기)
+                setTimeout(() => {
+                  setSelectedCustomerId(customerId);
+                  setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+                  
+                  // 상태 초기화
+                  setResultData(null);
+                  setTranscript('');
+                  setRawTranscript('');
+                  setRecordingDate(null);
+                  setSelectedCustomerForRecord(null);
+                  setTempName('');
+                  setTempPhone('');
+                  setServiceTags([]);
+                  setNewServiceTag('');
+                }, 100);
               } else {
                 // 신규 고객인 경우 이름 필수 검증
                 if (!tempName || !tempName.trim()) {
@@ -1091,20 +1105,23 @@ function RecordScreen({
                   [newCustomer.id]: [newVisit]
                 }));
                 
-                setSelectedCustomerId(newCustomer.id);
-                setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+                // state 업데이트 후 화면 전환 및 초기화 (비동기 처리 대기)
+                setTimeout(() => {
+                  setSelectedCustomerId(newCustomer.id);
+                  setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+                  
+                  // 상태 초기화
+                  setResultData(null);
+                  setTranscript('');
+                  setRawTranscript('');
+                  setRecordingDate(null);
+                  setSelectedCustomerForRecord(null);
+                  setTempName('');
+                  setTempPhone('');
+                  setServiceTags([]);
+                  setNewServiceTag('');
+                }, 100);
               }
-              
-              // 저장 후 상태 초기화
-              setResultData(null);
-              setTranscript('');
-              setRawTranscript('');
-              setRecordingDate(null);
-              setSelectedCustomerForRecord(null);
-              setTempName('');
-              setTempPhone('');
-              setServiceTags([]);
-              setNewServiceTag('');
             }}
             className="flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-medium text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all"
             style={{ backgroundColor: '#C9A27A' }}
