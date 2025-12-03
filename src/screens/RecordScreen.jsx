@@ -139,7 +139,7 @@ function RecordScreen({
           background: 'linear-gradient(to bottom, #FDFBF7 0%, #F2F0E6 100%)'
         }}
       >
-        <main className="relative flex-1 flex flex-col items-center justify-start px-6 pt-12 pb-8 overflow-hidden gap-2">
+        <main className="relative flex-1 flex flex-col items-center justify-start px-6 pt-12 pb-8 overflow-hidden gap-1">
           {/* 배경 효과 - 부드러운 펄스 (일시정지 시 멈춤) */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
             <div
@@ -184,7 +184,7 @@ function RecordScreen({
           {/* 중앙: 타이머 영역 */}
           <div className="z-10 flex flex-col items-center justify-center flex-1">
             {/* 안내 메시지 */}
-            <div className="mb-2 w-full max-w-xs px-4">
+            <div className="mb-1 w-full max-w-xs px-4">
               <div 
                 className={`bg-white/70 backdrop-blur-sm rounded-xl px-4 py-2 shadow-sm transition-all duration-300 ${
                   isNearLimit ? 'ring-2 ring-red-400 bg-red-50/70' : ''
@@ -203,7 +203,7 @@ function RecordScreen({
             </div>
 
             {/* 녹음 상태 텍스트 */}
-            <div className="mb-2 text-center animate-in fade-in duration-700">
+            <div className="mb-1 text-center animate-in fade-in duration-700">
               <div className="inline-flex items-center gap-2">
                 <div 
                   className={`w-2 h-2 rounded-full ${isCurrentlyPaused ? '' : 'animate-pulse'}`}
@@ -219,7 +219,7 @@ function RecordScreen({
             </div>
 
             {/* 타이머 - 큰 숫자 */}
-            <div className="mb-3 animate-in zoom-in duration-500">
+            <div className="mb-2 animate-in zoom-in duration-500">
               <p
                 className="text-[72px] font-light tracking-tight tabular-nums leading-none"
                 style={{
