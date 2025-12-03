@@ -773,6 +773,7 @@ export default function useMalloAppState() {
       setSelectedTagIds([]);
       setSelectedCustomerTagIds([]);
       setNewCustomerTagIds([]);
+      // 주의: selectedCustomerId는 CUSTOMER_DETAIL 화면에서 사용하므로 여기서 초기화하지 않음
     }
   }, [currentScreen]);
 

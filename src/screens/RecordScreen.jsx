@@ -1006,15 +1006,14 @@ function RecordScreen({
                 console.log('[기존 고객 저장] 고객 ID:', customerId);
                 console.log('[기존 고객 저장] 방문 기록:', newVisit);
                 
-                // 화면 전환 (초기화는 절대 하지 않음)
+                // 고객 ID 설정 후 화면 전환
                 setSelectedCustomerId(customerId);
                 
-                requestAnimationFrame(() => {
-                  setTimeout(() => {
-                    console.log('[기존 고객 저장] 화면 전환 실행, 고객 ID:', customerId);
-                    setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
-                  }, 300);
-                });
+                // React의 다음 렌더링 사이클에서 화면 전환
+                setTimeout(() => {
+                  console.log('[기존 고객 저장] 화면 전환 실행, 고객 ID:', customerId);
+                  setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+                }, 100);
               } else {
                 // 신규 고객인 경우 이름 필수 검증
                 if (!tempName || !tempName.trim()) {
@@ -1106,15 +1105,14 @@ function RecordScreen({
                 console.log('[신규 고객 저장] 고객 정보:', newCustomer);
                 console.log('[신규 고객 저장] 방문 기록:', newVisit);
                 
-                // 화면 전환 (초기화는 절대 하지 않음)
+                // 고객 ID 설정 후 화면 전환
                 setSelectedCustomerId(newCustomer.id);
                 
-                requestAnimationFrame(() => {
-                  setTimeout(() => {
-                    console.log('[신규 고객 저장] 화면 전환 실행, 고객 ID:', newCustomer.id);
-                    setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
-                  }, 300);
-                });
+                // React의 다음 렌더링 사이클에서 화면 전환
+                setTimeout(() => {
+                  console.log('[신규 고객 저장] 화면 전환 실행, 고객 ID:', newCustomer.id);
+                  setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+                }, 100);
               }
             }}
             className="flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-medium text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all"
