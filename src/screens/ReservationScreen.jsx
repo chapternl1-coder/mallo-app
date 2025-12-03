@@ -344,7 +344,13 @@ function ReservationScreen({
                   const matchedCustomer = reservation.customerId 
                     ? customers.find(c => c.id === reservation.customerId || String(c.id) === String(reservation.customerId))
                     : null;
-                  const isNew = !matchedCustomer || matchedCustomer.visitCount <= 1;
+                  
+                  // 디버깅: visitCount 확인
+                  if (matchedCustomer) {
+                    console.log(`[예약] ${reservation.name} - visitCount: ${matchedCustomer.visitCount}`);
+                  }
+                  
+                  const isNew = !matchedCustomer || matchedCustomer.visitCount === 1;
                   
                   return (
                     <div

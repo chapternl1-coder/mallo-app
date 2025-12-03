@@ -332,8 +332,14 @@ function HomeScreen({
                     const matchedCustomer = findCustomerForReservation(reservation);
                     const displayName = reservation.name || matchedCustomer?.name || '이름 미입력';
                     const displayPhone = matchedCustomer?.phone || reservation.phone || '전화번호 미입력';
-                    // 신규 판단: 고객이 없거나, visitCount가 1 이하면 신규 (녹음 후에도 유지)
-                    const isNew = !matchedCustomer || matchedCustomer.visitCount <= 1;
+                    
+                    // 디버깅: visitCount 확인
+                    if (matchedCustomer) {
+                      console.log(`[홈] ${displayName} - visitCount: ${matchedCustomer.visitCount}`);
+                    }
+                    
+                    // 신규 판단: 고객이 없거나, visitCount가 1이면 신규
+                    const isNew = !matchedCustomer || matchedCustomer.visitCount === 1;
                     // 녹음 전 신규 판단: customerId가 없으면 아직 녹음 안 함
                     const isNewNotRecorded = !reservation.customerId;
 
