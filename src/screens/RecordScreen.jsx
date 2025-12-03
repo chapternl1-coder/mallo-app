@@ -390,7 +390,16 @@ function RecordScreen({
            <div className="w-full bg-white rounded-2xl px-6 py-5 flex items-center justify-center gap-10 shadow-sm border border-[#E5E0D0] mb-4">
              {/* 좌측: 시간 */}
              <div className="text-[#C9A27A] font-bold text-base tracking-tight">
-               {recordingDate ? `${String(recordingDate.getHours()).padStart(2, '0')}:${String(recordingDate.getMinutes()).padStart(2, '0')} 예약` : '--:-- 예약'}
+               {selectedCustomerForRecord?.time ? (
+                 `${selectedCustomerForRecord.time} 예약`
+               ) : (
+                 (() => {
+                   const now = new Date();
+                   const hours = String(now.getHours()).padStart(2, '0');
+                   const minutes = String(now.getMinutes()).padStart(2, '0');
+                   return `${hours}:${minutes} 예약`;
+                 })()
+               )}
              </div>
 
              {/* 구분선 */}
