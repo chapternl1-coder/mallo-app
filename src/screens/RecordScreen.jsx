@@ -159,25 +159,26 @@ function RecordScreen({
           {selectedCustomerForRecord && (
             <div className="w-full max-w-sm z-10 animate-in fade-in slide-in-from-top duration-500">
               <div 
-                className="bg-white/90 backdrop-blur-sm rounded-3xl px-6 py-5 shadow-lg border border-white/50"
+                className="bg-white/90 backdrop-blur-sm rounded-3xl px-6 py-5 shadow-lg border border-white/50 relative"
                 style={{ boxShadow: '0 8px 32px rgba(201, 162, 122, 0.15)' }}
               >
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex flex-col gap-1 flex-1">
-                    <h3 className="text-lg font-bold" style={{ color: '#232323' }}>
-                      {selectedCustomerForRecord.name}
-                    </h3>
-                    <p className="text-sm" style={{ color: '#8C7A68' }}>
-                      {selectedCustomerForRecord.phone || '전화번호 미등록'}
-                    </p>
-                  </div>
-                  <div 
-                    className={`w-3 h-3 rounded-full flex-shrink-0 ${isCurrentlyPaused ? '' : 'animate-pulse'}`}
-                    style={{ 
-                      backgroundColor: isCurrentlyPaused ? '#FFA500' : '#EF4444', 
-                      boxShadow: isCurrentlyPaused ? '0 0 12px rgba(255, 165, 0, 0.6)' : '0 0 12px rgba(239, 68, 68, 0.6)' 
-                    }}
-                  ></div>
+                {/* 녹음 상태 점 - 오른쪽 상단 */}
+                <div 
+                  className={`absolute top-5 right-6 w-3 h-3 rounded-full ${isCurrentlyPaused ? '' : 'animate-pulse'}`}
+                  style={{ 
+                    backgroundColor: isCurrentlyPaused ? '#FFA500' : '#EF4444', 
+                    boxShadow: isCurrentlyPaused ? '0 0 12px rgba(255, 165, 0, 0.6)' : '0 0 12px rgba(239, 68, 68, 0.6)' 
+                  }}
+                ></div>
+                
+                {/* 이름과 번호 - 중앙 정렬 */}
+                <div className="flex flex-col gap-1 items-center justify-center pr-8">
+                  <h3 className="text-lg font-bold" style={{ color: '#232323' }}>
+                    {selectedCustomerForRecord.name}
+                  </h3>
+                  <p className="text-sm" style={{ color: '#8C7A68' }}>
+                    {selectedCustomerForRecord.phone || '전화번호 미등록'}
+                  </p>
                 </div>
               </div>
             </div>
