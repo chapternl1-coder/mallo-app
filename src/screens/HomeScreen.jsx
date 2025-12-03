@@ -332,9 +332,7 @@ function HomeScreen({
                     const matchedCustomer = findCustomerForReservation(reservation);
                     const displayName = reservation.name || matchedCustomer?.name || '이름 미입력';
                     const displayPhone = matchedCustomer?.phone || reservation.phone || '전화번호 미입력';
-                    
-                    // 신규 판단: customerId가 없거나, visitCount가 1인 경우
-                    const isNew = !matchedCustomer || matchedCustomer.visitCount === 1 || matchedCustomer.visitCount === 0;
+                    const isNew = !reservation.customerId || !matchedCustomer || reservation.isNew;
 
                     const isCompleted = reservation.isCompleted || false;
 
@@ -373,7 +371,7 @@ function HomeScreen({
 
                           {/* 시간 */}
                           <div className="flex-shrink-0 w-16">
-                            <div className="flex items-center gap-1.5 text-[#B8926A]">
+                            <div className={`flex items-center gap-1.5 ${isNew ? 'text-[#B8926A]' : 'text-[#C9A27A]'}`}>
                               <Clock size={14} />
                               <span className={`text-sm font-semibold ${isCompleted ? 'line-through text-gray-400' : ''}`}>
                                 {reservation.time || '--:--'}
@@ -395,17 +393,17 @@ function HomeScreen({
                                     }}
                                     className={`font-semibold text-base truncate transition-colors ${
                                       reservation.customerId ? 'hover:text-[#C9A27A] cursor-pointer' : 'cursor-default'
-                                    } ${isCompleted ? 'line-through text-gray-400' : 'text-[#3F352B]'}`}
+                                    } ${isCompleted ? 'line-through text-gray-400' : isNew ? 'text-[#3F352B]' : 'text-gray-800'}`}
                                   >
                                     {displayName}
                                   </button>
                                   {isNew && (
-                                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap shadow-sm ${isCompleted ? 'bg-gray-300 text-gray-500' : 'bg-white text-[#C9A27A]'}`}>
+                                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap shadow-sm ${isCompleted ? 'bg-gray-300 text-gray-500' : 'bg-[#C9A27A] text-white'}`}>
                                       신규
                                     </span>
                                   )}
                                 </div>
-                            <p className={`text-sm truncate mt-0.5 ${isCompleted ? 'line-through text-gray-400' : 'text-[#7B6A58]'}`}>
+                            <p className={`text-sm truncate mt-0.5 ${isCompleted ? 'line-through text-gray-400' : isNew ? 'text-[#7B6A58]' : 'text-gray-600'}`}>
                               {displayPhone}
                             </p>
                           </div>
