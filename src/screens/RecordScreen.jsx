@@ -388,8 +388,7 @@ function RecordScreen({
          {/* 고객 정보 표시 - selectedCustomerForRecord가 있으면 카드, 없으면 입력창 */}
          {selectedCustomerForRecord ? (
            <div className="bg-white rounded-xl shadow-sm border border-gray-200" style={{ padding: '12px 16px' }}>
-             <div className="flex items-center justify-between">
-               {/* 왼쪽: 시간 */}
+             <div className="flex items-center justify-start gap-4">
                {recordingDate && (
                  <div className="flex items-center gap-2">
                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A27A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -400,18 +399,16 @@ function RecordScreen({
                      {(() => {
                        const hours = String(recordingDate.getHours()).padStart(2, '0');
                        const minutes = String(recordingDate.getMinutes()).padStart(2, '0');
-                       return `${hours}:${minutes}`;
+                       return `${hours}:${minutes} 예약`;
                      })()}
                    </span>
                  </div>
                )}
-               
-               {/* 오른쪽: 이름과 전화번호 */}
-               <div className="text-right">
-                 <h3 className="font-bold text-base mb-0.5" style={{ color: '#232323' }}>{selectedCustomerForRecord.name}</h3>
-                 <div className="text-sm" style={{ color: '#8C8C8C' }}>
-                   {selectedCustomerForRecord.phone}
-                 </div>
+               <h3 className="font-bold text-base mb-0.5" style={{ color: '#232323' }}>
+                 {selectedCustomerForRecord.name}
+               </h3>
+               <div className="text-sm" style={{ color: '#8C8C8C' }}>
+                 {selectedCustomerForRecord.phone}
                </div>
              </div>
            </div>
