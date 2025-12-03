@@ -388,22 +388,30 @@ function RecordScreen({
          {/* 고객 정보 표시 - selectedCustomerForRecord가 있으면 카드, 없으면 입력창 */}
          {selectedCustomerForRecord ? (
            <div className="bg-white rounded-xl shadow-sm border border-gray-200" style={{ padding: '12px 16px' }}>
-             <div className="flex flex-col gap-2">
-               <div className="flex-1">
-                 <h3 className="font-bold text-base mb-0.5" style={{ color: '#232323' }}>{selectedCustomerForRecord.name}</h3>
-                 <div className="flex items-center gap-2 text-xs mb-1" style={{ color: '#8C8C8C' }}>
-                   <Phone size={12} style={{ color: '#C9A27A' }} />
-                   <span>{selectedCustomerForRecord.phone}</span>
-                 </div>
-                 {recordingDate && (
-                   <div className="text-xs" style={{ color: '#8C8C8C' }}>
+             <div className="flex items-center justify-between">
+               {/* 왼쪽: 시간 */}
+               {recordingDate && (
+                 <div className="flex items-center gap-2">
+                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A27A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                     <circle cx="12" cy="12" r="10"></circle>
+                     <polyline points="12 6 12 12 16 14"></polyline>
+                   </svg>
+                   <span className="text-base font-medium" style={{ color: '#C9A27A' }}>
                      {(() => {
                        const hours = String(recordingDate.getHours()).padStart(2, '0');
                        const minutes = String(recordingDate.getMinutes()).padStart(2, '0');
-                       return `${hours}:${minutes} 예약`;
+                       return `${hours}:${minutes}`;
                      })()}
-                   </div>
-                 )}
+                   </span>
+                 </div>
+               )}
+               
+               {/* 오른쪽: 이름과 전화번호 */}
+               <div className="text-right">
+                 <h3 className="font-bold text-base mb-0.5" style={{ color: '#232323' }}>{selectedCustomerForRecord.name}</h3>
+                 <div className="text-sm" style={{ color: '#8C8C8C' }}>
+                   {selectedCustomerForRecord.phone}
+                 </div>
                </div>
              </div>
            </div>
@@ -471,7 +479,9 @@ function RecordScreen({
                 {currentSector.icon}
                 <span className="ml-2">{userProfile.roleTitle}</span>
               </span>
-              <h3 className="font-bold text-white text-lg mb-2">📝 오늘의 시술 요약</h3>
+              <h3 className="font-bold text-white text-lg mb-2">
+                📝 {selectedCustomerForRecord?.name || tempName || '고객'}님 시술요약
+              </h3>
               <p className="text-base font-medium text-white/90 leading-relaxed">
                 {(() => {
                   const safeTitle = typeof resultData.title === 'string' 
