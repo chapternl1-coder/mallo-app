@@ -23,7 +23,13 @@ export default async function handler(req, res) {
     }
 
     const { sourceText, systemPrompt, today } = req.body || {};
+    console.log('[API] 요약 요청 받음');
+    console.log('[API] sourceText 길이:', sourceText?.length || 0);
+    console.log('[API] systemPrompt 있음:', !!systemPrompt);
+    console.log('[API] today:', today);
+    
     if (!sourceText || typeof sourceText !== 'string') {
+      console.error('[API] sourceText가 없거나 문자열이 아님');
       res.status(400).json({ error: 'sourceText(요약할 텍스트)가 필요합니다.' });
       return;
     }
@@ -33,10 +39,14 @@ export default async function handler(req, res) {
       '너는 30년 경력의 뷰티샵(네일/왁싱/속눈썹/헤어/피부관리) 시술 기록 및 고객 히스토리 작성 전문가야.\n\n' +
       '입력 텍스트를 분석해서 실제 뷰티샵 업무에서 바로 사용할 수 있는 "고객별 시술 히스토리 로그" 형식으로 상세하게 정리해줘.';
 
+    console.log('[API] 최종 시스템 프롬프트 길이:', finalSystemPrompt.length);
+
     // today 값이 있으면 user message에 포함
     const userMessage = today 
       ? `오늘 날짜: ${today}\n\n원문 텍스트:\n${sourceText}`
       : sourceText;
+    
+    console.log('[API] userMessage 길이:', userMessage.length);
 
     const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -61,15 +71,18 @@ export default async function handler(req, res) {
       }),
     });
 
+    console.log('[API] OpenAI API 응답 상태:', openaiRes.status);
+    
     if (!openaiRes.ok) {
       const errorText = await openaiRes.text();
-      console.error('OpenAI API error:', openaiRes.status, errorText);
+      console.error('[API] OpenAI API 오류:', openaiRes.status, errorText);
       res.status(500).json({ error: 'Failed to call OpenAI API', detail: errorText });
       return;
     }
 
     const data = await openaiRes.json();
     let summaryJson = data?.choices?.[0]?.message?.content || '{}';
+    console.log('[API] OpenAI API 원본 응답:', summaryJson.substring(0, 200) + '...');
 
     // content 배열의 객체를 문자열로 변환하는 헬퍼 함수
     const normalizeContentArray = (content) => {
@@ -143,7 +156,13 @@ export default async function handler(req, res) {
     // JSON 파싱 및 content 배열 정리
     try {
       const parsed = JSON.parse(summaryJson);
+      console.log('[API] 파싱된 JSON:', {
+        title: parsed.title,
+        sectionsCount: parsed.sections?.length || 0,
+      });
+      
       if (parsed.sections && Array.isArray(parsed.sections)) {
+        const beforeCount = parsed.sections.length;
         // sections의 각 content 배열을 정리하고 빈 섹션 필터링
         parsed.sections = parsed.sections
           .map((section) => ({
@@ -151,14 +170,19 @@ export default async function handler(req, res) {
             content: normalizeContentArray(section.content || []),
           }))
           .filter(section => section.content && section.content.length > 0); // 빈 섹션 제거
+        
+        const afterCount = parsed.sections.length;
+        console.log('[API] 섹션 정리:', `${beforeCount}개 → ${afterCount}개`);
+        
         // 정리된 결과를 다시 JSON 문자열로 변환
         summaryJson = JSON.stringify(parsed);
       }
     } catch (e) {
       // JSON 파싱 실패 시 원본 사용
-      console.warn('Failed to normalize summary JSON:', e);
+      console.warn('[API] JSON 정규화 실패:', e);
     }
 
+    console.log('[API] 최종 응답 전송 완료');
     res.status(200).json({
       ok: true,
       summaryJson,

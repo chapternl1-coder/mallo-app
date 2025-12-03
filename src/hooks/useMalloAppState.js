@@ -1072,24 +1072,11 @@ export default function useMalloAppState() {
       audioChunksRef.current = [];
 
       if (recordingTime < 0.5 || audioBlob.size < 1000) {
-        const dummyResultData = {
-          title: '테스트 시술 기록',
-          sections: [
-            {
-              title: '고객 기본 정보',
-              content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객', '고객 특징: 미기재']
-            },
-            {
-              title: '시술 내용',
-              content: ['테스트를 위한 더미 데이터입니다. 개발용 요약 테스트 박스나 테스트 버튼을 사용해주세요.']
-            }
-          ]
-        };
-        setResultData(dummyResultData);
-        setTranscript('');
-        setRawTranscript('');
+        console.log('[녹음 경고] 녹음 시간이 너무 짧거나 파일이 너무 작습니다. 개발용 요약 테스트 박스를 사용해주세요.');
+        alert('녹음 시간이 너무 짧습니다. 최소 1초 이상 녹음해주세요.');
         setIsProcessing(false);
-        setRecordState('result');
+        setRecordState('idle');
+        setCurrentScreen(SCREENS.HOME);
         return;
       }
 
@@ -1100,8 +1087,9 @@ export default function useMalloAppState() {
       // 실제 프로덕션에서는 서버 API를 통해 음성을 텍스트로 변환해야 합니다.
       let transcript = '';
       if (DEV_MODE) {
-        // 개발 모드에서는 더미 텍스트 사용
-        transcript = '테스트를 위한 더미 음성 인식 결과입니다. 실제 녹음 기능을 사용하려면 서버 API가 필요합니다.';
+        // 개발 모드에서는 더미 텍스트 사용 - 뷰티샵 시술 내용 예시
+        transcript = '오늘 오후 3시에 김민지 고객님 오셨어요. 속눈썹 리터치인데 저번에 C컬 했더니 처진다고 해서 이번엔 D컬 11mm로 올려드렸어요. 눈물이 좀 많으셔서 순한 글루 사용했고요. 회원권에서 5만원 차감했습니다.';
+        console.log('[개발 모드] 더미 음성 인식 텍스트 사용:', transcript);
       } else {
         // 실제 환경에서는 서버 API 호출 필요
         throw new Error('음성 인식 기능은 서버 API를 통해 사용할 수 있습니다. 서버 API가 구현될 때까지 사용할 수 없습니다.');
@@ -1117,9 +1105,15 @@ export default function useMalloAppState() {
       setTranscript(transcript);
       setRawTranscript(transcript);
 
+      console.log('[요약 요청] transcript:', transcript);
+      console.log('[요약 요청] transcript 길이:', transcript.length);
+
       // 서버 API로 요약 요청
       const today = new Date();
       const todayStr = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일 (${['일','월','화','수','목','금','토'][today.getDay()]})`;
+      
+      console.log('[요약 요청] 오늘 날짜:', todayStr);
+      console.log('[요약 요청] 시스템 프롬프트 길이:', SYSTEM_PROMPT.length);
       
       const summarizeResponse = await fetch('/api/summarize', {
         method: 'POST',
@@ -1139,11 +1133,14 @@ export default function useMalloAppState() {
       }
 
       const summarizeData = await summarizeResponse.json();
+      console.log('[요약 응답] 받은 데이터:', summarizeData);
       
       let parsedResult = {};
       try {
         parsedResult = JSON.parse(summarizeData.summaryJson || '{}');
+        console.log('[요약 응답] 파싱된 결과:', parsedResult);
       } catch (parseError) {
+        console.error('[요약 응답] JSON 파싱 실패:', parseError);
         throw new Error('요약 결과를 파싱할 수 없습니다.');
       }
       
@@ -1165,8 +1162,9 @@ export default function useMalloAppState() {
         throw new Error('API 응답 형식이 올바르지 않습니다.');
       }
     } catch (error) {
+      console.error('[녹음 처리 오류]', error);
       const errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
-      alert(`오류가 발생했습니다\n\n${errorMessage}`);
+      alert(`오류가 발생했습니다\n\n${errorMessage}\n\n콘솔을 확인해주세요.`);
       setCurrentScreen(SCREENS.HOME);
       setRecordState('idle');
     } finally {
