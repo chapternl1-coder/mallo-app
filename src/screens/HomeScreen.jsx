@@ -47,13 +47,9 @@ function HomeScreen({
     return `${today.getMonth() + 1}월 ${today.getDate()}일`;
   }, []);
 
-  // 동적 제목 텍스트
+  // 동적 제목 텍스트 (항상 "M월 D일" 형식으로 표시)
   const dateTitle = useMemo(() => {
-    if (isToday(selectedDate)) {
-      return '오늘 방문 예정 고객';
-    } else {
-      return `${format(selectedDate, 'M월 d일', { locale: ko })} 방문 예정 고객`;
-    }
+    return `${format(selectedDate, 'M월 d일', { locale: ko })} 방문 예정 고객`;
   }, [selectedDate]);
 
   // 검색어에 따른 고객 필터링 (최소 2글자)
@@ -304,12 +300,6 @@ function HomeScreen({
                       {todaysReservations.length}명
                     </span>
                   )}
-                  <button
-                    onClick={() => setCurrentScreen(SCREENS.RESERVATION)}
-                    className="p-2 hover:bg-[#F9F5EF] rounded-xl transition-colors"
-                  >
-                    <Calendar size={18} className="text-[#C9A27A]" />
-                  </button>
                 </div>
               </div>
 
