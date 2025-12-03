@@ -162,8 +162,8 @@ function RecordScreen({
                 className="bg-white/90 backdrop-blur-sm rounded-3xl p-5 shadow-lg border border-white/50"
                 style={{ boxShadow: '0 8px 32px rgba(201, 162, 122, 0.15)' }}
               >
-                <div className="flex items-center gap-4">
-                  <div className="flex-1 flex items-center gap-2">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex flex-col gap-1">
                     <h3 className="text-lg font-bold" style={{ color: '#232323' }}>
                       {selectedCustomerForRecord.name}
                     </h3>
@@ -172,7 +172,7 @@ function RecordScreen({
                     </p>
                   </div>
                   <div 
-                    className={`w-3 h-3 rounded-full ${isCurrentlyPaused ? '' : 'animate-pulse'}`}
+                    className={`w-3 h-3 rounded-full flex-shrink-0 ${isCurrentlyPaused ? '' : 'animate-pulse'}`}
                     style={{ 
                       backgroundColor: isCurrentlyPaused ? '#FFA500' : '#EF4444', 
                       boxShadow: isCurrentlyPaused ? '0 0 12px rgba(255, 165, 0, 0.6)' : '0 0 12px rgba(239, 68, 68, 0.6)' 
@@ -388,7 +388,7 @@ function RecordScreen({
          {/* 고객 정보 표시 - selectedCustomerForRecord가 있으면 카드, 없으면 입력창 */}
          {selectedCustomerForRecord ? (
            <div className="bg-white rounded-xl shadow-sm border border-gray-200" style={{ padding: '12px 16px' }}>
-             <div className="flex items-center justify-center gap-2">
+             <div className="flex items-center gap-2 justify-start ml-6">
                {recordingDate && (
                  <div className="flex items-center gap-2">
                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A27A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -406,9 +406,9 @@ function RecordScreen({
                )}
 
                {/* 이름과 번호를 감싸는 영역에 좌우 여백과 폭 제한 추가 */}
-               <div className="flex flex-col justify-center px-4 max-w-xs mx-auto" style={{ minWidth: '220px' }}>
-                 <h3 className="font-bold text-base mb-0.5" style={{ color: '#232323' }}>{selectedCustomerForRecord.name}</h3>
-                 <div className="text-sm" style={{ color: '#8C8C8C' }}>
+               <div className="flex flex-col justify-center px-4 max-w-xs" style={{ minWidth: '220px' }}>
+                 <h3 className="font-bold text-base mb-0.5 text-left" style={{ color: '#232323' }}>{selectedCustomerForRecord.name}</h3>
+                 <div className="text-sm text-left" style={{ color: '#8C8C8C' }}>
                    {selectedCustomerForRecord.phone}
                  </div>
                </div>
