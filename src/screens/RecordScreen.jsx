@@ -277,62 +277,54 @@ function RecordScreen({
             {/* 컨트롤 버튼들 - 일시정지/재개 & 정지 */}
             <div className="flex items-center justify-center gap-8 mt-8 animate-in zoom-in duration-700 delay-300">
               {/* 왼쪽: 일시정지/이어 말하기 버튼 */}
-              <div className="flex flex-col items-center">
-                <button
-                  onClick={() => {
-                    if (isCurrentlyPaused && resumeRecording) {
-                      resumeRecording();
-                    } else if (!isCurrentlyPaused && pauseRecording) {
-                      pauseRecording();
-                    }
-                  }}
-                  className="w-12 h-12 rounded-full bg-white border border-[#E3D7C7] flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all duration-200"
-                >
-                  {isCurrentlyPaused ? (
-                    <Play size={18} fill="#A07B4F" style={{ color: '#A07B4F' }} />
-                  ) : (
-                    <Pause size={18} style={{ color: '#A07B4F' }} />
-                  )}
-                </button>
-                <span className="mt-1 text-[10px] text-[#A79A8E]">
-                  {isCurrentlyPaused ? '이어 말하기' : '일시정지'}
-                </span>
-              </div>
+              <button
+                onClick={() => {
+                  if (isCurrentlyPaused && resumeRecording) {
+                    resumeRecording();
+                  } else if (!isCurrentlyPaused && pauseRecording) {
+                    pauseRecording();
+                  }
+                }}
+                className="w-12 h-12 rounded-full bg-white border border-[#E3D7C7] flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-all duration-200"
+              >
+                {isCurrentlyPaused ? (
+                  <Play size={18} fill="#A07B4F" style={{ color: '#A07B4F' }} />
+                ) : (
+                  <Pause size={18} style={{ color: '#A07B4F' }} />
+                )}
+              </button>
 
               {/* 가운데: 녹음 끝내기 버튼 */}
-              <div className="flex flex-col items-center">
-                <button
-                  onClick={stopRecording}
-                  className="group relative flex items-center justify-center"
-                  style={{ width: '64px', height: '64px' }}
-                >
-                  {/* 물결 효과 - 일시정지 시 멈춤 */}
-                  {!isCurrentlyPaused && [...Array(3)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="absolute rounded-full"
-                      style={{
-                        width: '64px',
-                        height: '64px',
-                        border: '2px solid rgba(201, 162, 122, 0.3)',
-                        animation: `ping ${2 + i * 0.5}s cubic-bezier(0, 0, 0.2, 1) infinite`,
-                        animationDelay: `${i * 0.3}s`,
-                      }}
-                    ></div>
-                  ))}
-
-                  {/* 버튼 본체 */}
+              <button
+                onClick={stopRecording}
+                className="group relative flex items-center justify-center"
+                style={{ width: '64px', height: '64px' }}
+              >
+                {/* 물결 효과 - 일시정지 시 멈춤 */}
+                {!isCurrentlyPaused && [...Array(3)].map((_, i) => (
                   <div
-                    className="relative w-16 h-16 rounded-full bg-[#C9A27A] flex items-center justify-center shadow-md group-hover:scale-110 group-active:scale-95 transition-all duration-200"
+                    key={i}
+                    className="absolute rounded-full"
                     style={{
-                      boxShadow: '0 8px 24px rgba(201, 162, 122, 0.4)',
+                      width: '64px',
+                      height: '64px',
+                      border: '2px solid rgba(201, 162, 122, 0.3)',
+                      animation: `ping ${2 + i * 0.5}s cubic-bezier(0, 0, 0.2, 1) infinite`,
+                      animationDelay: `${i * 0.3}s`,
                     }}
-                  >
-                    <Square size={24} fill="white" stroke="white" />
-                  </div>
-                </button>
-                <span className="mt-1 text-[10px] text-[#A79A8E]">끝내기</span>
-              </div>
+                  ></div>
+                ))}
+
+                {/* 버튼 본체 */}
+                <div
+                  className="relative w-16 h-16 rounded-full bg-[#C9A27A] flex items-center justify-center shadow-md group-hover:scale-110 group-active:scale-95 transition-all duration-200"
+                  style={{
+                    boxShadow: '0 8px 24px rgba(201, 162, 122, 0.4)',
+                  }}
+                >
+                  <Square size={24} fill="white" stroke="white" />
+                </div>
+              </button>
             </div>
           </div>
 
