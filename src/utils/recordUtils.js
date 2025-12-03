@@ -232,7 +232,12 @@ export function createNewCustomer({
   customers,
   customerTags
 }) {
-  const newCustomerId = Math.max(...customers.map(c => c.id), 0) + 1;
+  // 고유한 문자열 ID 생성 (타임스탬프 + 랜덤 문자열)
+  const timestamp = Date.now();
+  const randomStr = Math.random().toString(36).substring(2, 9);
+  const newCustomerId = `c_${timestamp}_${randomStr}`;
+  
+  console.log('[createNewCustomer] 생성된 고객 ID:', newCustomerId);
   
   return {
     id: newCustomerId,
