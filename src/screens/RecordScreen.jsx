@@ -171,24 +171,8 @@ function RecordScreen({
 
           {/* 중앙: 타이머 영역 */}
           <div className="z-10 flex flex-col items-center justify-center flex-1">
-            {/* 녹음 상태 텍스트 */}
-            <div className="mb-4 text-center animate-in fade-in duration-700">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 backdrop-blur-sm shadow-sm">
-                <div 
-                  className="w-2 h-2 rounded-full animate-pulse"
-                  style={{ backgroundColor: '#EF4444' }}
-                ></div>
-                <span 
-                  className="text-sm font-medium tracking-wide"
-                  style={{ color: '#C9A27A' }}
-                >
-                  Recording
-                </span>
-              </div>
-            </div>
-
             {/* 안내 메시지 */}
-            <div className="mb-8 w-full max-w-xs px-4">
+            <div className="mb-4 w-full max-w-xs px-4">
               <div 
                 className={`bg-white/70 backdrop-blur-sm rounded-xl px-4 py-2 shadow-sm transition-all duration-300 ${
                   isNearLimit ? 'ring-2 ring-red-400 bg-red-50/70' : ''
@@ -203,6 +187,22 @@ function RecordScreen({
                     ? '⚠️ 곧 최대 녹음 시간에 도달합니다!'
                     : '💡 한 고객님 정보만 말씀해 주세요'}
                 </p>
+              </div>
+            </div>
+
+            {/* 녹음 상태 텍스트 */}
+            <div className="mb-8 text-center animate-in fade-in duration-700">
+              <div className="inline-flex items-center gap-2">
+                <div 
+                  className="w-2 h-2 rounded-full animate-pulse"
+                  style={{ backgroundColor: '#EF4444' }}
+                ></div>
+                <span 
+                  className="text-sm font-medium tracking-wide"
+                  style={{ color: '#C9A27A' }}
+                >
+                  Recording
+                </span>
               </div>
             </div>
 
