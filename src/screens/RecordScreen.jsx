@@ -1053,6 +1053,8 @@ function RecordScreen({
               const cleanedTitle = cleanTitle(resultData.title, customerName);
               
               const newVisit = createVisitRecord({
+                customerId: finalCustomerId,
+                customerName: customerName,
                 dateStr,
                 timeStr,
                 recordedAt,

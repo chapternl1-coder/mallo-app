@@ -67,6 +67,8 @@ export function cleanTitle(title, customerName = null) {
 /**
  * 방문 기록 객체 생성
  * @param {Object} params - 방문 기록 생성 파라미터
+ * @param {string} params.customerId - 고객 ID
+ * @param {string} params.customerName - 고객 이름
  * @param {string} params.dateStr - 날짜 문자열 (YYYY-MM-DD)
  * @param {string} params.timeStr - 시간 문자열 (HH:mm)
  * @param {string} params.recordedAt - ISO 문자열
@@ -81,6 +83,8 @@ export function cleanTitle(title, customerName = null) {
  * @returns {Object} 방문 기록 객체
  */
 export function createVisitRecord({
+  customerId,
+  customerName,
   dateStr,
   timeStr,
   recordedAt,
@@ -108,6 +112,8 @@ export function createVisitRecord({
   
   return {
     id: newVisitId,
+    customerId: customerId,
+    customerName: customerName,
     date: dateStr,
     time: timeStr,
     recordedAt: recordedAt,
