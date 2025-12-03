@@ -1099,9 +1099,10 @@ export default function useMalloAppState() {
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
       audioChunksRef.current = [];
 
-      if (recordingTime < 0.1 || audioBlob.size < 100) {
-        console.log('[녹음 경고] 녹음 시간이 너무 짧거나 파일이 너무 작습니다. 개발용 요약 테스트 박스를 사용해주세요.');
-        alert('녹음 시간이 너무 짧습니다. 최소 0.5초 이상 녹음해주세요.');
+      // 최소 체크만 수행 (1초 이내도 허용)
+      if (audioBlob.size < 100) {
+        console.log('[녹음 경고] 오디오 파일이 너무 작습니다.');
+        alert('녹음 데이터가 충분하지 않습니다. 다시 시도해주세요.');
         setIsProcessing(false);
         setRecordState('idle');
         setCurrentScreen(SCREENS.HOME);
@@ -1135,8 +1136,10 @@ export default function useMalloAppState() {
       console.log('[음성 인식] 변환된 텍스트:', transcript);
       console.log('[음성 인식] 텍스트 길이:', transcript.length);
       
-      if (!transcript.trim() || recordingTime < 0.1) {
-        console.log('[녹음 경고] 텍스트가 비어있거나 녹음 시간이 너무 짧습니다.');
+      // 텍스트가 비어있으면 홈으로 (시간 제한 제거)
+      if (!transcript.trim()) {
+        console.log('[녹음 경고] 변환된 텍스트가 비어있습니다.');
+        alert('음성이 인식되지 않았습니다. 다시 시도해주세요.');
         setIsProcessing(false);
         setRecordState('idle');
         setCurrentScreen(SCREENS.HOME);
