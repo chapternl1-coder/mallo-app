@@ -156,7 +156,23 @@ function RecordScreen({
 
 
           {/* 상단: 고객 정보 카드 */}
-          {selectedCustomerForRecord && (
+          {selectedCustomerForRecord ? (
+            <div className="bg-white rounded-xl px-4 py-3 flex items-center justify-between shadow-sm">
+              <div className="flex flex-col flex-1 items-center">
+                <span className="text-[13px] font-semibold text-neutral-900">
+                  {selectedCustomerForRecord.name}
+                </span>
+                <span className="mt-[2px] text-[11px] text-neutral-500">
+                  {selectedCustomerForRecord.phone}
+                </span>
+              </div>
+
+              <button className="ml-3 shrink-0" onClick={() => {/* 기존 옵션 기능 유지 */}}>
+                <MoreHorizontal size={24} style={{ color: '#232323', opacity: 0.5 }} />
+              </button>
+            </div>
+          ) : (
+            /* 기존 신규 고객 입력 UI 유지 */
             <div className="w-full max-w-sm z-10 animate-in fade-in slide-in-from-top duration-500">
               <div 
                 className="bg-white/90 backdrop-blur-sm rounded-3xl p-5 shadow-lg border border-white/50"
