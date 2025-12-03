@@ -390,7 +390,7 @@ function RecordScreen({
          {selectedCustomerForRecord ? (
            <div className="bg-white rounded-xl shadow-sm border border-gray-200" style={{ padding: '12px 16px' }}>
              <div className="flex items-center gap-2 justify-start ml-6">
-               {recordingDate && (
+               {/* recordingDate && (
                  <div className="flex items-center gap-2">
                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A27A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                      <circle cx="12" cy="12" r="10"></circle>
@@ -404,7 +404,7 @@ function RecordScreen({
                      })()}
                    </span>
                  </div>
-               )}
+               ) */}
 
                {/* 이름과 번호를 감싸는 영역에 좌우 여백과 폭 제한 추가 */}
                <div className="flex flex-col justify-center px-4 max-w-xs" style={{ minWidth: '220px' }}>
