@@ -27,6 +27,7 @@ function HomeScreen({
   startRecording,
   reservations = [],
   toggleReservationComplete,
+  visits = {},
 }) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -343,8 +344,29 @@ function HomeScreen({
                     // 신규 판단: 예약 생성 시점에 저장된 isNew 플래그 사용 (고정)
                     const isNew = reservation.isNew === true;
                     
-                    // 녹음 전 신규 판단: customerId가 없으면 아직 녹음 안 함 (베이지 배경용)
-                    const isNewNotRecorded = !reservation.customerId;
+                    // 요약(녹음) 완료 여부 판단
+                    let hasSummary = false;
+                    
+                    if (reservation.customerId) {
+                      // customerId로 방문 기록 찾기
+                      const customerVisits = visits[reservation.customerId] || visits[String(reservation.customerId)] || [];
+                      
+                      // 해당 예약과 연결된 방문 기록이 있는지 확인
+                      hasSummary = customerVisits.some(visit => {
+                        // 1순위: reservationId가 일치하는 경우
+                        if (visit.reservationId === reservation.id) {
+                          return true;
+                        }
+                        
+                        // 2순위: 날짜가 일치하는 경우 (예약 날짜와 방문 날짜 비교)
+                        const visitDate = visit.serviceDate || visit.date;
+                        if (visitDate === reservation.date) {
+                          return true;
+                        }
+                        
+                        return false;
+                      });
+                    }
 
                     const isCompleted = reservation.isCompleted || false;
 
@@ -352,9 +374,9 @@ function HomeScreen({
                       <div
                         key={reservation.id}
                         className={`rounded-xl p-4 shadow-sm transition-all border hover:border-[#C9A27A] ${
-                          isNewNotRecorded 
-                            ? 'bg-[#F9F5EF] border-[#F9F5EF]'  // 녹음 전 신규: 베이지
-                            : 'bg-white border-gray-100'         // 녹음 완료 또는 기존: 화이트
+                          !hasSummary 
+                            ? 'bg-[#F9F5EF] border-[#F9F5EF]'  // 요약 없음: 베이지색
+                            : 'bg-white border-gray-100'         // 요약 완료: 흰색
                         }`}
                       >
                         <div className="flex items-center gap-4">
