@@ -24,7 +24,9 @@ function EditCustomerScreen({
   setVisits,
   setCurrentScreen,
   setSelectedCustomerId,
-  saveToLocalStorage
+  saveToLocalStorage,
+  reservations,
+  setReservations
 }) {
   const handleComplete = () => {
     if (!editCustomerName.trim()) {
@@ -229,18 +231,60 @@ function EditCustomerScreen({
         <div className="flex justify-center p-6 mt-5">
           <button 
             onClick={() => {
-              if (window.confirm(`정말로 "${editCustomerName}" 고객을 삭제하시겠습니까?\n고객 정보와 모든 방문 기록이 삭제되며 복구할 수 없습니다.`)) {
+              // 경고 메시지 (더 명확하게)
+              const confirmMessage = `⚠️ 경고: "${editCustomerName}" 고객을 삭제하시겠습니까?\n\n` +
+                `다음 항목이 모두 삭제됩니다:\n` +
+                `• 고객 정보\n` +
+                `• 모든 방문 기록\n` +
+                `• 모든 예약 정보\n\n` +
+                `이 작업은 복구할 수 없습니다.`;
+              
+              if (window.confirm(confirmMessage)) {
                 const customerId = selectedCustomerId;
                 
                 // 고객 삭제
-                setCustomers(prev => prev.filter(c => c.id !== customerId));
+                setCustomers(prev => {
+                  const updated = prev.filter(c => c.id !== customerId);
+                  // localStorage에 저장
+                  if (saveToLocalStorage) {
+                    saveToLocalStorage('mallo_customers', updated);
+                  }
+                  return updated;
+                });
                 
                 // 해당 고객의 방문 기록 삭제
                 setVisits(prev => {
                   const updated = { ...prev };
                   delete updated[customerId];
+                  // localStorage에 저장
+                  localStorage.setItem('visits', JSON.stringify(updated));
                   return updated;
                 });
+                
+                // 해당 고객의 예약 정보 삭제 (customerId로 연결된 예약)
+                if (setReservations && reservations) {
+                  setReservations(prev => {
+                    const updated = prev.filter(res => {
+                      // customerId가 일치하는 예약 삭제
+                      // 숫자와 문자열 ID 모두 처리
+                      const resCustomerId = res.customerId;
+                      const matchById = resCustomerId === customerId || 
+                                       String(resCustomerId) === String(customerId);
+                      
+                      // customerId가 없지만 이름/전화번호가 일치하는 예약도 삭제
+                      const matchByName = res.name && editCustomerName && 
+                                        res.name.trim() === editCustomerName.trim();
+                      const matchByPhone = res.phone && editCustomerPhone && 
+                                         res.phone.replace(/\D/g, '') === editCustomerPhone.replace(/\D/g, '');
+                      
+                      // customerId가 일치하거나, 이름과 전화번호가 모두 일치하면 삭제
+                      return !(matchById || (matchByName && matchByPhone));
+                    });
+                    // localStorage에 저장
+                    localStorage.setItem('reservations', JSON.stringify(updated));
+                    return updated;
+                  });
+                }
                 
                 // 상태 초기화
                 setEditCustomerName('');
