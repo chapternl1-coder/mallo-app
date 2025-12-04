@@ -39,10 +39,10 @@ function ReservationScreen({
     return `${year}-${month}-${day}`;
   }, [getTodayDateString]);
 
-  // 선택된 날짜의 예약만 필터링하고 시간순으로 정렬
+  // 선택된 날짜의 예약만 필터링하고 시간순으로 정렬 (취소된 예약도 포함)
   const filteredReservations = useMemo(() => {
     const filtered = (reservations || []).filter(
-      (res) => res && res.date === selectedDateStr && !res.isCompleted
+      (res) => res && res.date === selectedDateStr
     );
     
     // 시간순으로 정렬 (시간이 없는 것은 맨 아래)
@@ -343,22 +343,25 @@ function ReservationScreen({
                   // 신규 판단: 예약 생성 시점에 저장된 isNew 플래그 사용 (고정)
                   const isNew = reservation.isNew === true;
                   
+                  // 예약 관리 화면에서는 취소선 없이 일반 텍스트로 표시
+                  const isCompleted = reservation.isCompleted || false;
+                  
                   return (
                     <div
                       key={reservation.id}
                       className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 shadow-sm"
                     >
                       <div className="flex flex-1 items-center gap-3">
-                        <span className="text-[11px] text-[#B18352]">
+                        <span className={`text-[11px] ${isCompleted ? 'text-gray-400' : 'text-[#B18352]'}`}>
                           {reservation.time}
                         </span>
                         <div className="flex items-center gap-2 flex-wrap">
-                          {/* 이름 */}
-                          <span className="text-sm font-medium text-[#3F352B]">
+                          {/* 이름 - 예약 관리 화면에서는 취소선 없이 일반 텍스트 */}
+                          <span className={`text-sm font-medium ${isCompleted ? 'text-gray-400' : 'text-[#3F352B]'}`}>
                             {reservation.name}
                           </span>
                           {displayPhone && (
-                            <span className="text-xs text-gray-600">
+                            <span className={`text-xs ${isCompleted ? 'text-gray-400' : 'text-gray-600'}`}>
                               {displayPhone}
                             </span>
                           )}

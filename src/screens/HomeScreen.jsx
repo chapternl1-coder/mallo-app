@@ -427,7 +427,13 @@ function HomeScreen({
                                     }}
                                     className={`font-semibold text-base truncate transition-colors ${
                                       reservation.customerId ? 'hover:text-[#C9A27A] cursor-pointer' : 'cursor-default'
-                                    } ${isCompleted ? 'line-through text-gray-400' : 'text-gray-800'}`}
+                                    } ${
+                                      isCompleted 
+                                        ? 'line-through text-gray-400' 
+                                        : !reservation.customerId 
+                                          ? 'text-gray-400'  // 프로필 없음: 회색
+                                          : 'text-gray-800'  // 프로필 있음: 기본 색상
+                                    }`}
                                   >
                                     {displayName}
                                   </button>
