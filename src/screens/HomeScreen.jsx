@@ -37,6 +37,7 @@ function HomeScreen({
   const dateInputRef = useRef(null);
   const [editingMemoReservationId, setEditingMemoReservationId] = useState(null);
   const [tempMemoValue, setTempMemoValue] = useState('');
+  const memoInputRef = useRef(null);
   
   // 반응형 글자 수 제한 계산
   const getMaxMemoLength = () => {
@@ -210,10 +211,14 @@ function HomeScreen({
     setTempMemoValue(reservation.note || '');
   };
 
-  // 메모 저장
+  // 메모 자동 저장 (onBlur 또는 Enter 키)
   const handleSaveMemo = (e, reservationId) => {
-    e.stopPropagation();
+    if (e) {
+      e.stopPropagation();
+    }
     const trimmedNote = tempMemoValue.trim();
+    
+    // 내용이 비어있으면 메모 삭제 (빈 문자열로 저장)
     if (updateReservation) {
       updateReservation(reservationId, { note: trimmedNote });
     } else if (setReservations) {
@@ -221,13 +226,7 @@ function HomeScreen({
         res.id === reservationId ? { ...res, note: trimmedNote } : res
       ));
     }
-    setEditingMemoReservationId(null);
-    setTempMemoValue('');
-  };
-
-  // 메모 취소
-  const handleCancelEditMemo = (e) => {
-    e.stopPropagation();
+    
     setEditingMemoReservationId(null);
     setTempMemoValue('');
   };
@@ -487,52 +486,46 @@ function HomeScreen({
 
                         {/* 메모 영역 */}
                         {isEditingMemo ? (
-                          // 편집 모드
-                          <div className="mt-3 pt-3 border-t border-gray-200" onClick={(e) => e.stopPropagation()}>
-                            <div className="space-y-2">
-                              <input
-                                type="text"
-                                value={tempMemoValue}
-                                onChange={(e) => {
-                                  const value = e.target.value;
-                                  if (value.length <= maxMemoLength) {
-                                    setTempMemoValue(value);
-                                  }
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    handleSaveMemo(e, reservation.id);
-                                  } else if (e.key === 'Escape') {
-                                    handleCancelEditMemo(e);
-                                  }
-                                }}
-                                placeholder="예약 메모를 입력하세요..."
-                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9A27A] focus:border-transparent"
-                                maxLength={maxMemoLength}
-                                autoFocus
-                              />
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-gray-400">
-                                  {tempMemoValue.length}/{maxMemoLength}
-                                </span>
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => handleCancelEditMemo(e)}
-                                    className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
-                                  >
-                                    취소
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => handleSaveMemo(e, reservation.id)}
-                                    className="px-3 py-1.5 text-xs bg-[#C9A27A] text-white rounded-lg hover:bg-[#B8926A] transition-colors"
-                                  >
-                                    저장
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
+                          // 편집 모드 (자동 저장)
+                          <div 
+                            className="mt-3 pt-3 border-t border-gray-200 relative z-50"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <input
+                              ref={memoInputRef}
+                              type="text"
+                              value={tempMemoValue}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value.length <= maxMemoLength) {
+                                  setTempMemoValue(value);
+                                }
+                              }}
+                              onBlur={(e) => {
+                                // 포커스를 잃으면 자동 저장
+                                handleSaveMemo(e, reservation.id);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  // Enter 키로 저장
+                                  e.preventDefault();
+                                  e.target.blur(); // blur 이벤트를 트리거하여 저장
+                                } else if (e.key === 'Escape') {
+                                  // Escape 키로 취소 (변경사항 무시)
+                                  e.stopPropagation();
+                                  setEditingMemoReservationId(null);
+                                  setTempMemoValue('');
+                                }
+                              }}
+                              onClick={(e) => {
+                                // 입력창 클릭 시 이벤트 전파 방지 (오버레이 클릭 방지)
+                                e.stopPropagation();
+                              }}
+                              placeholder="예약 메모를 입력하세요..."
+                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9A27A] focus:border-transparent"
+                              maxLength={maxMemoLength}
+                              autoFocus
+                            />
                           </div>
                         ) : hasMemo ? (
                           // 메모 표시 모드
@@ -549,6 +542,17 @@ function HomeScreen({
               )}
             </div>
           </div>
+        )}
+        
+        {/* 투명 오버레이: 편집 모드일 때만 렌더링, 같은 박스 내부 클릭 시 닫힘 문제 해결 */}
+        {editingMemoReservationId && (
+          <div
+            className="fixed inset-0 bg-transparent z-40"
+            onClick={() => {
+              // 현재 편집 중인 예약의 ID를 사용하여 저장
+              handleSaveMemo(null, editingMemoReservationId);
+            }}
+          />
         )}
       </main>
 
