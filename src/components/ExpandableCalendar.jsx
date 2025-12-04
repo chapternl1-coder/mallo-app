@@ -146,14 +146,16 @@ function ExpandableCalendar({ selectedDate, onDateSelect, reservations = [] }) {
         onClick={() => handleDateClick(date)}
         className={`
           relative flex flex-col items-center justify-center py-2 rounded-lg transition-all
+          border-2 box-border
           ${!isInCurrentMonth ? 'opacity-30' : ''}
           ${isSelected 
-            ? 'border-2 border-[#C9A27A] bg-[#F9F5EF] text-[#C9A27A] font-bold shadow-md scale-105' 
+            ? 'border-[#C9A27A] bg-[#F9F5EF] text-[#C9A27A] font-bold shadow-md scale-105' 
             : isCurrentDay
-            ? 'bg-[#F9F5EF] text-[#C9A27A] font-semibold border border-[#E3D7C7]'
-            : 'text-gray-700 hover:bg-[#F9F5EF]'
+            ? 'border-transparent bg-[#F9F5EF] text-[#C9A27A] font-semibold'
+            : 'border-transparent text-gray-700 hover:bg-[#F9F5EF]'
           }
         `}
+        style={{ boxSizing: 'border-box' }}
       >
         <span className="text-sm font-medium">
           {format(date, 'd')}
