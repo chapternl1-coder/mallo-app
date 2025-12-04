@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, X, Minus } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
+import { runAutoTagMatchingForVisit } from '../utils/tagMatching';
 
 function EditScreen({
   tempResultData,
@@ -262,7 +263,7 @@ function EditScreen({
   };
 
   // 완료 버튼 클릭 핸들러
-  const handleComplete = () => {
+  const handleComplete = async () => {
     // 빈 항목 제거
     const cleanedData = {
       ...tempResultData,
@@ -283,8 +284,39 @@ function EditScreen({
     if (editingVisit && editingCustomer && currentNormalizedVisit) {
       const customerId = editingCustomer.id;
       
+      // 수정된 요약을 기준으로 태그 자동 재매칭
+      let finalVisitTagIds = editingVisitTagIds;
+      
+      try {
+        // summarySections를 태그 매칭 함수에 맞는 형태로 변환
+        const summarySections = cleanedData.sections.map(section => ({
+          title: typeof section.title === 'string' ? section.title : String(section.title || ''),
+          content: Array.isArray(section.content) 
+            ? section.content.map(item => typeof item === 'string' ? item : String(item || '')).join('\n')
+            : String(section.content || '')
+        }));
+        
+        // 태그 재매칭 실행
+        const { visitTags: matchedVisitTagIds } = runAutoTagMatchingForVisit({
+          summarySections,
+          allTags: allVisitTags
+        });
+        
+        // 기존에 선택된 태그와 매칭된 태그를 합침 (중복 제거)
+        finalVisitTagIds = [...new Set([...editingVisitTagIds, ...matchedVisitTagIds])];
+        
+        console.log('[편집 저장] 태그 재매칭 완료:', {
+          기존태그: editingVisitTagIds,
+          매칭된태그: matchedVisitTagIds,
+          최종태그: finalVisitTagIds
+        });
+      } catch (error) {
+        console.error('[편집 저장] 태그 재매칭 실패:', error);
+        // 태그 재매칭 실패해도 기존 태그는 유지
+      }
+      
       // 편집된 태그를 label 배열로 변환
-      const editedTagLabels = editingVisitTagIds
+      const editedTagLabels = finalVisitTagIds
         .map(id => {
           const tag = allVisitTags.find(t => t.id === id);
           return tag ? tag.label : null;
@@ -300,7 +332,7 @@ function EditScreen({
                   ...v, 
                   customerName: currentNormalizedVisit.customerName,
                   customerPhone: currentNormalizedVisit.customerPhone,
-                  tags: editedTagLabels, // 태그 업데이트
+                  tags: editedTagLabels, // 재매칭된 태그 업데이트
                   detail: {
                     sections: cleanedData.sections
                   }
@@ -310,6 +342,8 @@ function EditScreen({
         }
         return updated;
       });
+      
+      console.log('[편집 저장] 요약 + 태그 업데이트 완료');
     }
     
     setTempResultData(null);
