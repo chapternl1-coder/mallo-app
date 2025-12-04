@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Search, Clock, User, Plus, Calendar, ChevronLeft, ChevronRight, Mic } from 'lucide-react';
+import { Search, Clock, User, Plus, Calendar, ChevronLeft, ChevronRight, Mic, X } from 'lucide-react';
 import { filterCustomersBySearch } from '../utils/customerListUtils';
 import { SCREENS } from '../constants/screens';
 import { format, isToday, addDays, subDays } from 'date-fns';
@@ -38,6 +38,7 @@ function HomeScreen({
   const [editingMemoReservationId, setEditingMemoReservationId] = useState(null);
   const [tempMemoValue, setTempMemoValue] = useState('');
   const memoInputRef = useRef(null);
+  const isComposingRef = useRef(false); // 한글 조합 중인지 추적
   
   // 반응형 글자 수 제한 계산
   const getMaxMemoLength = () => {
@@ -229,6 +230,17 @@ function HomeScreen({
     
     setEditingMemoReservationId(null);
     setTempMemoValue('');
+  };
+
+  // 메모 전체 삭제 (X 버튼 클릭)
+  const handleClearMemo = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setTempMemoValue('');
+    // 포커스 유지
+    if (memoInputRef.current) {
+      memoInputRef.current.focus();
+    }
   };
 
   // 카드 클릭 핸들러 (메모 편집 모드로 전환)
@@ -491,41 +503,93 @@ function HomeScreen({
                             className="mt-3 pt-3 border-t border-gray-200 relative z-50"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <input
-                              ref={memoInputRef}
-                              type="text"
-                              value={tempMemoValue}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                if (value.length <= maxMemoLength) {
+                            <div className="relative">
+                              <input
+                                ref={memoInputRef}
+                                type="text"
+                                value={tempMemoValue}
+                                onCompositionStart={() => {
+                                  // 한글 조합 시작
+                                  isComposingRef.current = true;
+                                }}
+                                onCompositionEnd={(e) => {
+                                  // 한글 조합 종료
+                                  isComposingRef.current = false;
+                                  const value = e.target.value;
+                                  // 조합 종료 후 길이 체크 및 강제 고정
+                                  if (value.length > maxMemoLength) {
+                                    const fixedValue = value.slice(0, maxMemoLength);
+                                    setTempMemoValue(fixedValue);
+                                    // 입력값 강제 업데이트
+                                    e.target.value = fixedValue;
+                                  }
+                                }}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  
+                                  // 한글 조합 중이 아닐 때만 길이 체크
+                                  if (!isComposingRef.current) {
+                                    // 30자 초과 시 강제로 30자까지만 자르고 상태 업데이트
+                                    if (value.length > maxMemoLength) {
+                                      const fixedValue = value.slice(0, maxMemoLength);
+                                      setTempMemoValue(fixedValue);
+                                      // 입력값 강제 업데이트 (30자가 찬 상태에서 키보드를 눌러도 글자가 절대 바뀌지 않음)
+                                      e.target.value = fixedValue;
+                                      return;
+                                    }
+                                  }
+                                  
+                                  // 정상 범위 내에서는 상태 업데이트
                                   setTempMemoValue(value);
-                                }
-                              }}
-                              onBlur={(e) => {
-                                // 포커스를 잃으면 자동 저장
-                                handleSaveMemo(e, reservation.id);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  // Enter 키로 저장
-                                  e.preventDefault();
-                                  e.target.blur(); // blur 이벤트를 트리거하여 저장
-                                } else if (e.key === 'Escape') {
-                                  // Escape 키로 취소 (변경사항 무시)
+                                }}
+                                onBlur={(e) => {
+                                  // 포커스를 잃으면 자동 저장
+                                  handleSaveMemo(e, reservation.id);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    // Enter 키로 저장
+                                    e.preventDefault();
+                                    e.target.blur(); // blur 이벤트를 트리거하여 저장
+                                  } else if (e.key === 'Escape') {
+                                    // Escape 키로 취소 (변경사항 무시)
+                                    e.stopPropagation();
+                                    setEditingMemoReservationId(null);
+                                    setTempMemoValue('');
+                                  }
+                                }}
+                                onClick={(e) => {
+                                  // 입력창 클릭 시 이벤트 전파 방지 (오버레이 클릭 방지)
                                   e.stopPropagation();
-                                  setEditingMemoReservationId(null);
-                                  setTempMemoValue('');
-                                }
-                              }}
-                              onClick={(e) => {
-                                // 입력창 클릭 시 이벤트 전파 방지 (오버레이 클릭 방지)
-                                e.stopPropagation();
-                              }}
-                              placeholder="예약 메모를 입력하세요..."
-                              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9A27A] focus:border-transparent"
-                              maxLength={maxMemoLength}
-                              autoFocus
-                            />
+                                }}
+                                placeholder="예약 메모를 입력하세요..."
+                                className="w-full px-3 pr-10 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9A27A] focus:border-transparent touch-manipulation"
+                                maxLength={maxMemoLength}
+                                autoFocus
+                                style={{ fontSize: '16px' }} // 모바일 줌 방지 (16px 이상)
+                              />
+                              {/* X 버튼 (Clear) */}
+                              {tempMemoValue.length > 0 && (
+                                <button
+                                  type="button"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault(); // onBlur 방지
+                                    e.stopPropagation();
+                                    setTempMemoValue('');
+                                    // 포커스 유지
+                                    setTimeout(() => {
+                                      if (memoInputRef.current) {
+                                        memoInputRef.current.focus();
+                                      }
+                                    }, 0);
+                                  }}
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors z-50"
+                                  aria-label="전체 삭제"
+                                >
+                                  <X size={14} className="text-gray-500" />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         ) : hasMemo ? (
                           // 메모 표시 모드
