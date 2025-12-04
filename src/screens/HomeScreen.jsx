@@ -28,11 +28,24 @@ function HomeScreen({
   reservations = [],
   toggleReservationComplete,
   visits = {},
+  updateReservation,
+  setReservations,
 }) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const dateInputRef = useRef(null);
+  const [editingMemoReservationId, setEditingMemoReservationId] = useState(null);
+  const [tempMemoValue, setTempMemoValue] = useState('');
+  
+  // 반응형 글자 수 제한 계산
+  const getMaxMemoLength = () => {
+    if (typeof window !== 'undefined') {
+      const screenWidth = window.innerWidth;
+      return screenWidth <= 380 ? 18 : 30;
+    }
+    return 30; // 기본값
+  };
 
   // 선택된 날짜를 YYYY-MM-DD 형식으로 변환
   const selectedDateStr = useMemo(() => {
@@ -188,6 +201,41 @@ function HomeScreen({
       return customers.find((c) => c.id === reservation.customerId);
     }
     return null;
+  };
+
+  // 메모 편집 시작
+  const handleStartEditMemo = (e, reservation) => {
+    e.stopPropagation();
+    setEditingMemoReservationId(reservation.id);
+    setTempMemoValue(reservation.note || '');
+  };
+
+  // 메모 저장
+  const handleSaveMemo = (e, reservationId) => {
+    e.stopPropagation();
+    const trimmedNote = tempMemoValue.trim();
+    if (updateReservation) {
+      updateReservation(reservationId, { note: trimmedNote });
+    } else if (setReservations) {
+      setReservations(prev => prev.map(res => 
+        res.id === reservationId ? { ...res, note: trimmedNote } : res
+      ));
+    }
+    setEditingMemoReservationId(null);
+    setTempMemoValue('');
+  };
+
+  // 메모 취소
+  const handleCancelEditMemo = (e) => {
+    e.stopPropagation();
+    setEditingMemoReservationId(null);
+    setTempMemoValue('');
+  };
+
+  // 카드 클릭 핸들러 (메모 편집 모드로 전환)
+  const handleCardClick = (reservation) => {
+    setEditingMemoReservationId(reservation.id);
+    setTempMemoValue(reservation.note || '');
   };
 
   return (
@@ -368,14 +416,19 @@ function HomeScreen({
                       });
                     }
 
+                    const isEditingMemo = editingMemoReservationId === reservation.id;
+                    const hasMemo = reservation.note && reservation.note.trim().length > 0;
+                    const maxMemoLength = getMaxMemoLength();
+
                     return (
                       <div
                         key={reservation.id}
-                        className={`rounded-xl p-4 shadow-sm transition-all border hover:border-[#C9A27A] ${
+                        className={`rounded-xl p-4 shadow-sm transition-all border hover:border-[#C9A27A] cursor-pointer ${
                           !hasSummary 
                             ? 'bg-[#F9F5EF] border-[#F9F5EF]'  // 요약 없음: 베이지색
                             : 'bg-white border-gray-100'         // 요약 완료: 흰색
                         }`}
+                        onClick={() => handleCardClick(reservation)}
                       >
                         <div className="flex items-center gap-4">
                           {/* 시간 */}
@@ -431,6 +484,64 @@ function HomeScreen({
                             </button>
                           </div>
                         </div>
+
+                        {/* 메모 영역 */}
+                        {isEditingMemo ? (
+                          // 편집 모드
+                          <div className="mt-3 pt-3 border-t border-gray-200" onClick={(e) => e.stopPropagation()}>
+                            <div className="space-y-2">
+                              <input
+                                type="text"
+                                value={tempMemoValue}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  if (value.length <= maxMemoLength) {
+                                    setTempMemoValue(value);
+                                  }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleSaveMemo(e, reservation.id);
+                                  } else if (e.key === 'Escape') {
+                                    handleCancelEditMemo(e);
+                                  }
+                                }}
+                                placeholder="예약 메모를 입력하세요..."
+                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9A27A] focus:border-transparent"
+                                maxLength={maxMemoLength}
+                                autoFocus
+                              />
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-gray-400">
+                                  {tempMemoValue.length}/{maxMemoLength}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleCancelEditMemo(e)}
+                                    className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                                  >
+                                    취소
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleSaveMemo(e, reservation.id)}
+                                    className="px-3 py-1.5 text-xs bg-[#C9A27A] text-white rounded-lg hover:bg-[#B8926A] transition-colors"
+                                  >
+                                    저장
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : hasMemo ? (
+                          // 메모 표시 모드
+                          <div className="mt-2 pt-2 border-t border-gray-200">
+                            <p className="text-sm text-gray-600 truncate">
+                              {reservation.note}
+                            </p>
+                          </div>
+                        ) : null}
                       </div>
                     );
                   })}
