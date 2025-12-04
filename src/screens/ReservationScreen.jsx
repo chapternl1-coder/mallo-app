@@ -352,16 +352,16 @@ function ReservationScreen({
                       className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 shadow-sm"
                     >
                       <div className="flex flex-1 items-center gap-3">
-                        <span className={`text-[11px] ${isCompleted ? 'text-gray-400' : 'text-[#B18352]'}`}>
+                        <span className="text-[11px] text-[#B18352]">
                           {reservation.time}
                         </span>
                         <div className="flex items-center gap-2 flex-wrap">
-                          {/* 이름 - 예약 관리 화면에서는 취소선 없이 일반 텍스트 */}
-                          <span className={`text-sm font-medium ${isCompleted ? 'text-gray-400' : 'text-[#3F352B]'}`}>
+                          {/* 이름 - 예약 관리 화면에서는 취소선 없이 검정색 텍스트 */}
+                          <span className="text-sm font-medium text-[#3F352B]">
                             {reservation.name}
                           </span>
                           {displayPhone && (
-                            <span className={`text-xs ${isCompleted ? 'text-gray-400' : 'text-gray-600'}`}>
+                            <span className="text-xs text-gray-600">
                               {displayPhone}
                             </span>
                           )}
