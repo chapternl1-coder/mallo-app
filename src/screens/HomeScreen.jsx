@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Search, Clock, User, Plus, Calendar, Circle, ChevronLeft, ChevronRight, Mic } from 'lucide-react';
+import { Search, Clock, User, Plus, Calendar, ChevronLeft, ChevronRight, Mic } from 'lucide-react';
 import { filterCustomersBySearch } from '../utils/customerListUtils';
 import { SCREENS } from '../constants/screens';
 import { format, isToday, addDays, subDays } from 'date-fns';
@@ -368,8 +368,6 @@ function HomeScreen({
                       });
                     }
 
-                    const isCompleted = reservation.isCompleted || false;
-
                     return (
                       <div
                         key={reservation.id}
@@ -380,34 +378,11 @@ function HomeScreen({
                         }`}
                       >
                         <div className="flex items-center gap-4">
-                          {/* 동그라미 체크박스 (왼쪽) */}
-                          <div 
-                            className="flex-shrink-0" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (toggleReservationComplete) {
-                                toggleReservationComplete(reservation.id);
-                              }
-                            }}
-                          >
-                            {isCompleted ? (
-                              <div className="w-5 h-5 rounded-full bg-[#C9A27A] flex items-center justify-center">
-                                <div className="w-2 h-2 rounded-full bg-white"></div>
-                              </div>
-                            ) : (
-                              <Circle 
-                                size={20} 
-                                className="text-[#C9A27A] cursor-pointer hover:text-[#B8926A] transition-colors" 
-                                strokeWidth={2}
-                              />
-                            )}
-                          </div>
-
                           {/* 시간 */}
                           <div className="flex-shrink-0 w-16">
                             <div className="flex items-center gap-1.5 text-[#C9A27A]">
                               <Clock size={14} />
-                              <span className={`text-sm font-semibold ${isCompleted ? 'line-through text-gray-400' : ''}`}>
+                              <span className="text-sm font-semibold">
                                 {reservation.time || '--:--'}
                               </span>
                             </div>
@@ -428,11 +403,9 @@ function HomeScreen({
                                     className={`font-semibold text-base truncate transition-colors ${
                                       reservation.customerId ? 'hover:text-[#C9A27A] cursor-pointer' : 'cursor-default'
                                     } ${
-                                      isCompleted 
-                                        ? 'line-through text-gray-400' 
-                                        : !reservation.customerId 
-                                          ? 'text-gray-400'  // 프로필 없음: 회색
-                                          : 'text-gray-800'  // 프로필 있음: 기본 색상
+                                      !reservation.customerId 
+                                        ? 'text-gray-400'  // 프로필 없음: 회색
+                                        : 'text-gray-800'  // 프로필 있음: 기본 색상
                                     }`}
                                   >
                                     {displayName}
@@ -443,7 +416,7 @@ function HomeScreen({
                                     </span>
                                   )}
                                 </div>
-                            <p className={`text-sm truncate mt-0.5 ${isCompleted ? 'line-through text-gray-400' : 'text-gray-600'}`}>
+                            <p className="text-sm truncate mt-0.5 text-gray-600">
                               {displayPhone}
                             </p>
                           </div>
