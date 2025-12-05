@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { ArrowLeft, X, Clock } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
 import { formatPhoneNumber } from '../utils/formatters';
@@ -23,6 +23,15 @@ function ReservationScreen({
     useState(null);
   const [showMatchingCustomers, setShowMatchingCustomers] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
+
+  // 페이지 진입 시 스크롤을 최상단으로 이동
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const mainElement = document.querySelector('main');
+    if (mainElement) {
+      mainElement.scrollTop = 0;
+    }
+  }, []);
 
   // 선택된 날짜 문자열 (YYYY-MM-DD 형식)
   const selectedDateStr = useMemo(() => {
