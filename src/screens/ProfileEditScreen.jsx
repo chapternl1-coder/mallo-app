@@ -28,7 +28,7 @@ function ProfileEditScreen({
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
       {/* 헤더 */}
-      <header className="bg-[#F2F0E6] px-8 py-6 sticky top-0 z-20 flex items-center justify-between">
+      <header className="bg-[#F2F0E6] px-5 pt-4 pb-2 sticky top-0 z-20 flex items-center justify-between">
         <button 
           onClick={() => setCurrentScreen(SCREENS.PROFILE)} 
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
@@ -37,7 +37,13 @@ function ProfileEditScreen({
           <ArrowLeft size={24} />
         </button>
         <h2 className="font-bold text-base" style={{ color: '#232323' }}>프로필 수정</h2>
-        <div className="w-10"></div>
+        <button
+          onClick={handleSave}
+          className="px-4 h-8 rounded-lg font-semibold text-white text-xs transition-all hover:opacity-90"
+          style={{ backgroundColor: '#C9A27A' }}
+        >
+          저장
+        </button>
       </header>
 
       {/* 내용 영역 */}
@@ -112,17 +118,6 @@ function ProfileEditScreen({
           </div>
         </div>
       </main>
-
-      {/* 저장 버튼 (하단 고정) */}
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-[#F2F0E6] z-30">
-        <button
-          onClick={handleSave}
-          className="w-full h-[54px] rounded-2xl font-semibold text-white shadow-sm hover:opacity-90 transition-all"
-          style={{ backgroundColor: '#C9A27A' }}
-        >
-          저장 완료
-        </button>
-      </div>
     </div>
   );
 }
