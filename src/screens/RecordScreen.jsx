@@ -408,13 +408,55 @@ function RecordScreen({
     return `${hours}:${minutes}`;
   };
 
-  // 날짜+시간 라벨 생성
-  const displayDate = recordingDate || new Date();
-  const dateLabel = formatDateWithoutYear(displayDate);
-  const timeLabel = selectedCustomerForRecord?.time 
-    ? selectedCustomerForRecord.time 
-    : formatTimeFromDate(displayDate);
-  const summaryDateLabelWithoutYear = `${dateLabel} ${timeLabel}`;
+  // 예약 날짜+시간 라벨 생성 (예: "12월 6일 (토요일) 11:00")
+  const reservationDateTimeLabel = (() => {
+    // 예약 정보에서 날짜와 시간 가져오기
+    let reservationDate = null;
+    let reservationTime = null;
+    
+    // reservations 배열에서 예약 찾기
+    if (selectedCustomerForRecord?.reservationId && reservations) {
+      const matchedReservation = reservations.find(r => r.id === selectedCustomerForRecord.reservationId);
+      if (matchedReservation) {
+        reservationTime = matchedReservation.time;
+        if (matchedReservation.date) {
+          // YYYY-MM-DD 형식의 날짜를 Date 객체로 변환
+          const [year, month, day] = matchedReservation.date.split('-').map(Number);
+          reservationDate = new Date(year, month - 1, day);
+        }
+      }
+    }
+    
+    // selectedCustomerForRecord에서 직접 가져오기
+    if (!reservationTime && selectedCustomerForRecord?.time) {
+      reservationTime = selectedCustomerForRecord.time;
+    }
+    if (!reservationDate && selectedCustomerForRecord?.date) {
+      const dateStr = selectedCustomerForRecord.date;
+      if (typeof dateStr === 'string' && dateStr.includes('-')) {
+        const [year, month, day] = dateStr.split('-').map(Number);
+        reservationDate = new Date(year, month - 1, day);
+      }
+    }
+    
+    // 예약 정보가 없으면 녹음 날짜/시간 사용
+    if (!reservationDate) {
+      reservationDate = recordingDate || new Date();
+    }
+    if (!reservationTime) {
+      const hours = String(reservationDate.getHours()).padStart(2, '0');
+      const minutes = String(reservationDate.getMinutes()).padStart(2, '0');
+      reservationTime = `${hours}:${minutes}`;
+    }
+    
+    // 날짜 포맷팅 (12월 6일 (토))
+    const month = reservationDate.getMonth() + 1;
+    const day = reservationDate.getDate();
+    const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+    const weekday = weekdays[reservationDate.getDay()];
+    
+    return `${month}월 ${day}일 (${weekday}) ${reservationTime}`;
+  })();
 
   // 고객 정보
   const customerName = selectedCustomerForRecord?.name || tempName || '';
@@ -428,9 +470,9 @@ function RecordScreen({
           <span className="text-[24px]">&#x2039;</span>
         </button>
         <div className="flex flex-col items-center">
-          {/* 날짜 + 시간: 예) 12월 5일 (금) 01:02 */}
+          {/* 예약 날짜+시간: 예) 12월 6일 (토요일) 11:00 */}
           <p className="text-[14px] font-semibold text-[#232323]">
-            {summaryDateLabelWithoutYear}
+            {reservationDateTimeLabel}
           </p>
           {/* 이름 / 번호 */}
           <p className="mt-1 text-[14px] font-semibold text-[#232323]">
