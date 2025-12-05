@@ -316,7 +316,7 @@ function HomeScreen({
       </div>
 
       {/* 고정 검색창 */}
-      <div className="px-4 py-3 bg-[#F2F0E6] sticky top-0 z-10">
+      <div className="px-4 py-4 bg-[#F2F0E6] sticky top-0 z-10">
         <div className="relative">
           <div className="absolute left-4 top-1/2 -translate-y-1/2">
             <Search size={18} className="text-gray-400" />
@@ -358,7 +358,7 @@ function HomeScreen({
                   <div
                     key={customer.id || customer.phone}
                     onClick={() => handleCustomerSelect(customer)}
-                    className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:border-[#C9A27A] transition-all cursor-pointer"
+                    className="bg-white rounded-xl p-4 shadow-sm border border-[#E8DFD3] hover:border-[#C9A27A] transition-all cursor-pointer"
                   >
                     <div className="flex items-center gap-4">
                       <div className="flex-1 flex items-center gap-2">
@@ -419,9 +419,9 @@ function HomeScreen({
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center">
                   {todaysReservations.length > 0 && (
-                    <span className="text-xs text-gray-500">
+                    <span className="text-sm text-gray-500">
                       {todaysReservations.length}명
                     </span>
                   )}
@@ -479,8 +479,8 @@ function HomeScreen({
                         key={reservation.id}
                         className={`rounded-xl p-4 shadow-sm transition-all border hover:border-[#C9A27A] cursor-pointer ${
                           !hasSummary 
-                            ? 'bg-[#F9F5EF] border-[#F9F5EF]'  // 요약 없음: 베이지색
-                            : 'bg-white border-gray-100'         // 요약 완료: 흰색
+                            ? 'bg-[#F9F5EF] border-[#E8DFD3]'  // 요약 없음: 베이지색 배경, 얇은 테두리
+                            : 'bg-white border-[#E8DFD3]'         // 요약 완료: 흰색 배경, 얇은 테두리
                         }`}
                         onClick={() => handleCardClick(reservation)}
                       >
