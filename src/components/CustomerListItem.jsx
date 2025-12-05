@@ -8,7 +8,7 @@ function CustomerListItem({ customer, onClick }) {
         e.stopPropagation();
         onClick(customer);
       }}
-      className="bg-white rounded-xl p-4 hover:bg-gray-50 transition-all cursor-pointer border border-transparent hover:border-gray-200"
+      className="bg-white rounded-xl p-4 hover:bg-gray-50 transition-all cursor-pointer border border-[#E8DFD3] shadow-sm"
     >
       <div className="flex items-center gap-4">
         <div className="text-3xl">{customer.avatar}</div>

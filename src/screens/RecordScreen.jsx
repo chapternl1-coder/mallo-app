@@ -32,7 +32,7 @@ const WaveBars = () => (
 
 // SkeletonLoader 컴포넌트
 const SkeletonLoader = () => (
-  <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-5 w-full animate-pulse">
+  <div className="bg-white rounded-2xl shadow-sm border border-[#E8DFD3] p-6 space-y-5 w-full animate-pulse">
     <div className="h-6 bg-gray-200 rounded-2xl w-3/4 mb-6"></div>
     {[...Array(3)].map((_, i) => (
       <div key={i} className="space-y-3">
@@ -387,7 +387,7 @@ function RecordScreen({
 
       <main className="flex-1 overflow-y-auto p-8 space-y-5 pb-32" style={{ backgroundColor: '#F2F0E6' }}>
          {selectedCustomerForRecord ? (
-           <div className="w-full bg-white rounded-2xl px-6 py-5 flex items-center justify-center gap-10 shadow-sm border border-[#E5E0D0] mb-4">
+           <div className="w-full bg-white rounded-2xl px-6 py-5 flex items-center justify-center gap-10 shadow-sm border border-[#E8DFD3] mb-4">
              {/* 좌측: 시간 */}
              <div className="text-[#C9A27A] font-bold text-base tracking-tight">
                {selectedCustomerForRecord?.time ? (
@@ -412,7 +412,7 @@ function RecordScreen({
              </div>
            </div>
          ) : (
-           <div className="bg-white rounded-xl shadow-sm border border-gray-200" style={{ padding: '12px 16px' }}>
+           <div className="bg-white rounded-xl shadow-sm border border-[#E8DFD3]" style={{ padding: '12px 16px' }}>
              <div className="flex flex-col gap-2">
                <label className="block text-sm font-medium mb-2" style={{ color: '#232323' }}>신규 고객 정보</label>
                
@@ -468,7 +468,7 @@ function RecordScreen({
          )}
 
         {/* Main Card */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-200">
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-[#E8DFD3]">
           <div className="px-8 py-6 relative overflow-hidden" style={{ backgroundColor: '#C9A27A' }}>
             <div className="relative z-10">
               <span className="inline-flex items-center px-3 py-1.5 rounded-2xl text-xs font-medium text-white mb-3 shadow-sm" style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }}>
@@ -573,7 +573,7 @@ function RecordScreen({
 
 
         {/* Section 1: 이번 방문 태그 */}
-        <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+        <section className="bg-white rounded-2xl border border-[#E8DFD3] shadow-sm p-5">
           <div className="mb-4">
             <h3 className="text-base font-bold mb-2 flex items-center gap-2" style={{ color: '#232323' }}>
               <span>🧴</span>
@@ -631,7 +631,7 @@ function RecordScreen({
         </section>
 
         {/* Section 2: 고객 프로필 업데이트 */}
-        <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+        <section className="bg-white rounded-2xl border border-[#E8DFD3] shadow-sm p-5">
           <div className="mb-4">
             <h3 className="text-base font-bold mb-2 flex items-center gap-2" style={{ color: '#232323' }}>
               <span>👤</span>
@@ -751,7 +751,7 @@ function RecordScreen({
         )}
 
         {/* Transcript Toggle */}
-        <details className="group bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <details className="group bg-white rounded-2xl border border-[#E8DFD3] shadow-sm overflow-hidden">
           <summary className="font-medium text-base cursor-pointer p-5 flex justify-between items-center hover:bg-gray-50 transition-colors select-none" style={{ color: '#232323' }}>
             <span>원본 녹음 내용 보기</span>
             <ChevronRight size={18} style={{ color: '#C9A27A' }} className="group-open:rotate-90 transition-transform duration-200" />
@@ -782,7 +782,7 @@ function RecordScreen({
                 setCurrentScreen(SCREENS.EDIT);
               }
             }}
-            className="flex items-center justify-center gap-2 py-4 rounded-2xl font-medium bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
+            className="flex items-center justify-center gap-2 py-4 rounded-2xl font-medium bg-white border border-[#E8DFD3] shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
             style={{ color: '#232323', width: '40%' }}
           >
             <Edit size={18} style={{ color: '#C9A27A' }} />

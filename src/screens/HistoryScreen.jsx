@@ -250,7 +250,7 @@ function HistoryScreen({
 
       <main className="flex-1 overflow-y-auto p-8 space-y-4 pb-8" style={{ backgroundColor: bgColor }}>
         {/* 날짜 필터 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-[#E8DFD3] p-4">
           <div className="flex items-center gap-3">
             <Calendar size={20} style={{ color: accentColor }} />
             <input
@@ -282,7 +282,7 @@ function HistoryScreen({
           </h3>
           
           {sortedRecords.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="text-center py-16 bg-white rounded-xl border border-[#E8DFD3] shadow-sm">
               <p className="font-light text-base" style={{ color: textColor, opacity: 0.6 }}>
                 {selectedDate ? '해당 날짜의 시술 기록이 없습니다' : '시술 기록이 없습니다'}
               </p>
@@ -510,7 +510,7 @@ function HistoryScreen({
               };
 
               return (
-                <div key={record.id} className="record-card bg-white rounded-xl shadow-sm">
+                <div key={record.id} className="record-card bg-white rounded-xl shadow-sm border border-[#E8DFD3]">
                   <div className="record-card-main flex flex-col relative">
                     {/* 상단 정보: 시간과 고객 정보 */}
                     <div 

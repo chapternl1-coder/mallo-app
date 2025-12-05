@@ -341,7 +341,7 @@ function ReservationScreen({
                   return (
                     <div
                       key={reservation.id}
-                      className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 shadow-sm"
+                      className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 shadow-sm border border-[#E8DFD3]"
                     >
                       <div className="flex flex-1 items-center gap-3">
                         <span className="text-[11px] text-[#B18352]">
