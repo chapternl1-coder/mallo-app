@@ -23,16 +23,8 @@ function ProfileScreen({
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
       {/* 헤더 */}
-      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm h-[80px]">
-        <button 
-          onClick={() => setCurrentScreen(SCREENS.HOME)} 
-          className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
-          style={{ color: '#232323' }}
-        >
-          <ArrowLeft size={24} />
-        </button>
+      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-center border-b border-gray-200 shadow-sm h-[80px]">
         <h2 className="font-bold text-base" style={{ color: '#232323' }}>프로필</h2>
-        <div className="w-10"></div> {/* 오른쪽 공간 맞추기 */}
       </header>
 
       {/* 내용 영역 */}

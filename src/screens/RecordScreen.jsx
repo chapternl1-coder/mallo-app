@@ -571,39 +571,6 @@ function RecordScreen({
           </div>
         </div>
 
-        {/* 개발용 요약 테스트 박스 */}
-        {DEV_MODE && (
-          <section className="bg-white rounded-2xl border-2 border-dashed border-gray-300 shadow-sm p-5">
-            <div className="mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs font-bold px-2 py-1 rounded bg-yellow-100 text-yellow-800">DEV</span>
-                <span className="text-base font-bold" style={{ color: '#232323' }}>개발용 요약 테스트</span>
-              </div>
-              <p className="text-sm" style={{ color: '#232323', opacity: 0.7 }}>
-                음성 대신 텍스트를 입력해서 요약·태그 흐름을 테스트할 수 있어요.
-              </p>
-            </div>
-
-            <textarea
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A] mb-3 resize-none"
-              placeholder="여기에 고객에게 말할 내용을 두서없이 적어보고, 아래 버튼을 눌러 테스트하세요."
-              value={testSummaryInput}
-              onChange={(e) => setTestSummaryInput(e.target.value)}
-              rows={4}
-              style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
-            />
-
-            <button
-              type="button"
-              className="w-full py-3 rounded-xl font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={handleTestSummarize}
-              disabled={isTestingSummary || !testSummaryInput.trim()}
-              style={{ backgroundColor: '#C9A27A' }}
-            >
-              {isTestingSummary ? "요약 테스트 중..." : "이 텍스트로 요약 테스트"}
-            </button>
-          </section>
-        )}
 
         {/* Section 1: 이번 방문 태그 */}
         <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
@@ -804,7 +771,7 @@ function RecordScreen({
         )}
       </main>
 
-      {/* Fixed Action Bar - 3개 버튼 나란히 배치 (화면 하단 고정) */}
+      {/* Fixed Action Bar - 2개 버튼 나란히 배치 (화면 하단 고정) */}
       <div className="absolute bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 px-8 py-4 shadow-lg" style={{ backgroundColor: '#F2F0E6' }}>
         <div className="flex gap-3">
           {/* 편집 버튼 */}
@@ -816,118 +783,10 @@ function RecordScreen({
               }
             }}
             className="flex items-center justify-center gap-2 py-4 rounded-2xl font-medium bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
-            style={{ color: '#232323', width: '30%' }}
+            style={{ color: '#232323', width: '40%' }}
           >
             <Edit size={18} style={{ color: '#C9A27A' }} />
             <span>편집</span>
-          </button>
-          
-          {/* 테스트 버튼 */}
-          <button
-            onClick={() => {
-              const TEST_SCENARIOS = [
-                {
-                  summary: "속눈썹 D컬 11mm로 연장 리터치 진행함. 글루 알러지 있어서 예민하심.",
-                  sections: [
-                    {
-                      title: '고객 기본 정보',
-                      content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
-                    },
-                    {
-                      title: '시술 내용',
-                      content: ['속눈썹 D컬 11mm로 연장 리터치 진행함. 글루 알러지 있어서 예민하심.']
-                    },
-                    {
-                      title: '주의사항',
-                      content: ['글루 알러지 있으므로 저자극 제품 사용']
-                    }
-                  ]
-                },
-                {
-                  summary: "기존 젤네일 제거하고 이달의아트로 변경. 현금영수증 해드렸음.",
-                  sections: [
-                    {
-                      title: '고객 기본 정보',
-                      content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
-                    },
-                    {
-                      title: '시술 내용',
-                      content: ['기존 젤네일 제거하고 이달의아트로 변경. 현금영수증 해드렸음.']
-                    },
-                    {
-                      title: '결제 금액',
-                      content: ['현금영수증 발급 완료']
-                    }
-                  ]
-                },
-                {
-                  summary: "오늘은 케어만 받고 가심. 손톱이 많이 상해서 영양제 듬뿍 발라드림.",
-                  sections: [
-                    {
-                      title: '고객 기본 정보',
-                      content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
-                    },
-                    {
-                      title: '시술 내용',
-                      content: ['오늘은 케어만 받고 가심. 손톱이 많이 상해서 영양제 듬뿍 발라드림.']
-                    },
-                    {
-                      title: '시술 후 상태',
-                      content: ['손톱 상태 개선을 위해 영양 케어 강화']
-                    }
-                  ]
-                },
-                {
-                  summary: "눈물이 많으셔서 시술 중간에 자주 쉬었음. 다음엔 C컬 말고 J컬로 하고 싶다고 하심.",
-                  sections: [
-                    {
-                      title: '고객 기본 정보',
-                      content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
-                    },
-                    {
-                      title: '시술 내용',
-                      content: ['눈물이 많으셔서 시술 중간에 자주 쉬었음. 다음엔 C컬 말고 J컬로 하고 싶다고 하심.']
-                    },
-                    {
-                      title: '주의사항',
-                      content: ['눈물이 많으므로 시술 시 주의 필요']
-                    }
-                  ]
-                },
-                {
-                  summary: "이번 고객님은 임산부셔서 조심스럽게 시술했습니다. 기존 젤네일 제거하고, 이달의아트로 변경하셨어요. 결제는 현금영수증 해드렸습니다.",
-                  sections: [
-                    {
-                      title: '고객 기본 정보',
-                      content: ['이름: 테스트 고객 / 전화번호: 010-0000-0000', '신규/기존 구분: 기존 고객']
-                    },
-                    {
-                      title: '시술 내용',
-                      content: ['이번 고객님은 임산부셔서 조심스럽게 시술했습니다. 기존 젤네일 제거하고, 이달의아트로 변경하셨어요. 결제는 현금영수증 해드렸습니다.']
-                    },
-                    {
-                      title: '주의사항',
-                      content: ['임산부 고객이므로 조심스럽게 시술 진행']
-                    }
-                  ]
-                }
-              ];
-              
-              const randomIndex = Math.floor(Math.random() * TEST_SCENARIOS.length);
-              const selectedScenario = TEST_SCENARIOS[randomIndex];
-              
-              const testResultData = {
-                title: selectedScenario.summary,
-                sections: selectedScenario.sections
-              };
-              
-              setResultData(testResultData);
-            }}
-            className="flex items-center justify-center gap-2 py-4 rounded-2xl font-medium bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
-            style={{ color: '#232323', width: '30%' }}
-          >
-            <span>🧪</span>
-            <span>테스트</span>
           </button>
           
           {/* 저장하기 버튼 */}

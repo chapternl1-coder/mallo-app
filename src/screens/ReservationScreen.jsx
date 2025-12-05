@@ -141,15 +141,7 @@ function ReservationScreen({
 
       {/* 헤더 영역 - 고정 */}
       <header className="flex-shrink-0 px-6 py-4 bg-white border-b border-gray-200 shadow-sm">
-        <div className="flex items-center gap-3">
-        <button 
-            type="button"
-          onClick={() => setCurrentScreen(SCREENS.HOME)}
-          className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
-            style={{ color: '#232323' }}
-        >
-          <ArrowLeft size={24} />
-        </button>
+        <div className="flex items-center justify-center">
           <h2 className="text-xl font-bold text-gray-800">예약 관리</h2>
         </div>
       </header>
