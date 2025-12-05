@@ -210,9 +210,6 @@ function ExpandableCalendar({ selectedDate, onDateSelect, reservations = [] }) {
             </button>
           </div>
         </div>
-        <span className="text-xs text-[#9C8D7C]">
-          {format(selectedDate, 'EEEE', { locale: ko })}
-        </span>
       </div>
 
       {/* Weekly 뷰 (기본) */}
