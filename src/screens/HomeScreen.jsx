@@ -297,22 +297,28 @@ function HomeScreen({
       <div className="pt-[env(safe-area-inset-top)]" />
 
       {/* 헤더 영역 */}
-      <header className="px-6 py-4 bg-white border-b border-gray-200 shadow-sm">
-        <div className="flex items-center justify-between">
-          {/* 왼쪽: 로고 */}
-          <img
-            src={logo}
-            alt="Mallo 로고"
-            className="w-16 h-16 object-contain"
-          />
-
-          {/* 오른쪽: inputMode 전환 UI */}
-          <InputModeToggle
-            inputMode={inputMode}
-            onChange={setInputMode}
-          />
+      <div className="px-5 pt-4 pb-2 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center">
+            <img
+              src={logo}
+              alt="Mallo 로고"
+              className="w-5 h-5 object-contain"
+            />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[11px] text-[#A59B90]">말로 뷰티</span>
+            <span className="text-[14px] font-semibold text-[#3E2E20]">
+              오늘 방문 예정 손님
+            </span>
+          </div>
         </div>
-      </header>
+
+        <InputModeToggle
+          inputMode={inputMode}
+          onChange={setInputMode}
+        />
+      </div>
 
       {/* 고정 검색창 */}
       <div className="px-4 py-3 bg-[#F2F0E6] sticky top-0 z-10">
