@@ -369,49 +369,69 @@ function RecordScreen({
     );
   }
 
+  // 날짜 포맷팅 헬퍼 함수 (연도 제외, 요일 포함)
+  const formatDateWithoutYear = (date) => {
+    if (!date) {
+      const now = new Date();
+      date = now;
+    }
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+    const weekday = weekdays[date.getDay()];
+    return `${month}월 ${day}일 (${weekday})`;
+  };
+
+  // 시간 포맷팅 헬퍼 함수 (props의 formatTime과 충돌 방지)
+  const formatTimeFromDate = (date) => {
+    if (!date) {
+      const now = new Date();
+      date = now;
+    }
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  // 날짜+시간 라벨 생성
+  const displayDate = recordingDate || new Date();
+  const dateLabel = formatDateWithoutYear(displayDate);
+  const timeLabel = selectedCustomerForRecord?.time 
+    ? selectedCustomerForRecord.time 
+    : formatTimeFromDate(displayDate);
+  const summaryDateLabelWithoutYear = `${dateLabel} ${timeLabel}`;
+
+  // 고객 정보
+  const customerName = selectedCustomerForRecord?.name || tempName || '';
+  const customerPhone = selectedCustomerForRecord?.phone || tempPhone || '';
+
   return (
     <div className="flex flex-col h-full relative" style={{ backgroundColor: '#F2F0E6' }}>
       {/* Header */}
-      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
+      <header className="px-5 pt-4 pb-3 bg-[#F2F0E6] sticky top-0 z-20 flex items-center justify-between">
         <button onClick={resetFlow} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
           <span className="text-[24px]">&#x2039;</span>
         </button>
-        <div className="text-center">
-          <span className="text-xs font-medium" style={{ color: '#232323', opacity: 0.7 }}>시술 기록</span>
-          <h2 className="font-bold text-base mt-1" style={{ color: '#232323' }}>{getTodayDate()}</h2>
+        <div className="flex flex-col items-center">
+          {/* 날짜 + 시간: 예) 12월 5일 (금) 01:02 */}
+          <p className="text-[14px] font-semibold text-[#232323]">
+            {summaryDateLabelWithoutYear}
+          </p>
+          {/* 이름 / 번호 */}
+          <p className="mt-1 text-[14px] font-semibold text-[#232323]">
+            {customerName}
+            {customerPhone && (
+              <span className="ml-1 text-[14px] font-semibold text-[#232323]">
+                / {customerPhone}
+              </span>
+            )}
+          </p>
         </div>
-        <button className="p-2" style={{ color: '#232323', opacity: 0.5 }}>
-          <MoreHorizontal size={24} />
-        </button>
+        <div className="w-8" /> {/* 오른쪽 균형 맞추기용 */}
       </header>
 
       <main className="flex-1 overflow-y-auto p-8 space-y-5 pb-32" style={{ backgroundColor: '#F2F0E6' }}>
-         {selectedCustomerForRecord ? (
-           <div className="w-full bg-white rounded-2xl px-6 py-5 flex items-center justify-center gap-10 shadow-sm border border-[#E8DFD3] mb-4">
-             {/* 좌측: 시간 */}
-             <div className="text-[#C9A27A] font-bold text-base tracking-tight">
-               {selectedCustomerForRecord?.time ? (
-                 `${selectedCustomerForRecord.time} 예약`
-               ) : (
-                 (() => {
-                   const now = new Date();
-                   const hours = String(now.getHours()).padStart(2, '0');
-                   const minutes = String(now.getMinutes()).padStart(2, '0');
-                   return `${hours}:${minutes} 예약`;
-                 })()
-               )}
-             </div>
-
-             {/* 구분선 */}
-             <div className="h-8 w-[1px] bg-[#E5E0D0]"></div>
-
-             {/* 우측: 이름 & 번호 */}
-             <div className="flex flex-col items-start">
-               <h2 className="text-lg font-bold text-[#333333] tracking-tight mb-0.5">{selectedCustomerForRecord.name}</h2>
-               <p className="text-[#999999] text-xs font-light tracking-wide">{selectedCustomerForRecord.phone || '전화번호 미등록'}</p>
-             </div>
-           </div>
-         ) : (
+         {!selectedCustomerForRecord && (
            <div className="bg-white rounded-xl shadow-sm border border-[#E8DFD3]" style={{ padding: '12px 16px' }}>
              <div className="flex flex-col gap-2">
                <label className="block text-sm font-medium mb-2" style={{ color: '#232323' }}>신규 고객 정보</label>
