@@ -1,5 +1,5 @@
 // 음성 녹음 → 처리 → 결과 미리보기까지 담당하는 화면
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Square, ArrowLeft, MoreHorizontal, Phone, Edit, ChevronRight, X, Pause, Play } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
 import logo from '../assets/logo.png';
@@ -111,6 +111,21 @@ function RecordScreen({
   TagPickerModal,
   CustomerTagPickerModal
 }) {
+  // 날짜 입력 state 추가
+  const [tempServiceDate, setTempServiceDate] = useState(() => {
+    // recordingDate가 있으면 초기값으로 설정
+    if (recordingDate) {
+      const year = recordingDate.getFullYear();
+      const month = String(recordingDate.getMonth() + 1).padStart(2, '0');
+      const day = String(recordingDate.getDate()).padStart(2, '0');
+      const hours = String(recordingDate.getHours()).padStart(2, '0');
+      const minutes = String(recordingDate.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+    return '';
+  });
+  const serviceDateInputRef = useRef(null);
+
   // 녹음 시간 제한 상수
   const MAX_SECONDS = 120; // 2분
   const NEAR_LIMIT_SECONDS = 100; // 1분 40초
@@ -474,15 +489,23 @@ function RecordScreen({
                  )}
                </div>
                
-               {recordingDate && (
-                 <div className="text-xs mt-1" style={{ color: '#8C8C8C' }}>
-                   {(() => {
-                     const hours = String(recordingDate.getHours()).padStart(2, '0');
-                     const minutes = String(recordingDate.getMinutes()).padStart(2, '0');
-                     return `${hours}:${minutes} 예약`;
-                   })()}
-                 </div>
-               )}
+               {/* 날짜/시간 입력 */}
+               <div className="mb-3">
+                 <label className="block text-xs font-medium mb-1.5" style={{ color: '#232323', opacity: 0.7 }}>시술 날짜 및 시간</label>
+                 <input
+                   ref={serviceDateInputRef}
+                   type="datetime-local"
+                   value={tempServiceDate || ''}
+                   onChange={(e) => setTempServiceDate(e.target.value)}
+                   className={`w-full px-3 py-2 rounded-xl border focus:ring-1 outline-none transition-all text-sm ${
+                     !tempServiceDate ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-[#C9A27A] focus:ring-[#C9A27A]'
+                   }`}
+                   style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
+                 />
+                 {!tempServiceDate && (
+                   <p className="text-xs mt-1.5" style={{ color: '#EF4444' }}>* 시술 날짜 및 시간은 필수입니다</p>
+                 )}
+               </div>
              </div>
            </div>
          )}
@@ -822,6 +845,15 @@ function RecordScreen({
               console.log('[저장 시작] tempName:', tempName, 'tempPhone:', tempPhone);
               console.log('[저장 시작] 초기 customerId:', finalCustomerId);
               
+              // 날짜 검증 (모든 경우에 필수)
+              if (!tempServiceDate || !tempServiceDate.trim()) {
+                alert('시술 날짜 및 시간을 입력해주세요!');
+                if (serviceDateInputRef.current) {
+                  serviceDateInputRef.current.focus();
+                }
+                return;
+              }
+
               // 기존 고객이 선택되지 않은 경우 (신규 고객)
               if (finalCustomerId == null) {
                 // 이름/전화번호 검증
@@ -914,8 +946,21 @@ function RecordScreen({
               // ========================================
               const { dateStr, timeStr, recordedAt } = createDateTimeStrings();
               
-              const parsedServiceDate = extractServiceDateFromSummary(resultData);
-              const serviceDate = parsedServiceDate || dateStr;
+              // 입력된 날짜/시간을 YYYY-MM-DD 형식으로 변환
+              let serviceDate = dateStr; // 기본값
+              if (tempServiceDate) {
+                const dateObj = new Date(tempServiceDate);
+                if (!isNaN(dateObj.getTime())) {
+                  const year = dateObj.getFullYear();
+                  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                  const day = String(dateObj.getDate()).padStart(2, '0');
+                  serviceDate = `${year}-${month}-${day}`;
+                }
+              } else {
+                // tempServiceDate가 없으면 기존 로직 사용
+                const parsedServiceDate = extractServiceDateFromSummary(resultData);
+                serviceDate = parsedServiceDate || dateStr;
+              }
               
               const cleanedTitle = cleanTitle(resultData.title, customerName);
               

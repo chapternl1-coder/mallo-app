@@ -340,12 +340,13 @@ function CustomerDetailScreen({
         <button
           type="button"
           onClick={handleCreateRecordForCustomer}
-          className="ml-2 w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center"
+          className="ml-2 w-9 h-9 rounded-full shadow-sm flex items-center justify-center"
+          style={{ backgroundColor: '#C9A27A' }}
         >
           {isVoiceMode ? (
-            <Mic className="w-4 h-4 text-[#C9A27A]" />
+            <Mic className="w-4 h-4 text-white" />
           ) : (
-            <Keyboard className="w-4 h-4 text-[#C9A27A]" />
+            <Keyboard className="w-4 h-4 text-white" />
           )}
         </button>
       </header>
