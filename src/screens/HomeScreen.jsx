@@ -229,10 +229,17 @@ function HomeScreen({
     setCurrentScreen(SCREENS.TEXT_RECORD);
   };
 
-  // 플로팅 녹음 버튼 클릭 (신규/비예약 고객용)
+  // 플로팅 + 버튼 클릭 (신규/비예약 고객용)
   const handleFabClick = () => {
-    setSelectedCustomerForRecord(null);
-    startRecording();
+    if (inputMode === 'text') {
+      // 텍스트 모드일 때: 텍스트 기록 화면으로 이동
+      setSelectedReservation(null);
+      setCurrentScreen(SCREENS.TEXT_RECORD);
+    } else {
+      // 음성 모드일 때: 녹음 시작
+      setSelectedCustomerForRecord(null);
+      startRecording();
+    }
   };
 
   // 예약과 매칭되는 고객 찾기

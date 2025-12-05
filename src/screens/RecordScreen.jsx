@@ -492,8 +492,7 @@ function RecordScreen({
           <div className="px-8 py-6 relative overflow-hidden" style={{ backgroundColor: '#C9A27A' }}>
             <div className="relative z-10">
               <span className="inline-flex items-center px-3 py-1.5 rounded-2xl text-xs font-medium text-white mb-3 shadow-sm" style={{ backgroundColor: 'rgba(255, 255, 255, 0.15)' }}>
-                {currentSector.icon}
-                <span className="ml-2">{userProfile.roleTitle}</span>
+                <span>{userProfile.name}</span>
               </span>
               <h3 className="font-bold text-white text-lg mb-2">
                 📝 {selectedCustomerForRecord?.name || tempName || '고객'}님 시술 요약
