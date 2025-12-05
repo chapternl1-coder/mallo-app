@@ -236,19 +236,7 @@ function HistoryScreen({
 
   return (
     <div className="flex flex-col h-full relative pb-[60px]" style={{ backgroundColor: bgColor }}>
-      {/* Header */}
-      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-center border-b border-gray-200 shadow-sm h-[80px]">
-        <div className="text-center">
-          <h2 className="text-xl font-bold" style={{ color: textColor }}>전체 기록</h2>
-          {selectedDate && (
-            <p className="text-xs font-light mt-1" style={{ color: textColor, opacity: 0.6 }}>
-              {formatDate(selectedDate)} 기록
-            </p>
-          )}
-        </div>
-      </header>
-
-      <main className="flex-1 overflow-y-auto p-8 space-y-4 pb-8" style={{ backgroundColor: bgColor }}>
+      <main className="flex-1 overflow-y-auto px-5 pt-5 space-y-4 pb-8" style={{ backgroundColor: bgColor }}>
         {/* 날짜 필터 */}
         <div className="bg-white rounded-2xl shadow-sm border border-[#E8DFD3] p-4">
           <div className="flex items-center gap-3">
