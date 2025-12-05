@@ -216,9 +216,9 @@ function TagSettingsScreen({
   };
 
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
+    <div className="flex flex-col h-full bg-[#F2F0E6]">
       {/* 헤더 */}
-      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
+      <header className="bg-[#F2F0E6] px-5 pt-4 pb-2 sticky top-0 z-20 flex items-center justify-between">
         <button 
           onClick={() => setCurrentScreen(SCREENS.PROFILE)} 
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
@@ -229,11 +229,8 @@ function TagSettingsScreen({
         <h2 className="font-bold text-base" style={{ color: '#232323' }}>시술 태그 관리</h2>
         <button
           onClick={() => setIsTagEditing(!isTagEditing)}
-          className="px-4 py-2 text-sm font-medium rounded-xl transition-colors"
-          style={{ 
-            color: '#C9A27A',
-            backgroundColor: isTagEditing ? 'rgba(201, 162, 122, 0.1)' : 'transparent'
-          }}
+          className="px-4 h-8 rounded-lg font-semibold text-white text-xs transition-all hover:opacity-90"
+          style={{ backgroundColor: '#C9A27A' }}
         >
           {isTagEditing ? '완료' : '편집'}
         </button>
@@ -314,11 +311,8 @@ function TagSettingsScreen({
         </div>
 
         {/* 태그 입력 영역 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 space-y-3">
-          <label className="block text-sm font-medium" style={{ color: '#232323' }}>
-            새 태그 추가
-          </label>
-          <div className="flex gap-2">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+          <div className="flex items-center gap-2">
             <input
               type="text"
               value={newManagedTag}
@@ -329,12 +323,12 @@ function TagSettingsScreen({
                 }
               }}
               placeholder={currentSubTab.placeholder}
-              className="flex-1 px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A] transition-all"
+              className="flex-1 min-w-0 px-4 py-1.5 rounded-2xl border border-gray-200 focus:outline-none focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A] transition-all text-sm"
               style={{ color: '#232323', backgroundColor: '#FFFFFF' }}
             />
             <button
               onClick={handleAddTag}
-              className="px-6 py-3 rounded-2xl font-medium text-white shadow-sm hover:shadow-md transition-all"
+              className="px-4 h-8 rounded-lg text-xs font-semibold text-white shadow-sm hover:opacity-90 transition-all whitespace-nowrap flex-shrink-0"
               style={{ backgroundColor: '#C9A27A' }}
             >
               추가
