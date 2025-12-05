@@ -45,9 +45,8 @@ function TextRecordScreen({
         </button>
 
         <div className="flex flex-col items-center">
-          <p className="text-[11px] text-[#A59B90]">글로 기록하기</p>
-          <h1 className="text-[15px] font-semibold text-[#3E2E20]">
-            오늘 시술 내용 남기기
+          <h1 className="text-base font-bold text-[#232323]">
+            글로 기록하기
           </h1>
         </div>
 
@@ -57,21 +56,21 @@ function TextRecordScreen({
       {/* 고객 정보 카드 */}
       {reservation && (
         <section className="px-5">
-          <div className="rounded-2xl bg-white shadow-[0_1px_4px_rgba(0,0,0,0.04)] px-4 py-3">
-            <p className="text-[11px] text-[#A59B90] mb-1">
-              {reservation.dateLabel || ''}
+          <div className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-[#E6DFD6]">
+            {/* 날짜 + 시간 (예: 2025년 12월 5일 (금) 02:03) */}
+            <p className="text-[14px] text-gray-500 mb-2">
+              {reservation.dateLabel || ''} {reservation.timeLabel || ''}
             </p>
-            <p className="text-[13px] font-medium text-[#3E2E20]">
+
+            {/* 이름 / 전화번호 (예: 박사요 / 010-1234-5678) */}
+            <p className="text-[14px] font-semibold text-gray-900">
               {reservation.name || '이름 미입력'}
+              {reservation.phone && (
+                <span className="ml-1 text-[13px] font-normal text-gray-700">
+                  / {reservation.phone}
+                </span>
+              )}
             </p>
-            <p className="mt-0.5 text-[11px] text-[#8E8377]">
-              {reservation.phone || ''}
-            </p>
-            {reservation.timeLabel && (
-              <p className="mt-1 text-[11px] text-[#A59B90]">
-                예약 시간: {reservation.timeLabel}
-              </p>
-            )}
           </div>
         </section>
       )}
