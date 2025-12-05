@@ -2,7 +2,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Square, ArrowLeft, MoreHorizontal, Phone, Edit, ChevronRight, X, Pause, Play } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
-import logo from '../assets/logo.png';
 import {
   formatRecordingDateTime,
   createDateTimeStrings,
@@ -354,7 +353,7 @@ function RecordScreen({
       <div className="flex flex-col h-full px-8 pt-24 pb-12" style={{ backgroundColor: '#F2F0E6' }}>
         <div className="text-center mb-12">
           <img 
-            src={logo} 
+            src="/logo.png" 
             alt="Mallo 로고" 
             className="w-28 h-28 object-contain mx-auto mb-6 animate-bounce"
           />

@@ -4,7 +4,6 @@ import { filterCustomersBySearch } from '../utils/customerListUtils';
 import { SCREENS } from '../constants/screens';
 import { format, isToday, addDays, subDays } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import logo from '../assets/logo.png';
 import InputModeToggle from '../components/InputModeToggle';
 import AppLogo from '../components/AppLogo';
 
@@ -298,7 +297,7 @@ function HomeScreen({
         <div className="flex items-center gap-3">
           <AppLogo
             size="md"
-            src={logo}
+            src="/logo.png"
             alt="말로 로고"
           />
           <div className="flex flex-col">

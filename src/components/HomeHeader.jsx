@@ -1,7 +1,6 @@
 import React from 'react';
 import { SCREENS } from '../constants/screens';
 import CustomerListItem from './CustomerListItem';
-import logo from '../assets/logo.png';
 
 function HomeHeader({
   todayStr,
@@ -21,7 +20,7 @@ function HomeHeader({
         </div>
         <div className="flex items-center gap-3">
           <img 
-            src={logo} 
+            src="/logo.png" 
             alt="Mallo 로고" 
             className="w-20 h-20 object-contain"
           />
