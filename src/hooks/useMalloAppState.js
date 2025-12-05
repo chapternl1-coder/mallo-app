@@ -1098,8 +1098,9 @@ export default function useMalloAppState() {
     sectionsCount,
     rawText,
     source,
+    fromCustomerDetail = false,
   }) => {
-    console.log('[요약 처리] source:', source, 'reservationId:', reservationId);
+    console.log('[요약 처리] source:', source, 'reservationId:', reservationId, 'fromCustomerDetail:', fromCustomerDetail);
 
     setSummaryDraft({
       reservationId,
@@ -1112,8 +1113,18 @@ export default function useMalloAppState() {
       source,
     });
 
-    // 요약 미리보기 화면으로 이동 (음성 요약과 동일한 화면)
-    setCurrentScreen(SCREENS.RECORD);
+    // 고객 상세에서 온 경우는 호출한 쪽에서 직접 화면 이동 처리하므로 여기서는 이동하지 않음
+    // 그 외의 경우에만 RECORD로 이동
+    if (!fromCustomerDetail) {
+      const targetScreen = (currentScreen === SCREENS.CUSTOMER_TEXT_RECORD || currentScreen === SCREENS.CUSTOMER_RECORD)
+        ? SCREENS.CUSTOMER_RECORD
+        : SCREENS.RECORD;
+      
+      console.log('[요약 처리] 현재 화면:', currentScreen, 'fromCustomerDetail:', fromCustomerDetail, '→ 이동할 화면:', targetScreen);
+      setCurrentScreen(targetScreen);
+    } else {
+      console.log('[요약 처리] 고객 상세에서 온 경우, 화면 이동은 호출한 쪽에서 처리');
+    }
   };
 
   const handleSummaryResult = (summaryData) => {
@@ -1302,6 +1313,8 @@ export default function useMalloAppState() {
         };
         
         // 공통 헬퍼 함수 호출
+        // 고객 상세에서 온 경우 CUSTOMER_RECORD로 이동
+        const isFromCustomerDetailVoice = currentScreen === SCREENS.CUSTOMER_RECORD;
         handleSummaryResultFromAnySource({
           reservationId: selectedCustomerForRecord?.reservationId || null,
           customerId: selectedCustomerForRecord?.id || null,
@@ -1311,6 +1324,7 @@ export default function useMalloAppState() {
           sectionsCount: parsedResult.sections?.length || 0,
           rawText: transcript,
           source: 'voice',
+          fromCustomerDetail: isFromCustomerDetailVoice,
         });
         
         // 기존 handleSummaryResult도 호출하여 resultData 설정 (RecordScreen 호환성)
@@ -1531,7 +1545,8 @@ export default function useMalloAppState() {
   const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
-    if (currentScreen === SCREENS.RECORD) {
+    // RECORD 또는 CUSTOMER_RECORD 화면일 때 recordState 설정
+    if (currentScreen === SCREENS.RECORD || currentScreen === SCREENS.CUSTOMER_RECORD) {
       if (isProcessing) {
         setRecordState('processing');
       } else if (recordingTime > 0 && !resultData && !isPaused) {
@@ -1545,9 +1560,13 @@ export default function useMalloAppState() {
         }
       }
     } else {
-      setRecordState('idle');
-      setIsProcessing(false);
-      setIsPaused(false);
+      // 다른 화면으로 이동할 때만 recordState 초기화
+      // CUSTOMER_RECORD는 제외 (요약 결과를 보여줘야 하므로)
+      if (currentScreen !== SCREENS.CUSTOMER_RECORD) {
+        setRecordState('idle');
+        setIsProcessing(false);
+        setIsPaused(false);
+      }
     }
   }, [currentScreen, recordingTime, resultData, isProcessing, isPaused]);
 
@@ -1759,7 +1778,23 @@ export default function useMalloAppState() {
         foundCustomerId = matchedCustomer?.id || null;
       }
 
-      // 요약 결과 처리 - 공통 헬퍼 함수 사용
+      // 고객 상세에서 온 경우 CUSTOMER_RECORD로 이동
+      const isFromCustomerDetail = currentScreen === SCREENS.CUSTOMER_TEXT_RECORD;
+      console.log('[텍스트 기록] 현재 화면 확인:', currentScreen, 'isFromCustomerDetail:', isFromCustomerDetail);
+      
+      // 화면 이동을 가장 먼저 처리 (다른 로직이 덮어쓰지 않도록)
+      if (isFromCustomerDetail) {
+        console.log('[텍스트 기록] 고객 상세에서 온 경우, CUSTOMER_RECORD로 먼저 이동');
+        setCurrentScreen(SCREENS.CUSTOMER_RECORD);
+      }
+      
+      // resultData 설정
+      setTranscript(rawText);
+      setRawTranscript(rawText);
+      setRecordingDate(today);
+      handleSummaryResult(cleanedResult);
+      
+      // summaryDraft 설정
       handleSummaryResultFromAnySource({
         reservationId,
         customerId: foundCustomerId,
@@ -1769,13 +1804,8 @@ export default function useMalloAppState() {
         sectionsCount: parsedResult.sections?.length || 0,
         rawText,
         source: 'text',
+        fromCustomerDetail: isFromCustomerDetail,
       });
-
-      // 기존 handleSummaryResult도 호출하여 resultData 설정 (RecordScreen 호환성)
-      setTranscript(rawText);
-      setRawTranscript(rawText);
-      setRecordingDate(today);
-      handleSummaryResult(cleanedResult);
 
       console.log('[텍스트 기록] 요약 완료, 결과 화면으로 이동');
     } catch (error) {
