@@ -92,6 +92,7 @@ function TagSettingsScreen({
   };
 
   const customerSubTabs = {
+    feature: { label: '특징', placeholder: '특징 태그 입력…' },
     trait: { label: '성향', placeholder: '성향 태그 입력…' },
     pattern: { label: '방문패턴', placeholder: '방문패턴 태그 입력…' },
     caution: { label: '⚠️주의', placeholder: '주의 태그 입력…' }
@@ -115,7 +116,7 @@ function TagSettingsScreen({
     if (newMainTab === 'visit') {
       setTagSettingsSubTab('procedure');
     } else {
-      setTagSettingsSubTab('trait');
+      setTagSettingsSubTab('feature');
     }
   };
 

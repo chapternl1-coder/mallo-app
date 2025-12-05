@@ -122,6 +122,7 @@ export default function useMalloAppState() {
       console.error('[초기값] customerTags 로드 실패:', error);
     }
     return migrateTagsToObjects({
+      feature: [],
       trait: ['수다쟁이', '조용함', '친절함'],
       pattern: ['단골', '신규', '비정기'],
       caution: ['글루알러지', '임산부', '눈물많음']
@@ -174,6 +175,7 @@ export default function useMalloAppState() {
       ...customer,
       tags: (customer.tags || []).filter(tag => tag !== '#신규'),
       customerTags: customer.customerTags || {
+        feature: [],
         caution: [],
         trait: [],
         payment: [],
@@ -317,6 +319,7 @@ export default function useMalloAppState() {
     
     if (typeof setCustomerTags === 'function') {
       setCustomerTags(migrateTagsToObjects({
+        feature: [],
         caution: [],
         trait: [],
         payment: [],
@@ -373,6 +376,7 @@ export default function useMalloAppState() {
           lastVisit: null,
           avatar: '👤',
           customerTags: {
+            feature: [],
             caution: [],
             trait: [],
             payment: [],
@@ -616,6 +620,7 @@ export default function useMalloAppState() {
         // console.log('[고객 태그 자동 감지] "임산부" 포함 여부:', allVisitContent.includes('임산부'));
         
         const currentCustomerTags = customer.customerTags || {
+          feature: [],
           caution: [],
           trait: [],
           payment: [],
