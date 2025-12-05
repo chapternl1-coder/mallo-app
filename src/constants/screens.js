@@ -12,5 +12,9 @@ export const SCREENS = {
   RESERVATION: 'Reservation',
   CONTACT_IMPORT: 'ContactImport',
   TEXT_RECORD: 'TextRecord',
+  // 고객 상세에서 사용하는 별도 화면들
+  CUSTOMER_RECORD: 'CustomerRecord',
+  CUSTOMER_TEXT_RECORD: 'CustomerTextRecord',
+  CUSTOMER_RECORD_SUMMARY: 'CustomerRecordSummary',
 };
 

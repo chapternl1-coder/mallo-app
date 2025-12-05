@@ -272,42 +272,22 @@ function CustomerDetailScreen({
   });
   const isVoiceMode = inputMode === 'voice';
 
-  // 이 고객에 대한 새 기록 남기기 핸들러
+  // 이 고객에 대한 새 기록 남기기 핸들러 (고객 상세 전용 화면으로 이동)
   const handleCreateRecordForCustomer = () => {
+    // 고객 정보를 selectedCustomerForRecord에 저장
+    setSelectedCustomerForRecord({
+      id: customer.id,
+      name: customer.name,
+      phone: customer.phone,
+    });
+    
+    // 현재 모드에 따라 고객 상세 전용 화면으로 이동
     if (isVoiceMode) {
-      // 음성 모드: 녹음 시작
-      setSelectedCustomerForRecord(customer);
-      startRecording();
+      // 음성 모드: 고객 상세 전용 녹음 화면으로 이동
+      setCurrentScreen(SCREENS.CUSTOMER_RECORD);
     } else {
-      // 텍스트 모드: 텍스트 기록 화면으로 이동
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, '0');
-      const day = String(today.getDate()).padStart(2, '0');
-      const dateStr = `${year}-${month}-${day}`;
-      
-      // 날짜 라벨 생성 (예: "12월 5일 (목)")
-      const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-      const weekday = weekdays[today.getDay()];
-      const dateLabel = `${parseInt(month)}월 ${parseInt(day)}일 (${weekday})`;
-      
-      const reservationInfo = {
-        id: null, // 예약이 없으므로 null
-        name: customer.name || '이름 미입력',
-        phone: customer.phone || '',
-        timeLabel: '--:--',
-        dateLabel: dateLabel,
-        customerId: customer.id || null,
-        date: dateStr,
-      };
-      
-      // setSelectedReservation이 props로 전달되는지 확인 필요
-      // 일단 직접 전달되지 않으면 ScreenRouter를 통해 전달될 것
-      if (typeof setSelectedReservation === 'function') {
-        setSelectedReservation(reservationInfo);
-      }
-      
-      setCurrentScreen(SCREENS.TEXT_RECORD);
+      // 텍스트 모드: 고객 상세 전용 텍스트 기록 화면으로 이동
+      setCurrentScreen(SCREENS.CUSTOMER_TEXT_RECORD);
     }
   };
 
