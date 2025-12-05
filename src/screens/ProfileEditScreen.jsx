@@ -28,7 +28,7 @@ function ProfileEditScreen({
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
       {/* 헤더 */}
-      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
+      <header className="bg-[#F2F0E6] px-8 py-6 sticky top-0 z-20 flex items-center justify-between">
         <button 
           onClick={() => setCurrentScreen(SCREENS.PROFILE)} 
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
@@ -114,10 +114,10 @@ function ProfileEditScreen({
       </main>
 
       {/* 저장 버튼 (하단 고정) */}
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-200 shadow-lg z-30">
+      <div className="fixed bottom-0 left-0 right-0 p-6 bg-[#F2F0E6] z-30">
         <button
           onClick={handleSave}
-          className="w-full py-4 rounded-xl font-bold text-white shadow-md hover:opacity-90 transition-all"
+          className="w-full h-[54px] rounded-2xl font-semibold text-white shadow-sm hover:opacity-90 transition-all"
           style={{ backgroundColor: '#C9A27A' }}
         >
           저장 완료
