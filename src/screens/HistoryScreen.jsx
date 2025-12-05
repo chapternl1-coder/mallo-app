@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ArrowLeft, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatRecordDateTime } from '../utils/date';
 import { SCREENS } from '../constants/screens';
@@ -234,38 +234,83 @@ function HistoryScreen({
   const textColor = currentTheme?.text || '#232323';
   const accentColor = currentTheme?.color || '#C9A27A';
 
+  const handleGoToday = () => {
+    setSelectedDate(getTodayDateString());
+  };
+
+  const handleDateChange = (e) => {
+    setSelectedDate(e.target.value);
+  };
+
+  // 날짜 라벨 포맷팅
+  const selectedDateLabel = selectedDate ? formatDate(selectedDate) : '날짜 선택';
+
+  // 페이지 진입 시 최상단으로 스크롤
+  const mainRef = useRef(null);
+  useEffect(() => {
+    // window 스크롤 초기화
+    window.scrollTo(0, 0);
+    // main 요소 스크롤 초기화
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0;
+    }
+  }, []);
+
   return (
     <div className="flex flex-col h-full relative pb-[60px]" style={{ backgroundColor: bgColor }}>
-      <main className="flex-1 overflow-y-auto px-5 pt-5 space-y-4 pb-8" style={{ backgroundColor: bgColor }}>
+      <main ref={mainRef} className="flex-1 overflow-y-auto px-5 pt-5 space-y-4 pb-8" style={{ backgroundColor: bgColor }}>
         {/* 날짜 필터 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-[#E8DFD3] p-4">
-          <div className="flex items-center gap-3">
-            <Calendar size={20} style={{ color: accentColor }} />
+        <div className="bg-white rounded-2xl border border-[#E2D7C7] shadow-sm px-4 py-3 mb-4 relative">
+          {/* 상단: 라벨 */}
+          <div className="flex items-center mb-2">
+            <span className="text-[11px] text-[#A59B90]">
+              기록 날짜
+            </span>
+          </div>
+
+          {/* 하단: 실제로는 input 이지만, 위에 UI만 얹어서 보이게 함 */}
+          <div className="relative w-full">
+            {/* 진짜 date input: 전체 영역을 덮고, 터치 이벤트를 받는 부분 */}
             <input
               type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="flex-1 px-4 py-2 rounded-xl border border-gray-200 focus:border-[#C9A27A] focus:ring-1 focus:ring-[#C9A27A] outline-none transition-all text-sm"
-              style={{ color: textColor, backgroundColor: '#FFFFFF' }}
+              value={selectedDate || ''}
+              onChange={handleDateChange}
+              className="absolute inset-0 w-full h-full opacity-0 z-0"
             />
-            {selectedDate && (
-              <button
-                onClick={() => {
-                  setSelectedDate(getTodayDateString()); // 전체가 아닌 오늘 날짜로 초기화
-                }}
-                className="px-3 py-2 text-xs font-medium rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
-                style={{ color: textColor }}
-              >
-                오늘
-              </button>
-            )}
+
+            {/* 시각적인 UI: 기본은 pointer-events-none → 터치가 input 으로 통과됨 */}
+            <div className="w-full flex items-center justify-between rounded-xl bg-[#F7F2EA] px-3 py-2 pointer-events-none relative z-10">
+              {/* 왼쪽: 캘린더 아이콘 + 날짜 텍스트 */}
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center border border-[#E2D7C7]">
+                  <Calendar className="w-3.5 h-3.5 text-[#C9A27A]" strokeWidth={1.7} />
+                </div>
+                <span className="text-[13px] font-medium text-[#3E2E20]">
+                  {selectedDateLabel}
+                </span>
+              </div>
+
+              {/* 오른쪽: 오늘 버튼 + 화살표 */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation(); // 달력 안 뜨게 막기
+                    handleGoToday();     // 기존 오늘로 이동 함수
+                  }}
+                  className="px-2.5 py-1 text-[11px] font-medium rounded-full border border-[#E2D7C7] text-[#3E2E20] bg-white/80 pointer-events-auto"
+                >
+                  오늘
+                </button>
+                <ChevronDown className="w-4 h-4 text-[#B7A595]" strokeWidth={1.7} />
+              </div>
+            </div>
           </div>
         </div>
 
         {/* 전체 시술 기록 */}
         <div className="space-y-4">
           <h3 className="text-base font-bold flex items-center gap-2" style={{ color: textColor }}>
-            <span>📅</span>
             <span>{selectedDate ? formatDate(selectedDate) + ' 기록' : '전체 시술 기록'}</span>
           </h3>
           

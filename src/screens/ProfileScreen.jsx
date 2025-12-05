@@ -22,13 +22,8 @@ function ProfileScreen({
 }) {
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
-      {/* 헤더 */}
-      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-center border-b border-gray-200 shadow-sm h-[80px]">
-        <h2 className="font-bold text-base" style={{ color: '#232323' }}>프로필</h2>
-      </header>
-
       {/* 내용 영역 */}
-      <main className="flex-1 overflow-y-auto p-8 space-y-4 pb-32">
+      <main className="flex-1 overflow-y-auto px-5 pt-5 space-y-4 pb-24">
         {/* 프로필 카드 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 relative">
           <button
