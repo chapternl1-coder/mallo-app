@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Search, Clock, User, Plus, Calendar, ChevronLeft, ChevronRight, Mic, X } from 'lucide-react';
+import { Search, Clock, User, Plus, Calendar, ChevronLeft, ChevronRight, Mic, X, Keyboard } from 'lucide-react';
 import { filterCustomersBySearch } from '../utils/customerListUtils';
 import { SCREENS } from '../constants/screens';
 import { format, isToday, addDays, subDays } from 'date-fns';
@@ -39,6 +39,7 @@ function HomeScreen({
   const [tempMemoValue, setTempMemoValue] = useState('');
   const memoInputRef = useRef(null);
   const isComposingRef = useRef(false); // 한글 조합 중인지 추적
+  const [inputMode, setInputMode] = useState('voice'); // 'voice' 또는 'text'
   
   // 반응형 글자 수 제한 계산
   const getMaxMemoLength = () => {
@@ -189,6 +190,44 @@ function HomeScreen({
     startRecording();
   };
 
+  // 음성 녹음 시작 핸들러
+  const handleStartVoiceRecord = (reservation) => {
+    handleReservationClick(reservation);
+  };
+
+  // 텍스트 기록 시작 핸들러
+  const handleStartTextRecord = (reservation) => {
+    // 예약에 customerId가 있으면 기존 고객 매칭
+    const matchedCustomer = reservation.customerId
+      ? customers.find((c) => c.id === reservation.customerId)
+      : null;
+
+    if (matchedCustomer) {
+      setSelectedCustomerForRecord({
+        ...matchedCustomer,
+        reservationId: reservation.id,
+        time: reservation.time || matchedCustomer.time
+      });
+      setSelectedCustomerId(matchedCustomer.id);
+    } else {
+      // 신규 손님: 최소 정보만 가진 임시 객체 생성
+      const tempCustomer = {
+        id: null,
+        name: reservation.name || '이름 미입력',
+        phone: reservation.phone || '',
+        isNew: true,
+        tags: [],
+        reservationId: reservation.id,
+        time: reservation.time
+      };
+      setSelectedCustomerForRecord(tempCustomer);
+      setSelectedCustomerId(null);
+    }
+
+    // 텍스트 기록 화면으로 이동
+    setCurrentScreen(SCREENS.EDIT);
+  };
+
   // 플로팅 녹음 버튼 클릭 (신규/비예약 고객용)
   const handleFabClick = () => {
     setSelectedCustomerForRecord(null);
@@ -260,15 +299,44 @@ function HomeScreen({
       {/* 헤더 영역 */}
       <header className="px-6 py-4 bg-white border-b border-gray-200 shadow-sm">
         <div className="flex items-center justify-between">
-          <div className="flex flex-col">
-            <h2 className="text-xl font-bold text-gray-800">원장님, 안녕하세요!</h2>
-            <span className="text-sm font-light text-gray-600 mt-1">{todayStr}</span>
-          </div>
+          {/* 왼쪽: 로고 */}
           <img
             src={logo}
             alt="Mallo 로고"
             className="w-16 h-16 object-contain"
           />
+          
+          {/* 가운데: 인사말 + 날짜 */}
+          <div className="flex flex-col flex-1 items-center">
+            <h2 className="text-xl font-bold text-gray-800">원장님, 안녕하세요!</h2>
+            <span className="text-sm font-light text-gray-600 mt-1">{todayStr}</span>
+          </div>
+
+          {/* 오른쪽: inputMode 전환 UI */}
+          <div className="flex items-center gap-2 bg-gray-100 rounded-full p-1">
+            <button
+              onClick={() => setInputMode('voice')}
+              className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 ${
+                inputMode === 'voice'
+                  ? 'bg-[#C9A27A] text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <Mic size={16} />
+              <span className="text-xs font-medium">음성</span>
+            </button>
+            <button
+              onClick={() => setInputMode('text')}
+              className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 ${
+                inputMode === 'text'
+                  ? 'bg-[#C9A27A] text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <Keyboard size={16} />
+              <span className="text-xs font-medium">텍스트</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -485,13 +553,24 @@ function HomeScreen({
                             </p>
                           </div>
 
-                          {/* 녹음 버튼 (오른쪽) */}
+                          {/* 액션 버튼 (오른쪽) - 모드에 따라 아이콘 변경 */}
                           <div className="flex-shrink-0 flex items-center" onClick={(e) => e.stopPropagation()}>
                             <button
-                              onClick={() => handleReservationClick(reservation)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (inputMode === 'voice') {
+                                  handleStartVoiceRecord(reservation);
+                                } else {
+                                  handleStartTextRecord(reservation);
+                                }
+                              }}
                               className="w-10 h-10 rounded-full bg-[#C9A27A] text-white shadow-md hover:bg-[#B8926A] active:scale-95 transition-all flex items-center justify-center"
                             >
-                              <Mic size={18} />
+                              {inputMode === 'voice' ? (
+                                <Mic size={18} />
+                              ) : (
+                                <Keyboard size={18} />
+                              )}
                             </button>
                           </div>
                         </div>
