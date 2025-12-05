@@ -112,19 +112,25 @@ function EditCustomerScreen({
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
       {/* Header */}
-      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
-        <button 
+      <header className="flex items-center justify-between px-5 pt-4 pb-2 bg-[#F2F0E6] sticky top-0 z-20">
+        {/* 뒤로가기 버튼 */}
+        <button
+          type="button"
           onClick={handleCancel}
-          className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
+          className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
           style={{ color: '#232323' }}
         >
           <span className="text-[24px]">&#x2039;</span>
         </button>
-        <h2 className="font-bold text-lg" style={{ color: '#232323' }}>고객 정보 편집</h2>
-        <button 
+
+        {/* 가운데 타이틀 */}
+        <h2 className="font-bold text-base" style={{ color: '#232323' }}>고객 정보 편집</h2>
+
+        {/* 오른쪽 완료 버튼 */}
+        <button
+          type="button"
           onClick={handleComplete}
-          className="px-4 py-2 rounded-2xl font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all"
-          style={{ backgroundColor: '#C9A27A' }}
+          className="px-3 py-1.5 text-[12px] font-medium rounded-full bg-[#C9A27A] text-white"
         >
           완료
         </button>

@@ -332,7 +332,7 @@ function CustomerDetailScreen({
         </button>
 
         {/* 가운데: 고객 이름만 표시 */}
-        <h1 className="flex-1 text-center text-[15px] font-semibold text-[#3D3127]">
+        <h1 className="flex-1 text-center text-base font-bold text-[#232323]">
           {customer?.name || '고객'}
         </h1>
 
