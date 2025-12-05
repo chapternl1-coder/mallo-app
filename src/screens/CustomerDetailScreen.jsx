@@ -1,6 +1,6 @@
 // 특정 고객의 정보와 방문 히스토리를 보여주는 화면
 import React, { useState } from 'react';
-import { ArrowLeft, MoreHorizontal, Phone, Edit, Mic, ChevronUp, ChevronDown, Calendar, Repeat } from 'lucide-react';
+import { ArrowLeft, MoreHorizontal, Phone, Edit, Mic, ChevronUp, ChevronDown, Calendar, Repeat, Keyboard, ChevronLeft } from 'lucide-react';
 import { formatRecordDateTime, formatServiceDateTimeLabel } from '../utils/date';
 import { SCREENS } from '../constants/screens';
 import {
@@ -40,6 +40,7 @@ function CustomerDetailScreen({
   setEditingVisitTagIds,
   setSelectedCustomerForRecord,
   startRecording,
+  setSelectedReservation,
   MOCK_CUSTOMERS
 }) {
   // customers 배열에서 고객 찾기 (숫자와 문자열 ID 모두 처리)
@@ -263,26 +264,90 @@ function CustomerDetailScreen({
   };
 
 
+  // inputMode 가져오기 (localStorage에서)
+  const [inputMode, setInputMode] = useState(() => {
+    if (typeof window === 'undefined') return 'voice';
+    const saved = window.localStorage.getItem('mallo_input_mode');
+    return saved === 'voice' || saved === 'text' ? saved : 'voice';
+  });
+  const isVoiceMode = inputMode === 'voice';
+
+  // 이 고객에 대한 새 기록 남기기 핸들러
+  const handleCreateRecordForCustomer = () => {
+    if (isVoiceMode) {
+      // 음성 모드: 녹음 시작
+      setSelectedCustomerForRecord(customer);
+      startRecording();
+    } else {
+      // 텍스트 모드: 텍스트 기록 화면으로 이동
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      
+      // 날짜 라벨 생성 (예: "12월 5일 (목)")
+      const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+      const weekday = weekdays[today.getDay()];
+      const dateLabel = `${parseInt(month)}월 ${parseInt(day)}일 (${weekday})`;
+      
+      const reservationInfo = {
+        id: null, // 예약이 없으므로 null
+        name: customer.name || '이름 미입력',
+        phone: customer.phone || '',
+        timeLabel: '--:--',
+        dateLabel: dateLabel,
+        customerId: customer.id || null,
+        date: dateStr,
+      };
+      
+      // setSelectedReservation이 props로 전달되는지 확인 필요
+      // 일단 직접 전달되지 않으면 ScreenRouter를 통해 전달될 것
+      if (typeof setSelectedReservation === 'function') {
+        setSelectedReservation(reservationInfo);
+      }
+      
+      setCurrentScreen(SCREENS.TEXT_RECORD);
+    }
+  };
+
+  // 뒤로가기 핸들러
+  const handleBack = () => {
+    const targetScreen = previousScreen === SCREENS.HOME ? SCREENS.HOME : SCREENS.HISTORY;
+    setCurrentScreen(targetScreen);
+  };
+
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
       {/* Header */}
-      <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
-        <button 
-          onClick={() => {
-            // 이전 화면이 홈이면 홈으로, 아니면 기록 화면으로
-            const targetScreen = previousScreen === SCREENS.HOME ? SCREENS.HOME : SCREENS.HISTORY;
-            setCurrentScreen(targetScreen);
-          }} 
-          className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
+      <header className="bg-[#F2F0E6] px-5 pt-4 pb-2 sticky top-0 z-20 flex items-center">
+        {/* 뒤로가기 버튼 */}
+        <button
+          type="button"
+          onClick={handleBack}
+          className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
           style={{ color: '#232323' }}
         >
-          <ArrowLeft size={24} />
+          <span className="text-[24px]">&#x2039;</span>
         </button>
-        <div className="text-center">
-          <span className="text-xs font-medium" style={{ color: '#232323', opacity: 0.7 }}>고객 상세</span>
-          <h2 className="font-bold text-base mt-1" style={{ color: '#232323' }}>{customer.name}</h2>
-        </div>
-        <div className="w-10"></div> {/* 공간 맞추기용 */}
+
+        {/* 가운데: 고객 이름만 표시 */}
+        <h1 className="flex-1 text-center text-[15px] font-semibold text-[#3D3127]">
+          {customer?.name || '고객'}
+        </h1>
+
+        {/* 오른쪽: 이 고객에 대한 새 기록 남기기 (녹음/텍스트 모드에 따라 아이콘 변경) */}
+        <button
+          type="button"
+          onClick={handleCreateRecordForCustomer}
+          className="ml-2 w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center"
+        >
+          {isVoiceMode ? (
+            <Mic className="w-4 h-4 text-[#C9A27A]" />
+          ) : (
+            <Keyboard className="w-4 h-4 text-[#C9A27A]" />
+          )}
+        </button>
       </header>
 
       <main className="flex-1 overflow-y-auto p-8 space-y-6 pb-40">
@@ -660,20 +725,6 @@ function CustomerDetailScreen({
         </div>
       </main>
 
-      {/* 하단 고정 버튼: 새 기록 남기기 */}
-      <div className="absolute bottom-24 left-8 right-8 z-30">
-        <button 
-          onClick={() => {
-            setSelectedCustomerForRecord(customer);
-            startRecording();
-          }}
-          className="w-full py-4 rounded-2xl flex items-center justify-center gap-3 font-medium text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all"
-          style={{ backgroundColor: '#C9A27A' }}
-        >
-          <Mic size={20} />
-          <span>이 고객에 대해 새 기록 남기기</span>
-        </button>
-      </div>
     </div>
   );
 }

@@ -292,7 +292,7 @@ function EditScreen({
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
           style={{ color: '#232323' }}
         >
-          <ArrowLeft size={24} />
+          <span className="text-[24px]">&#x2039;</span>
         </button>
         <h2 className="font-bold text-lg" style={{ color: '#232323' }}>편집</h2>
         <button 

@@ -374,7 +374,7 @@ function RecordScreen({
       {/* Header */}
       <header className="bg-white px-8 py-6 sticky top-0 z-20 flex items-center justify-between border-b border-gray-200 shadow-sm">
         <button onClick={resetFlow} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
-          <ArrowLeft size={24} />
+          <span className="text-[24px]">&#x2039;</span>
         </button>
         <div className="text-center">
           <span className="text-xs font-medium" style={{ color: '#232323', opacity: 0.7 }}>시술 기록</span>
