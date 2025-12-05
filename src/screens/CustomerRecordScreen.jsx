@@ -125,39 +125,8 @@ function CustomerRecordScreen({
     setTempServiceDate(e.target.value);
   };
 
-  // resultData가 변경될 때 텍스트/녹음에서 추출한 날짜를 자동으로 tempServiceDate에 설정
-  useEffect(() => {
-    if (resultData && resultData.sections && !tempServiceDate) {
-      // 텍스트/녹음에서 날짜 추출
-      const extractedDate = extractServiceDateFromSummary(resultData);
-      if (extractedDate) {
-        // 시간도 함께 추출
-        const visitSection = resultData.sections.find(
-          section => section.title && section.title.includes('방문·예약 정보')
-        );
-        let extractedTime = '00:00';
-        
-        if (visitSection && visitSection.content && Array.isArray(visitSection.content)) {
-          for (const line of visitSection.content) {
-            if (!line || typeof line !== 'string') continue;
-            const timeMatch = line.match(/(\d{1,2}):(\d{2})/);
-            if (timeMatch) {
-              const [, hour, minute] = timeMatch;
-              const hh = String(parseInt(hour, 10)).padStart(2, '0');
-              const mm = String(parseInt(minute, 10)).padStart(2, '0');
-              extractedTime = `${hh}:${mm}`;
-              break;
-            }
-          }
-        }
-        
-        // datetime-local 형식으로 변환 (YYYY-MM-DDTHH:mm)
-        const dateTimeStr = `${extractedDate}T${extractedTime}`;
-        setTempServiceDate(dateTimeStr);
-        console.log('[CustomerRecordScreen] 텍스트/녹음에서 추출한 날짜를 자동 설정:', dateTimeStr);
-      }
-    }
-  }, [resultData, extractServiceDateFromSummary]); // tempServiceDate는 의존성에서 제외 (무한 루프 방지)
+  // 녹음/텍스트에서 날짜/시간을 자동으로 추출하지 않음
+  // 사용자가 직접 입력창에서 날짜/시간을 선택하도록 함
 
   // 방문 날짜 포맷팅 (tempServiceDate가 있을 때만 표시)
   const formatVisitDateTime = (dateTimeStr) => {

@@ -41,7 +41,8 @@ function CustomerDetailScreen({
   setSelectedCustomerForRecord,
   startRecording,
   setSelectedReservation,
-  MOCK_CUSTOMERS
+  MOCK_CUSTOMERS,
+  reservations = [] // 예약 정보 (예약과 연결된 방문 기록의 날짜/시간 확인용)
 }) {
   // customers 배열에서 고객 찾기 (숫자와 문자열 ID 모두 처리)
   let customer = customers.find(c => {
@@ -132,9 +133,44 @@ function CustomerDetailScreen({
   console.log('[CustomerDetailScreen] selectedCustomerId:', selectedCustomerId);
   console.log('[CustomerDetailScreen] customerVisits.length:', customerVisits.length);
   
-  // 시간 추출 헬퍼 함수 (텍스트/녹음에서 추출한 시간 우선)
+  // 예약과 연결된 방문 기록인지 확인하는 헬퍼 함수
+  const findConnectedReservation = (visit) => {
+    if (!reservations || reservations.length === 0) return null;
+    
+    // 1순위: reservationId로 찾기
+    if (visit.reservationId) {
+      const matchedReservation = reservations.find(r => r.id === visit.reservationId);
+      if (matchedReservation) return matchedReservation;
+    }
+    
+    // 2순위: customerId와 날짜로 찾기
+    if (visit.customerId && customer) {
+      const visitDate = visit.serviceDate || visit.date;
+      const matchedReservation = reservations.find(r => {
+        const customerIdMatch = (r.customerId === customer.id || String(r.customerId) === String(customer.id)) ||
+                                (r.customerId === visit.customerId || String(r.customerId) === String(visit.customerId));
+        const dateMatch = visitDate && r.date && visitDate === r.date;
+        return customerIdMatch && dateMatch;
+      });
+      if (matchedReservation) return matchedReservation;
+    }
+    
+    return null;
+  };
+
+  // 시간 추출 헬퍼 함수 (예약과 연결된 경우 예약 시간 우선, 그 다음 텍스트/녹음에서 추출한 시간)
   const extractTimeFromVisit = (visit) => {
-    // 1순위: 텍스트/녹음에서 추출한 시간
+    // 1순위: 예약과 연결된 경우 예약 시간 사용
+    const connectedReservation = findConnectedReservation(visit);
+    if (connectedReservation && connectedReservation.time) {
+      const timeStr = String(connectedReservation.time).trim();
+      if (/^\d{1,2}:\d{2}/.test(timeStr)) {
+        const [hour, minute] = timeStr.split(':');
+        return `${String(parseInt(hour, 10)).padStart(2, '0')}:${String(parseInt(minute, 10)).padStart(2, '0')}`;
+      }
+    }
+    
+    // 2순위: 텍스트/녹음에서 추출한 시간
     const serviceDateTimeLabel = extractServiceDateTimeLabel(visit);
     if (serviceDateTimeLabel) {
       // "2025-12-27 17:30 방문/예약" -> "17:30" 추출
@@ -145,7 +181,7 @@ function CustomerDetailScreen({
       }
     }
     
-    // 2순위: visit.time 직접 사용 (저장된 시간)
+    // 3순위: visit.time 직접 사용 (저장된 시간)
     if (visit.time) {
       const timeStr = String(visit.time).trim();
       if (/^\d{1,2}:\d{2}/.test(timeStr)) {
@@ -160,25 +196,37 @@ function CustomerDetailScreen({
 
   // 방문 기록 정렬: 날짜 내림차순(최신 날짜가 위), 같은 날짜면 시간 내림차순(늦은 시간이 위)
   const sortedCustomerVisits = [...customerVisits].sort((a, b) => {
-    // 날짜 추출: 텍스트/녹음에서 추출한 날짜 우선, 없으면 저장된 날짜 사용
+    // 날짜 추출: 예약과 연결된 경우 예약 날짜 우선, 그 다음 텍스트/녹음에서 추출한 날짜, 없으면 저장된 날짜 사용
     let baseDateA = null;
-    if (a.detail && a.detail.sections) {
-      const visitDataA = { sections: a.detail.sections };
-      baseDateA = extractServiceDateFromSummary(visitDataA);
-    }
-    // 텍스트에서 추출한 날짜가 없으면 저장된 날짜 사용
-    if (!baseDateA) {
-      baseDateA = a.serviceDate || a.date;
+    const connectedReservationA = findConnectedReservation(a);
+    if (connectedReservationA && connectedReservationA.date) {
+      baseDateA = connectedReservationA.date;
+    } else {
+      // 텍스트/녹음에서 추출한 날짜
+      if (a.detail && a.detail.sections) {
+        const visitDataA = { sections: a.detail.sections };
+        baseDateA = extractServiceDateFromSummary(visitDataA);
+      }
+      // 저장된 날짜 사용
+      if (!baseDateA) {
+        baseDateA = a.serviceDate || a.date;
+      }
     }
     
     let baseDateB = null;
-    if (b.detail && b.detail.sections) {
-      const visitDataB = { sections: b.detail.sections };
-      baseDateB = extractServiceDateFromSummary(visitDataB);
-    }
-    // 텍스트에서 추출한 날짜가 없으면 저장된 날짜 사용
-    if (!baseDateB) {
-      baseDateB = b.serviceDate || b.date;
+    const connectedReservationB = findConnectedReservation(b);
+    if (connectedReservationB && connectedReservationB.date) {
+      baseDateB = connectedReservationB.date;
+    } else {
+      // 텍스트/녹음에서 추출한 날짜
+      if (b.detail && b.detail.sections) {
+        const visitDataB = { sections: b.detail.sections };
+        baseDateB = extractServiceDateFromSummary(visitDataB);
+      }
+      // 저장된 날짜 사용
+      if (!baseDateB) {
+        baseDateB = b.serviceDate || b.date;
+      }
     }
     
     // 날짜 비교
@@ -478,21 +526,37 @@ function CustomerDetailScreen({
               const safeName = normalizedVisit.customerName || '미기재';
               const safePhone = normalizedVisit.customerPhone || '미기재';
 
-              // 날짜/시간 정보 준비 (텍스트/녹음에서 추출한 날짜/시간 우선 사용)
+              // 날짜/시간 정보 준비 (예약과 연결된 경우 예약 날짜/시간 우선, 그 다음 텍스트/녹음에서 추출한 날짜/시간)
               let dateTimeDisplay = '';
               
-              // 1순위: 텍스트/녹음에서 추출한 날짜/시간
-              const serviceDateTimeLabel = extractServiceDateTimeLabel(visit);
-              if (serviceDateTimeLabel) {
-                // "2025-12-27 17:30 방문/예약" -> "2025.12.27 17:30" 변환
-                const dateTimeMatch = serviceDateTimeLabel.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
-                if (dateTimeMatch) {
-                  const [, year, month, day, hour, minute] = dateTimeMatch;
-                  dateTimeDisplay = `${year}.${month}.${day} ${hour}:${minute}`;
+              // 1순위: 예약과 연결된 경우 예약 날짜/시간 사용
+              const connectedReservation = findConnectedReservation(visit);
+              if (connectedReservation && connectedReservation.date && connectedReservation.time) {
+                const dateObj = new Date(`${connectedReservation.date}T${connectedReservation.time}`);
+                if (!isNaN(dateObj.getTime())) {
+                  const year = dateObj.getFullYear();
+                  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                  const day = String(dateObj.getDate()).padStart(2, '0');
+                  const hours = String(dateObj.getHours()).padStart(2, '0');
+                  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                  dateTimeDisplay = `${year}.${month}.${day} ${hours}:${minutes}`;
                 }
               }
               
-              // 2순위: 저장된 날짜/시간 사용
+              // 2순위: 텍스트/녹음에서 추출한 날짜/시간
+              if (!dateTimeDisplay) {
+                const serviceDateTimeLabel = extractServiceDateTimeLabel(visit);
+                if (serviceDateTimeLabel) {
+                  // "2025-12-27 17:30 방문/예약" -> "2025.12.27 17:30" 변환
+                  const dateTimeMatch = serviceDateTimeLabel.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
+                  if (dateTimeMatch) {
+                    const [, year, month, day, hour, minute] = dateTimeMatch;
+                    dateTimeDisplay = `${year}.${month}.${day} ${hour}:${minute}`;
+                  }
+                }
+              }
+              
+              // 3순위: 저장된 날짜/시간 사용
               if (!dateTimeDisplay && visit.serviceDate && visit.time) {
                 const dateObj = new Date(`${visit.serviceDate}T${visit.time}`);
                 if (!isNaN(dateObj.getTime())) {
@@ -505,8 +569,9 @@ function CustomerDetailScreen({
                 }
               }
               
-              // 3순위: formatVisitDateTime 사용 (fallback)
+              // 4순위: formatVisitDateTime 사용 (fallback)
               if (!dateTimeDisplay) {
+                const serviceDateTimeLabel = extractServiceDateTimeLabel(visit);
                 dateTimeDisplay = formatVisitDateTime(visit, serviceDateTimeLabel);
               }
 
