@@ -41,7 +41,7 @@ function ProfileScreen({
             </div>
             <div className="flex-1">
               <h3 className="font-bold text-lg mb-1" style={{ color: '#232323' }}>
-                {userProfile.name}님
+                {userProfile.name}
               </h3>
               {userProfile.shopName && (
                 <p className="text-sm font-medium mb-1" style={{ color: '#C9A27A' }}>

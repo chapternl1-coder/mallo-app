@@ -225,7 +225,7 @@ function TagSettingsScreen({
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
           style={{ color: '#232323' }}
         >
-          <span className="text-[24px]">&#x2039;</span>
+          <span className="text-[32px]">&#x2039;</span>
         </button>
         <h2 className="font-bold text-base" style={{ color: '#232323' }}>시술 태그 관리</h2>
         <button

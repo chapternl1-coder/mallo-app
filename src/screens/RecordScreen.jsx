@@ -467,7 +467,7 @@ function RecordScreen({
       {/* Header */}
       <header className="px-5 pt-4 pb-3 bg-[#F2F0E6] sticky top-0 z-20 flex items-center justify-between">
         <button onClick={resetFlow} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
-          <span className="text-[24px]">&#x2039;</span>
+          <span className="text-[32px]">&#x2039;</span>
         </button>
         <div className="flex flex-col items-center">
           {/* 예약 날짜+시간: 예) 12월 6일 (토요일) 11:00 */}

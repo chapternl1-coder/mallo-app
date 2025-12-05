@@ -34,7 +34,7 @@ function ProfileEditScreen({
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
           style={{ color: '#232323' }}
         >
-          <span className="text-[24px]">&#x2039;</span>
+          <span className="text-[32px]">&#x2039;</span>
         </button>
         <h2 className="font-bold text-base" style={{ color: '#232323' }}>프로필 수정</h2>
         <button

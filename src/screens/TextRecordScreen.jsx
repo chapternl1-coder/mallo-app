@@ -41,7 +41,7 @@ function TextRecordScreen({
           onClick={onBack}
           className="flex items-center justify-center w-8 h-8 rounded-full bg-white shadow-sm"
         >
-          <span className="text-[24px] text-[#8E8377]">&#x2039;</span>
+          <span className="text-[32px] text-[#8E8377]">&#x2039;</span>
         </button>
 
         <div className="flex flex-col items-center">

@@ -33,6 +33,7 @@ function HomeScreen({
   updateReservation,
   setReservations,
   setSelectedReservation,
+  userProfile,
 }) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -313,7 +314,7 @@ function HomeScreen({
             alt="말로 로고"
           />
           <div className="flex flex-col">
-            <span className="text-[11px] text-[#A59B90]">말로 뷰티</span>
+            <span className="text-[11px] text-[#A59B90]">{userProfile?.shopName || '말로 뷰티'}</span>
             <span className="text-[14px] font-semibold text-[#3E2E20]">
               오늘 방문 예정 손님
             </span>
