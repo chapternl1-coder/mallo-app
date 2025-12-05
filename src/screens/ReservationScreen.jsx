@@ -14,8 +14,10 @@ function ReservationScreen({
   setCurrentScreen,
   setSelectedCustomerId,
   getTodayDateString,
+  autoOpenForm = false, // 홈에서 + 버튼으로 진입 시 자동으로 폼 열기
+  setShouldOpenReservationForm, // 플래그 리셋용
 }) {
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(true); // 항상 예약 추가창 열어놓기
   const [timeInput, setTimeInput] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [phoneInput, setPhoneInput] = useState('');
@@ -32,6 +34,15 @@ function ReservationScreen({
       mainElement.scrollTop = 0;
     }
   }, []);
+
+  // 페이지 진입 시 항상 폼 열기
+  useEffect(() => {
+    setShowForm(true);
+    // 플래그 리셋 (있는 경우)
+    if (setShouldOpenReservationForm) {
+      setShouldOpenReservationForm(false);
+    }
+  }, [setShouldOpenReservationForm]);
 
   // 선택된 날짜 문자열 (YYYY-MM-DD 형식)
   const selectedDateStr = useMemo(() => {

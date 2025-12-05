@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Search, Clock, User, Plus, Calendar, ChevronLeft, ChevronRight, Mic, X, Keyboard } from 'lucide-react';
+import { Search, Clock, User, Calendar, ChevronLeft, ChevronRight, Mic, X, Keyboard, Plus } from 'lucide-react';
 import { filterCustomersBySearch } from '../utils/customerListUtils';
 import { SCREENS } from '../constants/screens';
 import { format, isToday, addDays, subDays } from 'date-fns';
@@ -34,6 +34,7 @@ function HomeScreen({
   setReservations,
   setSelectedReservation,
   userProfile,
+  setShouldOpenReservationForm,
 }) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -228,19 +229,6 @@ function HomeScreen({
     
     // 텍스트 기록 화면으로 이동
     setCurrentScreen(SCREENS.TEXT_RECORD);
-  };
-
-  // 플로팅 + 버튼 클릭 (신규/비예약 고객용)
-  const handleFabClick = () => {
-    if (inputMode === 'text') {
-      // 텍스트 모드일 때: 텍스트 기록 화면으로 이동
-      setSelectedReservation(null);
-      setCurrentScreen(SCREENS.TEXT_RECORD);
-    } else {
-      // 음성 모드일 때: 녹음 시작
-      setSelectedCustomerForRecord(null);
-      startRecording();
-    }
   };
 
   // 예약과 매칭되는 고객 찾기
@@ -689,9 +677,12 @@ function HomeScreen({
       {/* Safe Area Bottom */}
       <div className="pb-[env(safe-area-inset-bottom)]" />
 
-      {/* 플로팅 + 버튼 (네비게이션 바 오른쪽 위) */}
+      {/* 플로팅 + 버튼 (우측 하단) - 예약 추가 */}
       <button
-        onClick={handleFabClick}
+        onClick={() => {
+          setShouldOpenReservationForm(true); // 예약 폼 자동 열기 플래그 설정
+          setCurrentScreen(SCREENS.RESERVATION);
+        }}
         className="fixed w-12 h-12 rounded-full bg-[#C9A27A] flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-transform z-50"
         style={{ 
           boxShadow: '0 10px 25px rgba(201, 162, 122, 0.3)',

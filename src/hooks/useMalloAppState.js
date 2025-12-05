@@ -73,6 +73,7 @@ export default function useMalloAppState() {
   const [isTextSummarizing, setIsTextSummarizing] = useState(false);
   const [showPromptInfo, setShowPromptInfo] = useState(false);
   const [todayRecords, setTodayRecords] = useState([]);
+  const [shouldOpenReservationForm, setShouldOpenReservationForm] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [expandedVisitId, setExpandedVisitId] = useState(null);
   const [editingVisit, setEditingVisit] = useState(null);
@@ -2076,7 +2077,9 @@ export default function useMalloAppState() {
     createVisitLogFromText,
     isTextSummarizing,
     setIsTextSummarizing,
-    addReservationFromVisit
+    addReservationFromVisit,
+    shouldOpenReservationForm,
+    setShouldOpenReservationForm
   };
 
   return {
