@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, Clock, User, Plus, Calendar, ChevronLeft, ChevronRight, Mic, X, Keyboard } from 'lucide-react';
 import { filterCustomersBySearch } from '../utils/customerListUtils';
 import { SCREENS } from '../constants/screens';
@@ -41,7 +41,17 @@ function HomeScreen({
   const [tempMemoValue, setTempMemoValue] = useState('');
   const memoInputRef = useRef(null);
   const isComposingRef = useRef(false); // 한글 조합 중인지 추적
-  const [inputMode, setInputMode] = useState('voice'); // 'voice' 또는 'text'
+  const [inputMode, setInputMode] = useState(() => {
+    if (typeof window === 'undefined') return 'voice';
+    const saved = window.localStorage.getItem('mallo_input_mode');
+    return saved === 'voice' || saved === 'text' ? saved : 'voice';
+  });
+  
+  // 입력 모드를 localStorage에 저장
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('mallo_input_mode', inputMode);
+  }, [inputMode]);
   
   // 반응형 글자 수 제한 계산
   const getMaxMemoLength = () => {

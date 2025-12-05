@@ -10,27 +10,25 @@ function InputModeToggle({ inputMode, onChange }) {
         type="button"
         onClick={() => onChange('voice')}
         className={[
-          'flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-200',
+          'flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200',
           isVoice
-            ? 'bg-[#C9A27A] text-white shadow-md font-medium'
-            : 'text-[#A59B90] hover:text-[#8E8377] hover:bg-white/50 font-normal'
+            ? 'bg-[#C9A27A] text-white shadow-md'
+            : 'text-[#A59B90] hover:text-[#8E8377] hover:bg-white/50'
         ].join(' ')}
       >
-        <Mic size={14} />
-        <span className="text-[11px]">음성</span>
+        <Mic size={16} />
       </button>
       <button
         type="button"
         onClick={() => onChange('text')}
         className={[
-          'flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-200',
+          'flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200',
           !isVoice
-            ? 'bg-[#C9A27A] text-white shadow-md font-medium'
-            : 'text-[#A59B90] hover:text-[#8E8377] hover:bg-white/50 font-normal'
+            ? 'bg-[#C9A27A] text-white shadow-md'
+            : 'text-[#A59B90] hover:text-[#8E8377] hover:bg-white/50'
         ].join(' ')}
       >
-        <Keyboard size={14} />
-        <span className="text-[11px]">텍스트</span>
+        <Keyboard size={16} />
       </button>
     </div>
   );
