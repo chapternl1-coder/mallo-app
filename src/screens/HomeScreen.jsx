@@ -6,6 +6,7 @@ import { format, isToday, addDays, subDays } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import logo from '../assets/logo.png';
 import InputModeToggle from '../components/InputModeToggle';
+import AppLogo from '../components/AppLogo';
 
 /**
  * 홈 화면 컴포넌트 - 검색 및 예약 중심의 현대적인 UI
@@ -299,13 +300,11 @@ function HomeScreen({
       {/* 헤더 영역 */}
       <div className="px-5 pt-4 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center">
-            <img
-              src={logo}
-              alt="Mallo 로고"
-              className="w-5 h-5 object-contain"
-            />
-          </div>
+          <AppLogo
+            size="md"
+            src={logo}
+            alt="말로 로고"
+          />
           <div className="flex flex-col">
             <span className="text-[11px] text-[#A59B90]">말로 뷰티</span>
             <span className="text-[14px] font-semibold text-[#3E2E20]">
