@@ -1660,6 +1660,96 @@ export default function useMalloAppState() {
     ));
   };
 
+  // 방문 기록에서 예약 자동 생성 헬퍼 함수
+  const formatReservationDate = (date) => {
+    // 예약 리스트/홈에서 쓰는 기본 날짜 포맷 (예: '2025-12-06')
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatReservationTime = (date) => {
+    // 예약 카드에서 쓰는 시간 포맷 (예: '15:00')
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  // 방문 기록 저장 시 예약 자동 생성 함수
+  const addReservationFromVisit = ({ customerId, visitDateTime }) => {
+    if (!visitDateTime || !customerId) {
+      console.log('[예약 자동 생성] visitDateTime 또는 customerId가 없어서 예약을 생성하지 않습니다.');
+      return;
+    }
+
+    const customer = customers.find((c) => c.id === customerId);
+    if (!customer) {
+      console.error('[예약 자동 생성] 고객을 찾을 수 없습니다.', customerId);
+      return;
+    }
+
+    // visitDateTime이 문자열인 경우 Date 객체로 변환
+    const dateObj = visitDateTime instanceof Date 
+      ? visitDateTime 
+      : new Date(visitDateTime);
+
+    if (isNaN(dateObj.getTime())) {
+      console.error('[예약 자동 생성] 유효하지 않은 날짜입니다.', visitDateTime);
+      return;
+    }
+
+    const dateStr = formatReservationDate(dateObj);
+    const timeStr = formatReservationTime(dateObj);
+
+    setReservations((prev) => {
+      // 🔁 동일 날짜+시간+고객 예약이 이미 있으면 새로 만들지 않음
+      const exists = prev.some(
+        (r) =>
+          r.customerId === customerId &&
+          r.date === dateStr &&
+          r.time === timeStr
+      );
+
+      if (exists) {
+        console.log('[예약 자동 생성] 동일한 예약이 이미 존재합니다. 중복 생성하지 않습니다.', {
+          customerId,
+          dateStr,
+          timeStr
+        });
+        return prev;
+      }
+
+      // 예약 생성 시점에 신규 여부 판단
+      let isNewReservation = true;
+      if (customerId) {
+        const existingCustomer = customers.find(c => 
+          c.id === customerId || String(c.id) === String(customerId)
+        );
+        if (existingCustomer) {
+          isNewReservation = false;
+        }
+      }
+
+      const newReservation = {
+        id: `${Date.now()}_${Math.random().toString(16).slice(2, 6)}`,
+        date: dateStr,              // 예약 페이지 / 홈에서 필터링에 사용하는 날짜
+        time: timeStr,              // 카드에 보이는 시간
+        customerId: customerId,
+        name: customer.name,
+        phone: customer.phone || '',
+        phoneLast4: customer.phone ? customer.phone.slice(-4) : '',
+        memo: '',                   // 필요하면 나중에 요약 일부를 넣어도 됨
+        isCompleted: false,
+        isNew: isNewReservation,
+        createdFrom: 'visitSummary' // 출처(요약에서 만들어졌다는 표시)
+      };
+
+      console.log('[예약 자동 생성] 새 예약 생성:', newReservation);
+      return [...prev, newReservation];
+    });
+  };
+
   const deleteReservation = (id) => {
     setReservations(prev => prev.filter(res => res.id !== id));
   };
@@ -1974,7 +2064,8 @@ export default function useMalloAppState() {
     resetAllData,
     createVisitLogFromText,
     isTextSummarizing,
-    setIsTextSummarizing
+    setIsTextSummarizing,
+    addReservationFromVisit
   };
 
   return {

@@ -108,6 +108,7 @@ function CustomerRecordScreen({
   setNewServiceTag,
   reservations,
   setReservations,
+  addReservationFromVisit,
   TagPickerModal,
   CustomerTagPickerModal
 }) {
@@ -950,6 +951,20 @@ function CustomerRecordScreen({
               
               console.log('[고객 정보 업데이트] visitCount:', nextVisitCount);
               console.log('[고객 정보 업데이트] customerTags:', updatedCustomerTags);
+              
+              // ========================================
+              // 4.5단계: 방문 기록 저장 시 예약 자동 생성
+              // ========================================
+              if (tempServiceDate && addReservationFromVisit) {
+                const visitDateTime = new Date(tempServiceDate);
+                if (!isNaN(visitDateTime.getTime())) {
+                  console.log('[예약 자동 생성] 방문 날짜/시간으로 예약 생성:', visitDateTime);
+                  addReservationFromVisit({
+                    customerId: finalCustomerId,
+                    visitDateTime: visitDateTime
+                  });
+                }
+              }
               
               // ========================================
               // 5단계: 화면 전환
