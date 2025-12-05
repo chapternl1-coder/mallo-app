@@ -31,6 +31,7 @@ function HomeScreen({
   visits = {},
   updateReservation,
   setReservations,
+  setSelectedReservation,
 }) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -70,11 +71,13 @@ function HomeScreen({
     return `${year}년 ${month}월 ${day}일 (${dayName})`;
   }, []);
 
-  // 동적 제목 텍스트 (항상 "M월 D일" 형식으로 표시)
+  // 동적 제목 텍스트 (항상 "M월 D일 (요일)" 형식으로 표시)
   const dateTitle = useMemo(() => {
     const month = selectedDate.getMonth() + 1;
     const day = selectedDate.getDate();
-    return `${month}월 ${day}일 방문 예정 고객`;
+    const dayNames = ['일','월','화','수','목','금','토'];
+    const dayName = dayNames[selectedDate.getDay()];
+    return `${month}월 ${day}일 (${dayName})`;
   }, [selectedDate]);
 
   // 검색어에 따른 고객 필터링 (최소 2글자)
@@ -198,35 +201,21 @@ function HomeScreen({
 
   // 텍스트 기록 시작 핸들러
   const handleStartTextRecord = (reservation) => {
-    // 예약에 customerId가 있으면 기존 고객 매칭
-    const matchedCustomer = reservation.customerId
-      ? customers.find((c) => c.id === reservation.customerId)
-      : null;
-
-    if (matchedCustomer) {
-      setSelectedCustomerForRecord({
-        ...matchedCustomer,
-        reservationId: reservation.id,
-        time: reservation.time || matchedCustomer.time
-      });
-      setSelectedCustomerId(matchedCustomer.id);
-    } else {
-      // 신규 손님: 최소 정보만 가진 임시 객체 생성
-      const tempCustomer = {
-        id: null,
-        name: reservation.name || '이름 미입력',
-        phone: reservation.phone || '',
-        isNew: true,
-        tags: [],
-        reservationId: reservation.id,
-        time: reservation.time
-      };
-      setSelectedCustomerForRecord(tempCustomer);
-      setSelectedCustomerId(null);
-    }
-
+    // 예약 정보를 selectedReservation에 저장
+    const reservationInfo = {
+      id: reservation.id,
+      name: reservation.name || '이름 미입력',
+      phone: reservation.phone || '',
+      timeLabel: reservation.time || '--:--',
+      dateLabel: dateTitle, // 선택된 날짜의 제목 (예: "12월 5일 (목)")
+      customerId: reservation.customerId || null,
+      date: reservation.date || selectedDateStr,
+    };
+    
+    setSelectedReservation(reservationInfo);
+    
     // 텍스트 기록 화면으로 이동
-    setCurrentScreen(SCREENS.EDIT);
+    setCurrentScreen(SCREENS.TEXT_RECORD);
   };
 
   // 플로팅 녹음 버튼 클릭 (신규/비예약 고객용)

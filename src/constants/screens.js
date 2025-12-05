@@ -11,5 +11,6 @@ export const SCREENS = {
   HISTORY: 'History',
   RESERVATION: 'Reservation',
   CONTACT_IMPORT: 'ContactImport',
+  TEXT_RECORD: 'TextRecord',
 };
 

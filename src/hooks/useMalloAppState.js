@@ -16,6 +16,12 @@ import CustomerTagPickerModal from '../components/CustomerTagPickerModal';
 // 녹음 시간 제한 상수
 const MAX_RECORD_SECONDS = 120; // 2분
 
+// 요약 API URL 상수
+const SUMMARY_API_URL =
+  import.meta.env.MODE === 'development'
+    ? 'https://mallo-app.vercel.app/api/summarize'
+    : '/api/summarize';
+
 // Mallo localStorage 전체 초기화 헬퍼 함수
 function clearMalloStorage() {
   try {
@@ -57,6 +63,8 @@ export default function useMalloAppState() {
   const [transcript, setTranscript] = useState('');
   const [rawTranscript, setRawTranscript] = useState('');
   const [resultData, setResultData] = useState(null);
+  const [summaryDraft, setSummaryDraft] = useState(null);
+  const [isTextSummarizing, setIsTextSummarizing] = useState(false);
   const [showPromptInfo, setShowPromptInfo] = useState(false);
   const [todayRecords, setTodayRecords] = useState([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
@@ -150,6 +158,7 @@ export default function useMalloAppState() {
   const [visibleVisitCount, setVisibleVisitCount] = useState(10);
 
   const [selectedCustomerForRecord, setSelectedCustomerForRecord] = useState(null);
+  const [selectedReservation, setSelectedReservation] = useState(null);
   const [tempName, setTempName] = useState('');
   const [tempPhone, setTempPhone] = useState('');
   const nameInputRef = useRef(null);
@@ -1074,6 +1083,34 @@ export default function useMalloAppState() {
     return result.filter(item => item && !isNullValue(item)); // 빈 항목 및 null 제거
   };
 
+  // 요약 결과 처리 헬퍼 함수 (음성/텍스트 공통)
+  const handleSummaryResultFromAnySource = ({
+    reservationId,
+    customerId,
+    customerName,
+    customerPhone,
+    summaryJson,
+    sectionsCount,
+    rawText,
+    source,
+  }) => {
+    console.log('[요약 처리] source:', source, 'reservationId:', reservationId);
+
+    setSummaryDraft({
+      reservationId,
+      customerId,
+      customerName,
+      customerPhone,
+      summaryJson,
+      sectionsCount,
+      rawText,
+      source,
+    });
+
+    // 요약 미리보기 화면으로 이동 (음성 요약과 동일한 화면)
+    setCurrentScreen(SCREENS.RECORD);
+  };
+
   const handleSummaryResult = (summaryData) => {
     // sections의 content 배열을 정리하여 모든 항목이 문자열인지 확인
     const cleanedData = {
@@ -1216,7 +1253,7 @@ export default function useMalloAppState() {
       console.log('[요약 요청] 오늘 날짜:', todayStr);
       console.log('[요약 요청] 시스템 프롬프트 길이:', SYSTEM_PROMPT.length);
       
-      const summarizeResponse = await fetch('/api/summarize', {
+      const summarizeResponse = await fetch(SUMMARY_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1258,6 +1295,20 @@ export default function useMalloAppState() {
             content: normalizeContentArray(section.content || []),
           })),
         };
+        
+        // 공통 헬퍼 함수 호출
+        handleSummaryResultFromAnySource({
+          reservationId: selectedCustomerForRecord?.reservationId || null,
+          customerId: selectedCustomerForRecord?.id || null,
+          customerName: selectedCustomerForRecord?.name || parsedResult.customerInfo?.name || null,
+          customerPhone: selectedCustomerForRecord?.phone || parsedResult.customerInfo?.phone || null,
+          summaryJson: summarizeData.summaryJson,
+          sectionsCount: parsedResult.sections?.length || 0,
+          rawText: transcript,
+          source: 'voice',
+        });
+        
+        // 기존 handleSummaryResult도 호출하여 resultData 설정 (RecordScreen 호환성)
         handleSummaryResult(cleanedResult);
       } else {
         throw new Error('API 응답 형식이 올바르지 않습니다.');
@@ -1283,7 +1334,7 @@ export default function useMalloAppState() {
       const today = new Date();
       const todayStr = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일 (${['일','월','화','수','목','금','토'][today.getDay()]})`;
 
-      const response = await fetch('/api/summarize', {
+      const response = await fetch(SUMMARY_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1595,6 +1646,144 @@ export default function useMalloAppState() {
     ));
   };
 
+  // 텍스트 기록에서 VisitLog 생성
+  const createVisitLogFromText = async ({ reservationId, customerName, customerPhone, rawText }) => {
+    try {
+      // 요약 시작 플래그 on
+      setIsTextSummarizing(true);
+
+      console.log('[텍스트 기록] 요약 요청 시작:', { reservationId, customerName, customerPhone, textLength: rawText.length });
+
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일 (${['일','월','화','수','목','금','토'][today.getDay()]})`;
+
+      // 요약 API 호출
+      const summarizeResponse = await fetch(SUMMARY_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sourceText: rawText,
+          systemPrompt: SYSTEM_PROMPT,
+          today: todayStr,
+        }),
+      });
+
+      if (!summarizeResponse.ok) {
+        const errorData = await summarizeResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || '요약 서버 호출에 실패했습니다.');
+      }
+
+      const summarizeData = await summarizeResponse.json();
+      console.log('[텍스트 기록] 요약 응답:', summarizeData);
+
+      let parsedResult = {};
+      try {
+        parsedResult = JSON.parse(summarizeData.summaryJson || '{}');
+      } catch (parseError) {
+        console.error('[텍스트 기록] JSON 파싱 실패:', parseError);
+        throw new Error('요약 결과를 파싱할 수 없습니다.');
+      }
+
+      // API 응답 형식을 정리하여 전달
+      let cleanedResult = {};
+      
+      if (parsedResult.title && parsedResult.sections && Array.isArray(parsedResult.sections)) {
+        cleanedResult = {
+          ...parsedResult,
+          customerInfo: parsedResult.customerInfo || { name: customerName || null, phone: customerPhone || null },
+          sections: (parsedResult.sections || []).map((section) => ({
+            ...section,
+            content: normalizeContentArray(section.content || []),
+          })),
+        };
+      } else {
+        // 다른 형식이면 변환
+        cleanedResult = {
+          title: parsedResult.title || parsedResult.summary || parsedResult.service || '시술 기록',
+          customerInfo: parsedResult.customerInfo || { name: customerName || null, phone: customerPhone || null },
+          sections: [
+            {
+              title: '시술 내용',
+              content: normalizeContentArray([parsedResult.service || parsedResult.note || rawText])
+            },
+            ...(parsedResult.note ? [{
+              title: '주의사항',
+              content: normalizeContentArray([parsedResult.note])
+            }] : [])
+          ]
+        };
+      }
+
+      // 고객 정보 설정
+      if (customerName || customerPhone) {
+        const matchedCustomer = customers.find(c => 
+          (customerName && c.name === customerName) || 
+          (customerPhone && c.phone === customerPhone)
+        );
+
+        if (matchedCustomer) {
+          setSelectedCustomerForRecord({
+            ...matchedCustomer,
+            reservationId: reservationId || null,
+          });
+          setSelectedCustomerId(matchedCustomer.id);
+        } else {
+          // 신규 고객
+          const tempCustomer = {
+            id: null,
+            name: customerName || '이름 미입력',
+            phone: customerPhone || '',
+            isNew: true,
+            tags: [],
+            reservationId: reservationId || null,
+          };
+          setSelectedCustomerForRecord(tempCustomer);
+          setSelectedCustomerId(null);
+        }
+      }
+
+      // 고객 ID 찾기
+      let foundCustomerId = null;
+      if (customerName || customerPhone) {
+        const matchedCustomer = customers.find(c => 
+          (customerName && c.name === customerName) || 
+          (customerPhone && c.phone === customerPhone)
+        );
+        foundCustomerId = matchedCustomer?.id || null;
+      }
+
+      // 요약 결과 처리 - 공통 헬퍼 함수 사용
+      handleSummaryResultFromAnySource({
+        reservationId,
+        customerId: foundCustomerId,
+        customerName,
+        customerPhone,
+        summaryJson: summarizeData.summaryJson,
+        sectionsCount: parsedResult.sections?.length || 0,
+        rawText,
+        source: 'text',
+      });
+
+      // 기존 handleSummaryResult도 호출하여 resultData 설정 (RecordScreen 호환성)
+      setTranscript(rawText);
+      setRawTranscript(rawText);
+      setRecordingDate(today);
+      handleSummaryResult(cleanedResult);
+
+      console.log('[텍스트 기록] 요약 완료, 결과 화면으로 이동');
+    } catch (error) {
+      console.error('[텍스트 기록] 오류:', error);
+      const errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+      alert(`텍스트 기록 처리 중 오류가 발생했습니다\n\n요약 서버 호출에 실패했습니다.\n콘솔을 확인해 주세요.`);
+      setCurrentScreen(SCREENS.HOME);
+    } finally {
+      // 요약 종료 플래그 off
+      setIsTextSummarizing(false);
+    }
+  };
+
   const screenRouterProps = {
     currentScreen,
     setCurrentScreen,
@@ -1616,6 +1805,10 @@ export default function useMalloAppState() {
     setSelectedCustomerId,
     selectedCustomerForRecord,
     setSelectedCustomerForRecord,
+    selectedReservation,
+    setSelectedReservation,
+    isTextSummarizing,
+    setIsTextSummarizing,
     expandedVisitId,
     setExpandedVisitId,
     editingVisit,
@@ -1743,7 +1936,10 @@ export default function useMalloAppState() {
     setPendingReservationCustomerId,
     bulkImportCustomers,
     fillDemoData,
-    resetAllData
+    resetAllData,
+    createVisitLogFromText,
+    isTextSummarizing,
+    setIsTextSummarizing
   };
 
   return {

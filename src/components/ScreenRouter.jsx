@@ -11,6 +11,7 @@ import ProfileEditScreen from "../screens/ProfileEditScreen";
 import TagSettingsScreen from "../screens/TagSettingsScreen";
 import ReservationScreen from "../screens/ReservationScreen";
 import ContactImportScreen from "../screens/ContactImportScreen";
+import TextRecordScreen from "../screens/TextRecordScreen";
 
 export default function ScreenRouter(props) {
   const { currentScreen } = props;
@@ -84,6 +85,15 @@ export default function ScreenRouter(props) {
       return <ReservationScreen {...props} />;
     case SCREENS.CONTACT_IMPORT:
       return <ContactImportScreen {...props} />;
+    case SCREENS.TEXT_RECORD:
+      return (
+        <TextRecordScreen
+          reservation={props.selectedReservation || null}
+          onBack={() => props.setCurrentScreen(SCREENS.HOME)}
+          onSubmitTextLog={props.createVisitLogFromText}
+          isSummarizing={props.isTextSummarizing || false}
+        />
+      );
     default:
       return <HomeScreen {...props} />;
   }
