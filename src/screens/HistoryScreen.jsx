@@ -51,22 +51,46 @@ function HistoryScreen({
   // 오늘 날짜 구하기
   const todayStr = getTodayDateString();
 
-  // 날짜 필터링 (serviceDate 우선, 없으면 detail.sections에서 파싱, 그래도 없으면 date 사용)
+  // 날짜 필터링 (텍스트/녹음에서 추출한 날짜 우선, 없으면 저장된 날짜 사용)
   const filteredRecords = selectedDate 
     ? allRecords.filter(record => {
-        let baseDate = record.serviceDate;
-        if (!baseDate && record.detail && record.detail.sections) {
+        // 1순위: 텍스트/녹음에서 추출한 날짜
+        let baseDate = null;
+        if (record.detail && record.detail.sections) {
           const visitData = { sections: record.detail.sections };
           baseDate = extractServiceDateFromSummary(visitData);
         }
-        baseDate = baseDate || record.date;
+        // 2순위: 저장된 날짜 (serviceDate 우선, 없으면 date)
+        if (!baseDate) {
+          baseDate = record.serviceDate || record.date;
+        }
         return baseDate === selectedDate;
       })
     : allRecords;
 
-  // 시간 추출 헬퍼 함수 (예약 시간 우선)
+  // 시간 추출 헬퍼 함수 (텍스트/녹음에서 추출한 시간 우선)
   const extractTimeFromRecord = (record) => {
-    // 1순위: 연결된 예약의 시간
+    // 1순위: 텍스트/녹음에서 추출한 시간
+    const serviceDateTimeLabel = extractServiceDateTimeLabel(record);
+    if (serviceDateTimeLabel) {
+      // "2025-12-27 17:30 방문/예약" -> "17:30" 추출
+      const timeMatch = serviceDateTimeLabel.match(/(\d{2}):(\d{2})/);
+      if (timeMatch) {
+        const [, hh, mm] = timeMatch;
+        return `${hh}:${mm}`;
+      }
+    }
+    
+    // 2순위: record.time 직접 사용 (저장된 시간)
+    if (record.time) {
+      const timeStr = String(record.time).trim();
+      if (/^\d{1,2}:\d{2}/.test(timeStr)) {
+        const [hour, minute] = timeStr.split(':');
+        return `${String(parseInt(hour, 10)).padStart(2, '0')}:${String(parseInt(minute, 10)).padStart(2, '0')}`;
+      }
+    }
+    
+    // 3순위: 연결된 예약의 시간
     if (reservations && reservations.length > 0) {
       // reservationId로 찾기
       if (record.reservationId) {
@@ -100,47 +124,8 @@ function HistoryScreen({
       }
     }
     
-    // 2순위: 기존 방식 (serviceDateTimeLabel에서 추출)
-    const serviceDateTimeLabel = extractServiceDateTimeLabel(record);
-    if (serviceDateTimeLabel) {
-      // "2025-12-27 17:30 방문/예약" -> "17:30" 추출
-      const timeMatch = serviceDateTimeLabel.match(/(\d{2}):(\d{2})/);
-      if (timeMatch) {
-        const [, hh, mm] = timeMatch;
-        return `${hh}:${mm}`;
-      }
-    }
-    
-    // fallback: record.time 직접 사용
-    if (record.time) {
-      const timeStr = String(record.time).trim();
-      // "HH:mm" 또는 "H:mm" 형식 처리
-      if (/^\d{1,2}:\d{2}/.test(timeStr)) {
-        const [hour, minute] = timeStr.split(':');
-        return `${String(parseInt(hour, 10)).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-      }
-    }
-    
-    // fallback: detail.sections에서 직접 추출
-    if (record.detail && record.detail.sections) {
-      const visitSection = record.detail.sections.find(
-        section => section.title && section.title.includes('방문·예약 정보')
-      );
-      
-      if (visitSection && visitSection.content && Array.isArray(visitSection.content)) {
-        for (const line of visitSection.content) {
-          if (!line || typeof line !== 'string') continue;
-          // "2025년 12월 27일 (금) 17:30 예약 후 제시간 방문" 같은 패턴에서 시간 추출
-          const timeMatch = line.match(/\b(\d{1,2}):(\d{2})\b/);
-          if (timeMatch) {
-            const [, hour, minute] = timeMatch;
-            return `${String(parseInt(hour, 10)).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-          }
-        }
-      }
-    }
-    
-    return '00:00'; // 기본값
+    // fallback: 빈 문자열
+    return '';
   };
 
   // 디버깅: 정렬 전 모든 기록의 시간 추출 확인
@@ -156,20 +141,26 @@ function HistoryScreen({
   // 날짜와 시간순 정렬 (serviceDate 우선, 없으면 detail.sections에서 파싱, 그래도 없으면 date 사용)
   // 같은 날짜 내에서는 시간 내림차순 (늦은 시간이 위로)
   const sortedRecords = [...filteredRecords].sort((a, b) => {
-    // 날짜 추출
-    let baseDateA = a.serviceDate;
-    if (!baseDateA && a.detail && a.detail.sections) {
+    // 날짜 추출: 텍스트/녹음에서 추출한 날짜 우선, 없으면 저장된 날짜 사용
+    let baseDateA = null;
+    if (a.detail && a.detail.sections) {
       const visitDataA = { sections: a.detail.sections };
       baseDateA = extractServiceDateFromSummary(visitDataA);
     }
-    baseDateA = baseDateA || a.date;
+    // 텍스트에서 추출한 날짜가 없으면 저장된 날짜 사용
+    if (!baseDateA) {
+      baseDateA = a.serviceDate || a.date;
+    }
     
-    let baseDateB = b.serviceDate;
-    if (!baseDateB && b.detail && b.detail.sections) {
+    let baseDateB = null;
+    if (b.detail && b.detail.sections) {
       const visitDataB = { sections: b.detail.sections };
       baseDateB = extractServiceDateFromSummary(visitDataB);
     }
-    baseDateB = baseDateB || b.date;
+    // 텍스트에서 추출한 날짜가 없으면 저장된 날짜 사용
+    if (!baseDateB) {
+      baseDateB = b.serviceDate || b.date;
+    }
     
     const isAToday = baseDateA === todayStr;
     const isBToday = baseDateB === todayStr;
@@ -486,33 +477,43 @@ function HistoryScreen({
                 }
               }
               
-              // 시간 표시 레이블 생성
-              const reservationTimeLabel = reservationTime
-                ? (() => {
-                    // 시간 포맷팅 (HH:mm 형식으로 변환)
-                    const timeStr = String(reservationTime).trim();
-                    // "HH:mm" 또는 "H:mm" 형식 처리
-                    if (/^\d{1,2}:\d{2}/.test(timeStr)) {
-                      const [hour, minute] = timeStr.split(':');
-                      const hh = String(parseInt(hour, 10)).padStart(2, '0');
-                      const mm = String(parseInt(minute, 10)).padStart(2, '0');
-                      return `${hh}:${mm} 예약`;
-                    }
-                    return `${timeStr} 예약`;
-                  })()
-                : (() => {
-                    // 2순위: 기존 방식 (serviceDateTimeLabel에서 추출)
-                    const serviceDateTimeLabel = extractServiceDateTimeLabel(record);
-                    if (serviceDateTimeLabel) {
-                      // "2025-12-27 17:30 방문/예약" -> "17:30 예약"
-                      const timeMatch = serviceDateTimeLabel.match(/(\d{2}):(\d{2})/);
-                      if (timeMatch) {
-                        const [, hh, mm] = timeMatch;
-                        return `${hh}:${mm} 예약`;
-                      }
-                    }
-                    return '';
-                  })();
+              // 시간 표시 레이블 생성 (텍스트/녹음에서 추출한 시간 우선)
+              const reservationTimeLabel = (() => {
+                // 1순위: 텍스트/녹음에서 추출한 시간
+                const serviceDateTimeLabel = extractServiceDateTimeLabel(record);
+                if (serviceDateTimeLabel) {
+                  const timeMatch = serviceDateTimeLabel.match(/(\d{2}):(\d{2})/);
+                  if (timeMatch) {
+                    const [, hh, mm] = timeMatch;
+                    return `${hh}:${mm} 예약`;
+                  }
+                }
+                
+                // 2순위: record.time 직접 사용 (저장된 시간)
+                if (record.time) {
+                  const timeStr = String(record.time).trim();
+                  if (/^\d{1,2}:\d{2}/.test(timeStr)) {
+                    const [hour, minute] = timeStr.split(':');
+                    const hh = String(parseInt(hour, 10)).padStart(2, '0');
+                    const mm = String(parseInt(minute, 10)).padStart(2, '0');
+                    return `${hh}:${mm} 예약`;
+                  }
+                }
+                
+                // 3순위: 연결된 예약의 시간
+                if (reservationTime) {
+                  const timeStr = String(reservationTime).trim();
+                  if (/^\d{1,2}:\d{2}/.test(timeStr)) {
+                    const [hour, minute] = timeStr.split(':');
+                    const hh = String(parseInt(hour, 10)).padStart(2, '0');
+                    const mm = String(parseInt(minute, 10)).padStart(2, '0');
+                    return `${hh}:${mm} 예약`;
+                  }
+                  return `${reservationTime} 예약`;
+                }
+                
+                return '';
+              })();
               
               // 고객 상세 페이지로 이동 핸들러
               const handleCustomerClick = (record) => {

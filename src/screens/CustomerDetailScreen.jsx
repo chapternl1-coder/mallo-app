@@ -132,9 +132,9 @@ function CustomerDetailScreen({
   console.log('[CustomerDetailScreen] selectedCustomerId:', selectedCustomerId);
   console.log('[CustomerDetailScreen] customerVisits.length:', customerVisits.length);
   
-  // 시간 추출 헬퍼 함수 (HistoryScreen과 동일)
+  // 시간 추출 헬퍼 함수 (텍스트/녹음에서 추출한 시간 우선)
   const extractTimeFromVisit = (visit) => {
-    // UI에서 serviceDateTimeLabel을 생성하는 방식과 동일하게
+    // 1순위: 텍스트/녹음에서 추출한 시간
     const serviceDateTimeLabel = extractServiceDateTimeLabel(visit);
     if (serviceDateTimeLabel) {
       // "2025-12-27 17:30 방문/예약" -> "17:30" 추출
@@ -145,54 +145,41 @@ function CustomerDetailScreen({
       }
     }
     
-    // fallback: visit.time 직접 사용
+    // 2순위: visit.time 직접 사용 (저장된 시간)
     if (visit.time) {
       const timeStr = String(visit.time).trim();
-      // "HH:mm" 또는 "H:mm" 형식 처리
       if (/^\d{1,2}:\d{2}/.test(timeStr)) {
         const [hour, minute] = timeStr.split(':');
-        return `${String(parseInt(hour, 10)).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        return `${String(parseInt(hour, 10)).padStart(2, '0')}:${String(parseInt(minute, 10)).padStart(2, '0')}`;
       }
     }
     
-    // fallback: detail.sections에서 직접 추출
-    if (visit.detail && visit.detail.sections) {
-      const visitSection = visit.detail.sections.find(
-        section => section.title && section.title.includes('방문·예약 정보')
-      );
-      
-      if (visitSection && visitSection.content && Array.isArray(visitSection.content)) {
-        for (const line of visitSection.content) {
-          if (!line || typeof line !== 'string') continue;
-          // "2025년 12월 27일 (금) 17:30 예약 후 제시간 방문" 같은 패턴에서 시간 추출
-          const timeMatch = line.match(/\b(\d{1,2}):(\d{2})\b/);
-          if (timeMatch) {
-            const [, hour, minute] = timeMatch;
-            return `${String(parseInt(hour, 10)).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-          }
-        }
-      }
-    }
-    
-    return '00:00'; // 기본값
+    // fallback: 빈 문자열
+    return '';
   };
 
   // 방문 기록 정렬: 날짜 내림차순(최신 날짜가 위), 같은 날짜면 시간 내림차순(늦은 시간이 위)
   const sortedCustomerVisits = [...customerVisits].sort((a, b) => {
-    // 날짜 추출
-    let baseDateA = a.serviceDate;
-    if (!baseDateA && a.detail && a.detail.sections) {
+    // 날짜 추출: 텍스트/녹음에서 추출한 날짜 우선, 없으면 저장된 날짜 사용
+    let baseDateA = null;
+    if (a.detail && a.detail.sections) {
       const visitDataA = { sections: a.detail.sections };
       baseDateA = extractServiceDateFromSummary(visitDataA);
     }
-    baseDateA = baseDateA || a.date;
+    // 텍스트에서 추출한 날짜가 없으면 저장된 날짜 사용
+    if (!baseDateA) {
+      baseDateA = a.serviceDate || a.date;
+    }
     
-    let baseDateB = b.serviceDate;
-    if (!baseDateB && b.detail && b.detail.sections) {
+    let baseDateB = null;
+    if (b.detail && b.detail.sections) {
       const visitDataB = { sections: b.detail.sections };
       baseDateB = extractServiceDateFromSummary(visitDataB);
     }
-    baseDateB = baseDateB || b.date;
+    // 텍스트에서 추출한 날짜가 없으면 저장된 날짜 사용
+    if (!baseDateB) {
+      baseDateB = b.serviceDate || b.date;
+    }
     
     // 날짜 비교
     const dateA = new Date(baseDateA);
@@ -283,8 +270,12 @@ function CustomerDetailScreen({
     
     // 현재 모드에 따라 고객 상세 전용 화면으로 이동
     if (isVoiceMode) {
-      // 음성 모드: 고객 상세 전용 녹음 화면으로 이동
+      // 음성 모드: 고객 상세 전용 녹음 화면으로 이동하고 녹음 시작
       setCurrentScreen(SCREENS.CUSTOMER_RECORD);
+      // 화면 이동 후 녹음 시작 (약간의 지연을 두어 화면 전환이 완료된 후 녹음 시작)
+      setTimeout(() => {
+        startRecording();
+      }, 100);
     } else {
       // 텍스트 모드: 고객 상세 전용 텍스트 기록 화면으로 이동
       setCurrentScreen(SCREENS.CUSTOMER_TEXT_RECORD);
@@ -487,9 +478,37 @@ function CustomerDetailScreen({
               const safeName = normalizedVisit.customerName || '미기재';
               const safePhone = normalizedVisit.customerPhone || '미기재';
 
-              // 날짜/시간 정보 준비
+              // 날짜/시간 정보 준비 (텍스트/녹음에서 추출한 날짜/시간 우선 사용)
+              let dateTimeDisplay = '';
+              
+              // 1순위: 텍스트/녹음에서 추출한 날짜/시간
               const serviceDateTimeLabel = extractServiceDateTimeLabel(visit);
-              const dateTimeDisplay = formatVisitDateTime(visit, serviceDateTimeLabel);
+              if (serviceDateTimeLabel) {
+                // "2025-12-27 17:30 방문/예약" -> "2025.12.27 17:30" 변환
+                const dateTimeMatch = serviceDateTimeLabel.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
+                if (dateTimeMatch) {
+                  const [, year, month, day, hour, minute] = dateTimeMatch;
+                  dateTimeDisplay = `${year}.${month}.${day} ${hour}:${minute}`;
+                }
+              }
+              
+              // 2순위: 저장된 날짜/시간 사용
+              if (!dateTimeDisplay && visit.serviceDate && visit.time) {
+                const dateObj = new Date(`${visit.serviceDate}T${visit.time}`);
+                if (!isNaN(dateObj.getTime())) {
+                  const year = dateObj.getFullYear();
+                  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                  const day = String(dateObj.getDate()).padStart(2, '0');
+                  const hours = String(dateObj.getHours()).padStart(2, '0');
+                  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                  dateTimeDisplay = `${year}.${month}.${day} ${hours}:${minutes}`;
+                }
+              }
+              
+              // 3순위: formatVisitDateTime 사용 (fallback)
+              if (!dateTimeDisplay) {
+                dateTimeDisplay = formatVisitDateTime(visit, serviceDateTimeLabel);
+              }
 
               // 시술 내용 요약 (고객 이름 제거)
               const displayTitle = cleanVisitTitle(

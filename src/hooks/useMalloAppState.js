@@ -22,6 +22,12 @@ const SUMMARY_API_URL =
     ? 'https://mallo-app.vercel.app/api/summarize'
     : '/api/summarize';
 
+// 음성 인식 API URL 상수
+const TRANSCRIBE_API_URL =
+  import.meta.env.MODE === 'development'
+    ? 'https://mallo-app.vercel.app/api/transcribe'
+    : '/api/transcribe';
+
 // Mallo localStorage 전체 초기화 헬퍼 함수
 function clearMalloStorage() {
   try {
@@ -895,7 +901,12 @@ export default function useMalloAppState() {
 
       mediaRecorder.start();
       
-      setCurrentScreen(SCREENS.RECORD);
+      // 현재 화면이 고객 상세 관련 화면이면 CUSTOMER_RECORD로, 아니면 RECORD로 이동
+      const targetScreen = (currentScreen === SCREENS.CUSTOMER_DETAIL || currentScreen === SCREENS.CUSTOMER_RECORD)
+        ? SCREENS.CUSTOMER_RECORD
+        : SCREENS.RECORD;
+      
+      setCurrentScreen(targetScreen);
       setRecordingTime(0);
       setRecordState('recording');
       setIsPaused(false);
@@ -1229,8 +1240,8 @@ export default function useMalloAppState() {
       console.log('[음성 인식] 오디오 파일 크기:', audioBlob.size, 'bytes');
 
       // OpenAI Whisper API를 통해 음성을 텍스트로 변환
-      console.log('[음성 인식] /api/transcribe 호출 시작');
-      const transcribeResponse = await fetch('/api/transcribe', {
+      console.log('[음성 인식] transcribe API 호출 시작:', TRANSCRIBE_API_URL);
+      const transcribeResponse = await fetch(TRANSCRIBE_API_URL, {
         method: 'POST',
         body: formData, // FormData는 Content-Type을 자동으로 설정
       });

@@ -125,6 +125,40 @@ function CustomerRecordScreen({
     setTempServiceDate(e.target.value);
   };
 
+  // resultData가 변경될 때 텍스트/녹음에서 추출한 날짜를 자동으로 tempServiceDate에 설정
+  useEffect(() => {
+    if (resultData && resultData.sections && !tempServiceDate) {
+      // 텍스트/녹음에서 날짜 추출
+      const extractedDate = extractServiceDateFromSummary(resultData);
+      if (extractedDate) {
+        // 시간도 함께 추출
+        const visitSection = resultData.sections.find(
+          section => section.title && section.title.includes('방문·예약 정보')
+        );
+        let extractedTime = '00:00';
+        
+        if (visitSection && visitSection.content && Array.isArray(visitSection.content)) {
+          for (const line of visitSection.content) {
+            if (!line || typeof line !== 'string') continue;
+            const timeMatch = line.match(/(\d{1,2}):(\d{2})/);
+            if (timeMatch) {
+              const [, hour, minute] = timeMatch;
+              const hh = String(parseInt(hour, 10)).padStart(2, '0');
+              const mm = String(parseInt(minute, 10)).padStart(2, '0');
+              extractedTime = `${hh}:${mm}`;
+              break;
+            }
+          }
+        }
+        
+        // datetime-local 형식으로 변환 (YYYY-MM-DDTHH:mm)
+        const dateTimeStr = `${extractedDate}T${extractedTime}`;
+        setTempServiceDate(dateTimeStr);
+        console.log('[CustomerRecordScreen] 텍스트/녹음에서 추출한 날짜를 자동 설정:', dateTimeStr);
+      }
+    }
+  }, [resultData, extractServiceDateFromSummary]); // tempServiceDate는 의존성에서 제외 (무한 루프 방지)
+
   // 방문 날짜 포맷팅 (tempServiceDate가 있을 때만 표시)
   const formatVisitDateTime = (dateTimeStr) => {
     if (!dateTimeStr) return '';
@@ -434,15 +468,58 @@ function CustomerRecordScreen({
           <span className="text-[32px]">&#x2039;</span>
         </button>
         <div className="flex flex-col items-center">
-          {/* 방문 날짜: 선택된 경우에만 표시 */}
-          {tempServiceDate && (
-            <p className="text-[11px] text-[#A28E7A]">
-              {formatVisitDateTime(tempServiceDate)}
-            </p>
-          )}
+          {/* 방문 날짜: 텍스트/녹음에서 추출한 날짜 우선, 없으면 선택한 날짜 표시 */}
+          {(() => {
+            // 1순위: 텍스트/녹음에서 추출한 날짜/시간
+            let displayDate = null;
+            if (resultData && resultData.sections) {
+              const extractedDate = extractServiceDateFromSummary(resultData);
+              if (extractedDate) {
+                // 시간도 함께 추출
+                const visitSection = resultData.sections.find(
+                  section => section.title && section.title.includes('방문·예약 정보')
+                );
+                if (visitSection && visitSection.content && Array.isArray(visitSection.content)) {
+                  for (const line of visitSection.content) {
+                    if (!line || typeof line !== 'string') continue;
+                    const timeMatch = line.match(/(\d{1,2}):(\d{2})/);
+                    if (timeMatch) {
+                      const [, hour, minute] = timeMatch;
+                      const hh = String(parseInt(hour, 10)).padStart(2, '0');
+                      const mm = String(parseInt(minute, 10)).padStart(2, '0');
+                      displayDate = `${extractedDate}T${hh}:${mm}`;
+                      break;
+                    }
+                  }
+                }
+                // 시간이 없으면 날짜만 사용
+                if (!displayDate) {
+                  displayDate = `${extractedDate}T00:00`;
+                }
+              }
+            }
+            
+            // 2순위: 사용자가 선택한 날짜
+            if (!displayDate && tempServiceDate) {
+              displayDate = tempServiceDate;
+            }
+            
+            return displayDate ? (
+              <p className="text-[11px] text-[#A28E7A]">
+                {formatVisitDateTime(displayDate)}
+              </p>
+            ) : null;
+          })()}
           {/* 이름 / 번호 */}
           {selectedCustomerForRecord && (
-            <p className={`text-[12px] font-medium text-[#413428] ${tempServiceDate ? 'mt-[2px]' : ''}`}>
+            <p className={`text-[12px] font-medium text-[#413428] ${(() => {
+              // 날짜가 표시되는지 확인 (텍스트/녹음에서 추출한 날짜 또는 선택한 날짜)
+              if (resultData && resultData.sections) {
+                const extractedDate = extractServiceDateFromSummary(resultData);
+                if (extractedDate) return 'mt-[2px]';
+              }
+              return tempServiceDate ? 'mt-[2px]' : '';
+            })()}`}>
               {customerName}
               {customerPhone && (
                 <span className="ml-1 text-[12px] font-medium text-[#413428]">
@@ -874,19 +951,26 @@ function CustomerRecordScreen({
               // ========================================
               // 3단계: 방문 기록 생성 및 저장
               // ========================================
-              const { dateStr, timeStr, recordedAt } = createDateTimeStrings();
-              
-              // 입력된 날짜/시간을 YYYY-MM-DD 형식으로 변환
-              let serviceDate = dateStr; // 기본값
-              if (tempServiceDate) {
-                const dateObj = new Date(tempServiceDate);
-                if (!isNaN(dateObj.getTime())) {
-                  const year = dateObj.getFullYear();
-                  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                  const day = String(dateObj.getDate()).padStart(2, '0');
-                  serviceDate = `${year}-${month}-${day}`;
-                }
+              // 고객 상세 요약 페이지에서는 사용자가 선택한 날짜만 사용 (녹음/텍스트에서 추출한 날짜 무시)
+              // tempServiceDate가 필수이므로 이미 검증됨
+              const dateObj = new Date(tempServiceDate);
+              if (isNaN(dateObj.getTime())) {
+                alert('유효하지 않은 날짜입니다. 다시 선택해 주세요.');
+                return;
               }
+              
+              const year = dateObj.getFullYear();
+              const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+              const day = String(dateObj.getDate()).padStart(2, '0');
+              const serviceDate = `${year}-${month}-${day}`;
+              
+              // 시간도 사용자가 선택한 날짜/시간에서 추출
+              const hours = String(dateObj.getHours()).padStart(2, '0');
+              const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+              const serviceTime = `${hours}:${minutes}`;
+              
+              // recordedAt은 현재 시각 사용 (기록 생성 시점)
+              const { recordedAt } = createDateTimeStrings();
               
               const cleanedTitle = cleanTitle(resultData.title, customerName);
               
@@ -894,10 +978,10 @@ function CustomerRecordScreen({
                 customerId: finalCustomerId,
                 customerName: customerName, // 항상 selectedCustomerForRecord 기준
                 customerPhone: customerPhone, // 항상 selectedCustomerForRecord 기준
-                dateStr,
-                timeStr,
+                dateStr: serviceDate, // 사용자가 선택한 날짜 사용 (텍스트에서 추출한 날짜 무시)
+                timeStr: serviceTime, // 사용자가 선택한 시간 사용 (텍스트에서 추출한 시간 무시)
                 recordedAt,
-                serviceDate,
+                serviceDate, // 사용자가 선택한 날짜 사용 (텍스트에서 추출한 날짜 무시)
                 title: cleanedTitle,
                 summary: resultData.sections[0]?.content[0] || cleanedTitle,
                 rawTranscript: rawTranscript || transcript,
@@ -942,7 +1026,7 @@ function CustomerRecordScreen({
                   return { 
                     ...c, 
                     visitCount: nextVisitCount,
-                    lastVisit: dateStr,
+                    lastVisit: serviceDate, // 사용자가 선택한 날짜 사용
                     customerTags: updatedCustomerTags
                   };
                 }
@@ -955,15 +1039,13 @@ function CustomerRecordScreen({
               // ========================================
               // 4.5단계: 방문 기록 저장 시 예약 자동 생성
               // ========================================
-              if (tempServiceDate && addReservationFromVisit) {
-                const visitDateTime = new Date(tempServiceDate);
-                if (!isNaN(visitDateTime.getTime())) {
-                  console.log('[예약 자동 생성] 방문 날짜/시간으로 예약 생성:', visitDateTime);
-                  addReservationFromVisit({
-                    customerId: finalCustomerId,
-                    visitDateTime: visitDateTime
-                  });
-                }
+              // 사용자가 선택한 날짜/시간으로 예약 생성 (이미 dateObj가 검증됨)
+              if (addReservationFromVisit) {
+                console.log('[예약 자동 생성] 사용자가 선택한 방문 날짜/시간으로 예약 생성:', dateObj);
+                addReservationFromVisit({
+                  customerId: finalCustomerId,
+                  visitDateTime: dateObj // 사용자가 선택한 날짜/시간 사용
+                });
               }
               
               // ========================================
