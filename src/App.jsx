@@ -4,9 +4,34 @@ import BottomNavigation from './components/BottomNavigation';
 import ScrollToTopButton from './components/ScrollToTopButton';
 import { SCREENS } from './constants/screens';
 import useMalloAppState from './hooks/useMalloAppState';
+import { useAuth } from './contexts/AuthContext';
+import LoginScreen from './screens/LoginScreen';
 
 export default function MalloApp() {
+  const { user, loading } = useAuth();
   const { screenRouterProps, currentScreen, activeTab, handleTabClick } = useMalloAppState();
+
+  if (loading) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: '#F2F0E6' }}
+      >
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full border border-[#E4D9CC] bg-white mb-3">
+            <span className="text-xs font-semibold tracking-widest" style={{ color: '#C9A27A' }}>
+              MALLO
+            </span>
+          </div>
+          <p className="text-xs text-neutral-600">계정 정보를 불러오는 중입니다...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginScreen />;
+  }
 
   return (
     <div className="h-screen w-full flex items-center justify-center font-sans" style={{ backgroundColor: '#F2F0E6' }}>

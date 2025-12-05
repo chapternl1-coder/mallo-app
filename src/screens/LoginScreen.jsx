@@ -1,127 +1,136 @@
-import React, { useRef } from 'react';
+import React, { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
-import { Mail, Lock } from 'lucide-react';
+function LoginScreen() {
+  const { signIn, signUp } = useAuth();
+  const [mode, setMode] = useState('login'); // 'login' | 'signup'
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-import { SCREENS } from '../constants/screens';
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState('');
 
-import logo from '../assets/logo.png';
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setMessage('');
+    setSubmitting(true);
 
-function LoginScreen({
-  email,
-  setEmail,
-  password,
-  setPassword,
-  setIsLoggedIn,
-  setActiveTab,
-  setCurrentScreen
-}) {
-  const passwordInputRef = useRef(null);
-
-  const handleLogin = () => {
-    // 간단한 로그인 로직 (실제로는 API 호출)
-    if (email && password) {
-      setIsLoggedIn(true);
-      setActiveTab('Home');
-      setCurrentScreen(SCREENS.HOME);
-    } else {
-      alert('이메일과 비밀번호를 입력해주세요.');
+    try {
+      if (mode === 'login') {
+        await signIn({ email, password });
+        setMessage('로그인 완료! 잠시만 기다려 주세요.');
+      } else {
+        await signUp({ email, password });
+        setMessage('회원가입 완료! 이메일 인증 후 다시 로그인 해주세요.');
+      }
+    } catch (error) {
+      console.error(error);
+      setMessage(error.message || '오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <div
-      className="flex min-h-screen justify-center"
+      className="min-h-screen flex items-center justify-center px-6"
       style={{ backgroundColor: '#F2F0E6' }}
     >
-      <div className="w-full max-w-sm px-8 pt-0 pb-8 mt-[-8px]">
-        {/* ✅ 로고 (이 위치는 그대로 유지) */}
-        <div className="text-center">
-          <img
-            src={logo}
-            alt="Mallo 로고"
-            className="w-60 h-60 object-contain mx-auto"
-          />
+      <div className="w-full max-w-sm">
+        <div className="mb-6 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full border border-[#E4D9CC] bg-white mb-3">
+            <span className="text-xs font-semibold tracking-widest" style={{ color: '#C9A27A' }}>
+              MALLO
+            </span>
+          </div>
+          <h1 className="text-lg font-semibold text-neutral-900 mb-1">말로해</h1>
+          <p className="text-xs text-neutral-500">
+            오늘의 시술일지, 말로 남기고 한 번에 정리하세요.
+          </p>
         </div>
 
-        {/* ✅ 텍스트 + 로그인 폼 묶음
-            → 여기 margin-top으로 더 위로 당김 (mt-[-24px]) */}
-        <div className="mt-[-24px] space-y-4">
-          {/* 텍스트 */}
-          <div className="text-center">
-            <h1
-              className="text-3xl font-bold mb-1"
-              style={{ color: '#232323' }}
-            >
-              Mallo
-            </h1>
-            <p className="font-light" style={{ color: '#232323' }}>
-              오늘 시술, 말로만 기록하세요.
-            </p>
-          </div>
-
-          {/* 로그인 폼 */}
-          <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-200 space-y-6">
-            <div className="space-y-5">
-              <div className="space-y-2">
-                <label className="text-sm font-medium" style={{ color: '#232323' }}>
-                  이메일
-                </label>
-                <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 border border-gray-200 focus-within:border-[#C9A27A] focus-within:ring-1 focus-within:ring-[#C9A27A] transition-all">
-                  <Mail size={18} style={{ color: '#C9A27A' }} />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="example@beauty.com"
-                    className="w-full bg-transparent outline-none font-light placeholder-gray-400"
-                    style={{ color: '#232323' }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        // Enter / Next 키를 누르면 비밀번호 인풋으로 포커스 이동
-                        if (passwordInputRef.current) {
-                          passwordInputRef.current.focus();
-                        }
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium" style={{ color: '#232323' }}>
-                  비밀번호
-                </label>
-                <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-3 border border-gray-200 focus-within:border-[#C9A27A] focus-within:ring-1 focus-within:ring-[#C9A27A] transition-all">
-                  <Lock size={18} style={{ color: '#C9A27A' }} />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full bg-transparent outline-none font-light placeholder-gray-400"
-                    style={{ color: '#232323' }}
-                    ref={passwordInputRef}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleLogin();
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
+        <div className="bg-white border border-[#E4D9CC] rounded-2xl px-5 py-6 shadow-sm/5">
+          <div className="flex mb-4 bg-neutral-50 rounded-full p-1">
             <button
-              onClick={handleLogin}
-              className="w-full py-4 rounded-2xl font-medium text-lg text-white shadow-md hover:shadow-lg hover:opacity-90 active:scale-[0.98] transition-all"
-              style={{ backgroundColor: '#C9A27A' }}
+              type="button"
+              className={`flex-1 text-xs font-medium py-2 rounded-full transition ${
+                mode === 'login'
+                  ? 'bg-white shadow-sm text-neutral-900'
+                  : 'text-neutral-400'
+              }`}
+              onClick={() => setMode('login')}
             >
               로그인
             </button>
+            <button
+              type="button"
+              className={`flex-1 text-xs font-medium py-2 rounded-full transition ${
+                mode === 'signup'
+                  ? 'bg-white shadow-sm text-neutral-900'
+                  : 'text-neutral-400'
+              }`}
+              onClick={() => setMode('signup')}
+            >
+              회원가입
+            </button>
           </div>
+
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div>
+              <label className="block text-[11px] font-medium text-neutral-600 mb-1.5">
+                이메일
+              </label>
+              <input
+                type="email"
+                required
+                className="w-full rounded-lg border border-[#E4D9CC] bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#C9A27A]"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-medium text-neutral-600 mb-1.5">
+                비밀번호
+              </label>
+              <input
+                type="password"
+                required
+                minLength={6}
+                className="w-full rounded-lg border border-[#E4D9CC] bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#C9A27A]"
+                placeholder="6자 이상 입력"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
+            {message && (
+              <p className="text-[11px] text-neutral-500 mt-1 whitespace-pre-line">
+                {message}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="mt-2 w-full rounded-full py-2.5 text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ backgroundColor: '#C9A27A' }}
+            >
+              {submitting
+                ? '처리 중...'
+                : mode === 'login'
+                ? '로그인'
+                : '회원가입'}
+            </button>
+          </form>
         </div>
+
+        <p className="mt-4 text-[11px] text-neutral-400 text-center leading-relaxed">
+          한 계정으로 고객, 예약, 기록, 태그가 모두 연결됩니다.
+          <br />
+          추후 유료 플랜도 이 계정 기준으로 관리할 예정입니다.
+        </p>
       </div>
     </div>
   );
