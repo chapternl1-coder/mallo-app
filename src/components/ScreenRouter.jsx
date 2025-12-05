@@ -1,5 +1,4 @@
 import { SCREENS } from "../constants/screens";
-import LoginScreen from "../screens/LoginScreen";
 import HomeScreen from "../screens/HomeScreen";
 import RecordScreen from "../screens/RecordScreen";
 import HistoryScreen from "../screens/HistoryScreen";
@@ -64,7 +63,9 @@ export default function ScreenRouter(props) {
 
   switch (currentScreen) {
     case SCREENS.LOGIN:
-      return <LoginScreen {...props} />;
+      // Auth 앞단에서 로그인은 이미 처리하므로,
+      // 여기서는 홈 화면을 대신 보여준다.
+      return <HomeScreen {...props} />;
     case SCREENS.HOME:
       return <HomeScreen {...props} />;
     case SCREENS.RECORD:

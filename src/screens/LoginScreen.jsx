@@ -21,8 +21,11 @@ function LoginScreen() {
         setMessage('로그인 완료! 잠시만 기다려 주세요.');
       } else {
         await signUp({ email, password });
-        setMessage('회원가입 완료! 이메일 인증 후 다시 로그인 해주세요.');
+        setMessage('회원가입 완료! 잠시만 기다려 주세요.');
       }
+
+      // ✅ 이제는 새로고침 필요 없음
+      // AuthContext의 user 상태가 바뀌면 App.jsx에서 자동으로 메인 화면으로 전환됨.
     } catch (error) {
       console.error(error);
       setMessage(error.message || '오류가 발생했습니다. 다시 시도해주세요.');

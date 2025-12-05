@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft, Edit, ChevronRight } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
+import { useAuth } from '../contexts/AuthContext';
 
 function ProfileScreen({ 
   currentScreen, 
@@ -20,6 +21,17 @@ function ProfileScreen({
   fillDemoData,
   resetAllData
 }) {
+  const { signOut, user } = useAuth();
+
+  const handleSignOutClick = async () => {
+    try {
+      await signOut();
+      // user === null 이 되면 App.jsx에서 자동으로 LoginScreen 으로 전환됨
+    } catch (error) {
+      console.error('로그아웃 중 오류', error);
+      alert('로그아웃 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    }
+  };
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: '#F2F0E6' }}>
       {/* 내용 영역 */}
@@ -227,11 +239,9 @@ function ProfileScreen({
 
           {/* 로그아웃 */}
           <button
-            onClick={() => {
-              // TODO: 로그아웃 기능 구현
-              alert('준비 중입니다.');
-            }}
-            className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors mt-4"
+            type="button"
+            onClick={handleSignOutClick}
+            className="w-full bg-white rounded-2xl shadow-sm border border-gray-200 px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors mt-4 active:bg-neutral-50"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#FEF2F0] flex items-center justify-center">

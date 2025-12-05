@@ -50,6 +50,15 @@ export default function useMalloAppState() {
   const [currentScreen, setCurrentScreenState] = useState(SCREENS.LOGIN);
   const [previousScreen, setPreviousScreen] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Auth 도입 후에는 내부 SCREENS.LOGIN을 더 이상 쓰지 않으므로, Login이면 자동으로 Home으로 교정
+  useEffect(() => {
+    // 예전 버전에서 저장해둔 'Login' 화면은
+    // 이제 Auth 앞단에서 처리하므로, 홈 화면으로 강제 전환
+    if (currentScreen === SCREENS.LOGIN) {
+      setCurrentScreenState(SCREENS.HOME);
+    }
+  }, [currentScreen]);
   
   // setCurrentScreen을 래핑하여 이전 화면 추적
   const setCurrentScreen = (screen) => {
