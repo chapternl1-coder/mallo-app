@@ -5,6 +5,7 @@ import { SCREENS } from '../constants/screens';
 import { format, isToday, addDays, subDays } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import logo from '../assets/logo.png';
+import InputModeToggle from '../components/InputModeToggle';
 
 /**
  * 홈 화면 컴포넌트 - 검색 및 예약 중심의 현대적인 UI
@@ -305,38 +306,12 @@ function HomeScreen({
             alt="Mallo 로고"
             className="w-16 h-16 object-contain"
           />
-          
-          {/* 가운데: 인사말 + 날짜 */}
-          <div className="flex flex-col flex-1 items-center">
-            <h2 className="text-xl font-bold text-gray-800">원장님, 안녕하세요!</h2>
-            <span className="text-sm font-light text-gray-600 mt-1">{todayStr}</span>
-          </div>
 
           {/* 오른쪽: inputMode 전환 UI */}
-          <div className="flex items-center gap-2 bg-gray-100 rounded-full p-1">
-            <button
-              onClick={() => setInputMode('voice')}
-              className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 ${
-                inputMode === 'voice'
-                  ? 'bg-[#C9A27A] text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              <Mic size={16} />
-              <span className="text-xs font-medium">음성</span>
-            </button>
-            <button
-              onClick={() => setInputMode('text')}
-              className={`px-3 py-1.5 rounded-full transition-all flex items-center gap-1.5 ${
-                inputMode === 'text'
-                  ? 'bg-[#C9A27A] text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              <Keyboard size={16} />
-              <span className="text-xs font-medium">텍스트</span>
-            </button>
-          </div>
+          <InputModeToggle
+            inputMode={inputMode}
+            onChange={setInputMode}
+          />
         </div>
       </header>
 
