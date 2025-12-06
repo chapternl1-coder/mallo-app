@@ -54,25 +54,31 @@ function HistoryScreen({
   // 예약과 연결된 방문 기록인지 확인하는 헬퍼 함수
   const findConnectedReservation = (record) => {
     if (!reservations || reservations.length === 0) return null;
-    
+
+    // Supabase + 기존 양쪽 다 대응
+    const recordCustomerId = record.customerId ?? record.customer_id;
+
     // 1순위: reservationId로 찾기
     if (record.reservationId) {
       const matchedReservation = reservations.find(r => r.id === record.reservationId);
       if (matchedReservation) return matchedReservation;
     }
-    
-    // 2순위: customerId와 날짜로 찾기
-    if (record.customerId) {
+
+    // 2순위: customerId + 날짜로 찾기
+    if (recordCustomerId) {
       const recordDate = record.serviceDate || record.date;
       const matchedReservation = reservations.find(r => {
-        const customerIdMatch = r.customerId === record.customerId || 
-                               String(r.customerId) === String(record.customerId);
+        const reservationCustomerId = r.customer_id ?? r.customerId;
+        const customerIdMatch =
+          reservationCustomerId &&
+          (reservationCustomerId === recordCustomerId ||
+           String(reservationCustomerId) === String(recordCustomerId));
         const dateMatch = recordDate && r.date && recordDate === r.date;
         return customerIdMatch && dateMatch;
       });
       if (matchedReservation) return matchedReservation;
     }
-    
+
     return null;
   };
 
@@ -368,7 +374,11 @@ function HistoryScreen({
               };
 
               // 고객 정보 찾기
-              const customer = customers.find(c => c.id === record.customerId);
+              const recordCustomerId = record.customerId ?? record.customer_id;
+              const customer = customers.find(c => {
+                if (!recordCustomerId) return false;
+                return c.id === recordCustomerId || String(c.id) === String(recordCustomerId);
+              });
               const visitCount = customer?.visitCount || 0;
               
               // 신규/기존 구분 (방문 횟수가 1이면 신규, 아니면 기존)
@@ -516,9 +526,10 @@ function HistoryScreen({
               // 고객 상세 페이지로 이동 핸들러
               const handleCustomerClick = (record) => {
                 if (!record) return;
-                
+
+                const recordCustomerId = record.customerId ?? record.customer_id;
                 // customerId 우선, 없으면 customer 객체에서 가져오기
-                const targetCustomerId = record.customerId || customer?.id;
+                const targetCustomerId = recordCustomerId || customer?.id;
                 
                 if (!targetCustomerId) {
                   console.warn('[HistoryScreen] 고객 ID를 찾을 수 없습니다.', record);

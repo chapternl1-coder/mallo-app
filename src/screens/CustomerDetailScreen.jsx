@@ -136,25 +136,42 @@ function CustomerDetailScreen({
   // 예약과 연결된 방문 기록인지 확인하는 헬퍼 함수
   const findConnectedReservation = (visit) => {
     if (!reservations || reservations.length === 0) return null;
-    
+
+    const visitCustomerId = visit.customerId ?? visit.customer_id;
+    const customerIdFromProfile = customer?.id;
+
     // 1순위: reservationId로 찾기
     if (visit.reservationId) {
       const matchedReservation = reservations.find(r => r.id === visit.reservationId);
       if (matchedReservation) return matchedReservation;
     }
-    
-    // 2순위: customerId와 날짜로 찾기
-    if (visit.customerId && customer) {
+
+    // 2순위: customerId + 날짜로 찾기
+    if ((visitCustomerId || customerIdFromProfile)) {
       const visitDate = visit.serviceDate || visit.date;
       const matchedReservation = reservations.find(r => {
-        const customerIdMatch = (r.customerId === customer.id || String(r.customerId) === String(customer.id)) ||
-                                (r.customerId === visit.customerId || String(r.customerId) === String(visit.customerId));
+        const reservationCustomerId = r.customer_id ?? r.customerId;
+
+        const customerIdMatch =
+          reservationCustomerId &&
+          (
+            (customerIdFromProfile &&
+              (reservationCustomerId === customerIdFromProfile ||
+               String(reservationCustomerId) === String(customerIdFromProfile)))
+            ||
+            (visitCustomerId &&
+              (reservationCustomerId === visitCustomerId ||
+               String(reservationCustomerId) === String(visitCustomerId)))
+          );
+
         const dateMatch = visitDate && r.date && visitDate === r.date;
+
         return customerIdMatch && dateMatch;
       });
+
       if (matchedReservation) return matchedReservation;
     }
-    
+
     return null;
   };
 

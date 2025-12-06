@@ -239,7 +239,14 @@ function ReservationScreen({
     }
 
     // 5) 폼 리셋 (예약 화면에 그대로 머무름)
-    resetForm();
+    // ✅ 이제는 예약 화면에 그대로 남기고, 폼만 초기화
+    setTimeInput('');
+    setNameInput('');
+    setPhoneInput('');
+    setSelectedExistingCustomerId(null);
+    setShowMatchingCustomers(false);
+    // 폼은 열어둠 (setShowForm(false) 호출하지 않음)
+    
     // 예약 추가 후 자동으로 홈으로 이동하는 동작 제거
     // if (setCurrentScreen) {
     //   setCurrentScreen(SCREENS.HOME);

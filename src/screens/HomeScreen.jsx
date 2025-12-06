@@ -99,11 +99,13 @@ function HomeScreen({
         phone: row.phone || '',
         memo: row.memo || '',
         note: row.memo || '', // 기존 코드 호환성
-        customerId: row.customerId || null, // 기존 코드 호환성
+        // Supabase snake_case(customer_id) + 기존 camelCase(customerId) 둘 다 대응
+        customerId: row.customer_id ?? row.customerId ?? null,
         date: row.date, // 'YYYY-MM-DD' 형식
         // 필요하면 isFirstVisit 같은 것도 여기서 계산
         isFirstVisit: false,
-        isNew: row.isNew ?? false, // Supabase에서 계산된 isNew 값 사용
+        // Supabase snake_case(is_new) + 기존 camelCase(isNew) 둘 다 대응
+        isNew: row.is_new ?? row.isNew ?? false,
         status: row.status || 'scheduled', // 기존 코드 호환성
       };
     });
@@ -208,15 +210,18 @@ function HomeScreen({
 
   // 예약 카드 클릭 핸들러 (고객 상세 페이지로 이동)
   const handleReservationCardClick = (reservation) => {
+    // Supabase snake_case + 기존 camelCase 둘 다 대응
+    const customerId = reservation.customerId ?? reservation.customer_id;
+    
     // 예약에 customerId가 있을 때만 고객 상세 페이지로 이동
-    if (!reservation.customerId) {
+    if (!customerId) {
       console.log('[HomeScreen] 예약에 customerId가 없어 클릭 무시:', reservation.name);
       return;
     }
     
     // customerId로 고객 찾기 (숫자와 문자열 ID 모두 처리)
     const matchedCustomer = customers.find((c) => {
-      return c.id === reservation.customerId || String(c.id) === String(reservation.customerId);
+      return c.id === customerId || String(c.id) === String(customerId);
     });
     
     if (matchedCustomer) {
@@ -224,15 +229,18 @@ function HomeScreen({
       setSelectedCustomerId(matchedCustomer.id);
       setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
     } else {
-      console.warn('[HomeScreen] 예약의 customerId로 고객을 찾을 수 없습니다:', reservation.customerId);
+      console.warn('[HomeScreen] 예약의 customerId로 고객을 찾을 수 없습니다:', customerId);
     }
   };
 
   // 녹음 버튼 클릭 핸들러 (녹음 화면으로 이동)
   const handleReservationClick = (reservation) => {
+    // Supabase snake_case + 기존 camelCase 둘 다 대응
+    const customerId = reservation.customerId ?? reservation.customer_id;
+    
     // 예약에 customerId가 있으면 기존 고객 매칭
-    const matchedCustomer = reservation.customerId
-      ? customers.find((c) => c.id === reservation.customerId)
+    const matchedCustomer = customerId
+      ? customers.find((c) => c.id === customerId || String(c.id) === String(customerId))
       : null;
 
     if (matchedCustomer) {
@@ -268,6 +276,9 @@ function HomeScreen({
 
   // 텍스트 기록 시작 핸들러
   const handleStartTextRecord = (reservation) => {
+    // Supabase snake_case + 기존 camelCase 둘 다 대응
+    const customerId = reservation.customerId ?? reservation.customer_id;
+    
     // 예약 정보를 selectedReservation에 저장
     const reservationInfo = {
       id: reservation.id,
@@ -275,7 +286,7 @@ function HomeScreen({
       phone: reservation.phone || '',
       timeLabel: reservation.time || '--:--',
       dateLabel: dateTitle, // 선택된 날짜의 제목 (예: "12월 5일 (목)")
-      customerId: reservation.customerId || null,
+      customerId: customerId || null,
       date: reservation.date || selectedDateKey,
     };
     
@@ -287,10 +298,15 @@ function HomeScreen({
 
   // 예약과 매칭되는 고객 찾기
   const findCustomerForReservation = (reservation) => {
+    // Supabase snake_case + 기존 camelCase 둘 다 대응
+    const customerId = reservation.customerId ?? reservation.customer_id;
+    
     // customerId가 있을 때만 기존 고객으로 매칭
     // customerId가 없으면 신규 예약이므로 매칭하지 않음 (동명이인 방지)
-    if (reservation.customerId) {
-      return customers.find((c) => c.id === reservation.customerId);
+    if (customerId) {
+      return customers.find((c) => {
+        return c.id === customerId || String(c.id) === String(customerId);
+      });
     }
     return null;
   };
@@ -505,9 +521,15 @@ function HomeScreen({
                     // 요약(녹음) 완료 여부 판단
                     let hasSummary = false;
                     
-                    if (reservation.customerId) {
+                    // Supabase snake_case + 기존 camelCase 둘 다 대응
+                    const customerId = reservation.customerId ?? reservation.customer_id;
+                    
+                    if (customerId) {
                       // customerId로 방문 기록 찾기
-                      const customerVisits = visits[reservation.customerId] || visits[String(reservation.customerId)] || [];
+                      const customerVisits =
+                        visits[customerId] ||
+                        visits[String(customerId)] ||
+                        [];
                       
                       // 해당 예약과 연결된 방문 기록이 있는지 확인
                       hasSummary = customerVisits.some(visit => {
