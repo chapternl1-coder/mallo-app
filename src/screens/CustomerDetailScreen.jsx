@@ -766,11 +766,25 @@ function CustomerDetailScreen({
 
   // 이 고객에 대한 새 기록 남기기 핸들러 (고객 상세 전용 화면으로 이동)
   const handleCreateRecordForCustomer = () => {
-    // 고객 정보를 selectedCustomerForRecord에 저장
+    // customers 배열에서 최신 고객 정보를 다시 찾아서 사용 (MOCK_CUSTOMERS에서 온 경우 대비)
+    const latestCustomer = customers.find(c => 
+      c.id === customer.id || 
+      String(c.id) === String(customer.id) ||
+      (c.name?.trim() === customer.name?.trim() && 
+       c.phone?.trim() === customer.phone?.trim())
+    ) || customer;
+    
+    // 최신 고객 정보를 selectedCustomerForRecord에 저장
     setSelectedCustomerForRecord({
-      id: customer.id,
-      name: customer.name,
-      phone: customer.phone,
+      id: latestCustomer.id,
+      name: latestCustomer.name,
+      phone: latestCustomer.phone,
+    });
+    
+    console.log('[CustomerDetailScreen] 기록 남기기 - 최신 고객 정보:', {
+      id: latestCustomer.id,
+      name: latestCustomer.name,
+      phone: latestCustomer.phone
     });
     
     // 현재 모드에 따라 고객 상세 전용 화면으로 이동
@@ -978,59 +992,66 @@ function CustomerDetailScreen({
             </div>
           ) : (
             sortedCustomerVisits.slice(0, visibleVisitCount).map((visit) => {
-              // record + customer를 합쳐서 사용 (customerName, customerPhone 보정)
-              const normalizedVisit = normalizeRecordWithCustomer(visit, customer);
-              
               // 날짜/시간 정보 준비 (예약과 연결된 경우 예약 날짜/시간 우선, 그 다음 텍스트/녹음에서 추출한 날짜/시간)
               let dateTimeDisplay = '';
               
               // 1순위: 예약과 연결된 경우 예약 날짜/시간 사용
               const connectedReservation = findConnectedReservation(visit);
               
-              // 이름과 전화번호: 예약 정보를 최우선으로 사용 (예약 추가할 때 사용한 정보)
-              let safeName = '미기재';
-              let safePhone = '미기재';
+              // 이름과 전화번호: 현재 고객의 정보를 무조건 사용 (예약 정보나 summary_json 무시)
+              // normalizedVisit은 사용하지 않음 (예전 summary_json의 정보가 포함될 수 있음)
+              let safeName = customer?.name?.trim() || '미기재';
+              let safePhone = customer?.phone?.trim() || '미기재';
               
+              // record + customer를 합쳐서 사용 (customerName, customerPhone 보정)
+              // 하지만 safeName/safePhone은 현재 고객 정보만 사용하므로 normalizedVisit은 detail 등만 사용
+              const normalizedVisit = normalizeRecordWithCustomer(visit, customer);
+              
+              // 예약과 연결된 경우에도 현재 고객의 정보를 우선 사용
+              // (예약 정보에 잘못된 고객 정보가 들어가 있을 수 있음)
               if (connectedReservation) {
-                // 예약과 연결된 경우: 예약의 고객 정보를 우선 사용
+                // 예약과 연결된 경우: 예약의 고객 정보 확인 (디버깅용)
                 const reservationCustomer = connectedReservation.customer_id 
                   ? customers.find(c => c.id === connectedReservation.customer_id)
                   : null;
                 
-                // 이름: 예약 고객의 이름 우선
-                safeName = reservationCustomer?.name?.trim() || 
-                          connectedReservation.customer_name?.trim() ||
-                          connectedReservation.name?.trim() ||
-                          customer?.name?.trim() ||
-                          normalizedVisit.customerName?.trim() ||
-                          '미기재';
+                // 이름: 현재 고객의 이름만 사용 (예약 정보 무시)
+                safeName = customer?.name?.trim() || '미기재';
                 
-                // 전화번호: 예약 고객의 전화번호 우선 (예약 추가할 때 사용한 번호)
-                safePhone = reservationCustomer?.phone?.trim() || 
-                           connectedReservation.customer_phone?.trim() ||
-                           connectedReservation.phone?.trim() ||
-                           customer?.phone?.trim() ||  // 현재 고객의 전화번호
-                           '미기재';
+                // 전화번호: 현재 고객의 전화번호만 사용 (예약 정보나 summary_json 무시)
+                safePhone = customer?.phone?.trim() || '미기재';
                 
                 // 디버깅: 어떤 정보가 사용되는지 확인
                 console.log(`📞 [방문 기록 헤더] visit.id: ${visit.id?.substring(0, 8)}...`);
                 console.log(`   예약 연결됨: reservation.id=${connectedReservation.id?.substring(0, 8)}...`);
-                console.log(`   reservationCustomer:`, reservationCustomer ? { id: reservationCustomer.id?.substring(0, 8), name: reservationCustomer.name, phone: reservationCustomer.phone } : null);
-                console.log(`   connectedReservation.customer_name: "${connectedReservation.customer_name}"`);
-                console.log(`   connectedReservation.customer_phone: "${connectedReservation.customer_phone}"`);
-                console.log(`   customer?.name: "${customer?.name}", customer?.phone: "${customer?.phone}"`);
-                console.log(`   normalizedVisit.customerName: "${normalizedVisit.customerName}", normalizedVisit.customerPhone: "${normalizedVisit.customerPhone}"`);
-                console.log(`   최종 safeName: "${safeName}", safePhone: "${safePhone}"`);
+                console.log(`   예약 customer_id: "${connectedReservation.customer_id}"`);
+                console.log(`   예약 고객 이름: "${reservationCustomer?.name}", 전화번호: "${reservationCustomer?.phone}"`);
+                console.log(`   현재 고객 id: "${selectedCustomerId}"`);
+                console.log(`   현재 고객 이름: "${customer?.name}", 전화번호: "${customer?.phone}"`);
+                console.log(`   visit.customerPhone (무시됨): "${visit.customerPhone}"`);
+                console.log(`   normalizedVisit.customerPhone (무시됨): "${normalizedVisit.customerPhone}"`);
+                console.log(`   ✅ 최종 safeName: "${safeName}", safePhone: "${safePhone}" (현재 고객 정보만 사용)`);
                 
                 // normalizedVisit의 정보는 사용하지 않음 (예전 summary_json의 정보일 수 있음)
               } else {
-                // 예약이 없으면 현재 고객의 정보 사용
-                safeName = customer?.name?.trim() || normalizedVisit.customerName?.trim() || '미기재';
-                safePhone = customer?.phone?.trim() || normalizedVisit.customerPhone?.trim() || '미기재';
+                // 예약이 없으면 현재 고객의 정보 사용 (이미 위에서 설정됨)
                 console.log(`📞 [방문 기록 헤더] visit.id: ${visit.id?.substring(0, 8)}..., 예약 없음`);
-                console.log(`   customer?.name: "${customer?.name}", customer?.phone: "${customer?.phone}"`);
-                console.log(`   normalizedVisit.customerName: "${normalizedVisit.customerName}", normalizedVisit.customerPhone: "${normalizedVisit.customerPhone}"`);
-                console.log(`   최종 safeName: "${safeName}", safePhone: "${safePhone}"`);
+                console.log(`   현재 고객 이름: "${customer?.name}", 전화번호: "${customer?.phone}"`);
+                console.log(`   visit.customerPhone (무시됨): "${visit.customerPhone}"`);
+                console.log(`   normalizedVisit.customerPhone (무시됨): "${normalizedVisit.customerPhone}"`);
+                console.log(`   ✅ 최종 safeName: "${safeName}", safePhone: "${safePhone}" (현재 고객 정보만 사용)`);
+              }
+              
+              // 최종 확인: 현재 고객의 전화번호가 있으면 무조건 사용 (모든 경우에 적용)
+              // 이 단계는 이미 위에서 customer.phone으로 설정했으므로 불필요하지만, 안전장치로 유지
+              if (customer?.phone?.trim() && safePhone !== customer.phone.trim()) {
+                console.warn(`⚠️ [전화번호 최종 교체] safePhone("${safePhone}")를 customer.phone("${customer.phone}")로 교체`);
+                safePhone = customer.phone.trim();
+              }
+              
+              // 최종 최종 확인: customer 객체가 있으면 무조건 customer.phone 사용
+              if (customer && customer.phone && customer.phone.trim()) {
+                safePhone = customer.phone.trim();
               }
               if (connectedReservation && connectedReservation.date && connectedReservation.time) {
                 const dateObj = new Date(`${connectedReservation.date}T${connectedReservation.time}`);

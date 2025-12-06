@@ -524,8 +524,86 @@ function RecordScreen({
   })();
 
   // 고객 정보
-  const customerName = selectedCustomerForRecord?.name || tempName || '';
-  const customerPhone = selectedCustomerForRecord?.phone || tempPhone || '';
+  // selectedCustomerForRecord에 예전 번호가 들어가 있을 수 있으므로,
+  // customers 배열에서 현재 고객을 찾아서 최신 정보를 사용
+  let currentCustomer = null;
+  if (selectedCustomerForRecord?.id && customers && customers.length > 0) {
+    // UUID와 숫자 ID 모두 처리
+    const searchId = selectedCustomerForRecord.id;
+    currentCustomer = customers.find(c => {
+      // 정확히 일치하는 경우
+      if (c.id === searchId) return true;
+      // 문자열로 변환해서 비교
+      if (String(c.id) === String(searchId)) return true;
+      // 소문자로 변환해서 비교 (UUID 대소문자 차이)
+      if (String(c.id).toLowerCase() === String(searchId).toLowerCase()) return true;
+      return false;
+    });
+    
+    // 이름과 전화번호로 찾기 시도 (ID가 숫자인 경우)
+    if (!currentCustomer && selectedCustomerForRecord.name) {
+      // 1순위: 이름 + 전화번호 모두 일치
+      if (selectedCustomerForRecord.phone) {
+        currentCustomer = customers.find(c => {
+          const nameMatch = c.name?.trim() === selectedCustomerForRecord.name?.trim();
+          const phoneMatch = c.phone?.trim() === selectedCustomerForRecord.phone?.trim() ||
+                            c.phone?.replace(/[^0-9]/g, '') === selectedCustomerForRecord.phone?.replace(/[^0-9]/g, '');
+          return nameMatch && phoneMatch;
+        });
+      }
+      
+      // 2순위: 이름만 일치 (전화번호가 다를 수 있으므로)
+      if (!currentCustomer) {
+        currentCustomer = customers.find(c => {
+          return c.name?.trim() === selectedCustomerForRecord.name?.trim();
+        });
+        if (currentCustomer) {
+          console.log('⚠️ [이름만으로 매칭] 전화번호가 다르지만 이름으로 찾았습니다.');
+          console.log('   selectedCustomerForRecord.phone:', selectedCustomerForRecord.phone);
+          console.log('   currentCustomer.phone:', currentCustomer.phone);
+        }
+      }
+    }
+  }
+  
+  // 현재 고객의 최신 정보를 우선 사용 (selectedCustomerForRecord의 예전 정보 무시)
+  const customerName = currentCustomer?.name || selectedCustomerForRecord?.name || tempName || '';
+  const customerPhone = currentCustomer?.phone || selectedCustomerForRecord?.phone || tempPhone || '';
+  
+  // 디버깅: 어떤 정보가 사용되는지 확인
+  if (selectedCustomerForRecord?.id) {
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('📞 [RecordScreen 헤더] 전화번호 디버깅');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('1️⃣ selectedCustomerForRecord의 정보:');
+    console.log('   id:', selectedCustomerForRecord.id, '(타입:', typeof selectedCustomerForRecord.id, ')');
+    console.log('   name:', selectedCustomerForRecord.name);
+    console.log('   phone:', selectedCustomerForRecord.phone);
+    console.log('');
+    console.log('2️⃣ customers 배열 정보:');
+    console.log('   customers 배열 길이:', customers?.length || 0);
+    if (customers && customers.length > 0) {
+      console.log('   customers 배열의 첫 3개 고객:');
+      customers.slice(0, 3).forEach((c, idx) => {
+        console.log(`     [${idx}] id: ${c.id} (타입: ${typeof c.id}), name: ${c.name}, phone: ${c.phone}`);
+      });
+    }
+    console.log('');
+    console.log('3️⃣ currentCustomer의 최신 정보 (customers 배열에서 찾은 것):');
+    if (currentCustomer) {
+      console.log('   ✅ 찾음! id:', currentCustomer.id, 'name:', currentCustomer.name, 'phone:', currentCustomer.phone);
+    } else {
+      console.log('   ❌ customers 배열에서 찾지 못함');
+      console.log('   검색 시도한 ID:', selectedCustomerForRecord.id);
+      console.log('   검색 시도한 이름:', selectedCustomerForRecord.name);
+      console.log('   검색 시도한 전화번호:', selectedCustomerForRecord.phone);
+    }
+    console.log('');
+    console.log('4️⃣ 최종 사용되는 값:');
+    console.log('   customerName:', customerName);
+    console.log('   customerPhone:', customerPhone);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  }
 
   return (
     <div className="flex flex-col h-full relative" style={{ backgroundColor: '#F2F0E6' }}>
