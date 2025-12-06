@@ -1,12 +1,12 @@
 import React from 'react';
 import { ChevronRight, Pencil } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import useUserProfile from '../hooks/useUserProfile';
+import useProfile from '../hooks/useProfile';
 import { SCREENS } from '../constants/screens';
 
 function ProfileScreen({ setCurrentScreen }) {
   const { user, signOut } = useAuth();
-  const { profile, loading: profileLoading } = useUserProfile();
+  const { profile, loading } = useProfile();
 
   const handleSignOutClick = async () => {
     try {
@@ -24,9 +24,9 @@ function ProfileScreen({ setCurrentScreen }) {
   };
 
   // DB 값이 없을 때 보여줄 기본 텍스트
-  const displayOwnerName = profile?.owner_name || '김말로 원장님';
-  const displayShopName = profile?.shop_name || '말로 뷰티 스튜디오';
-  const displayEmail = profile?.shop_email || user?.email || 'mallo@beauty.com';
+  const ownerName = profile?.owner_name || '원장님 이름을 입력해 주세요';
+  const shopName = profile?.shop_name || '샵 이름을 입력해 주세요';
+  const email = user?.email || '';
 
   return (
     <div className="h-full overflow-y-auto" style={{ backgroundColor: '#F2F0E6' }}>
@@ -35,10 +35,10 @@ function ProfileScreen({ setCurrentScreen }) {
         <div className="bg-white border border-[#E4D9CC] rounded-2xl px-5 py-4 mb-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 rounded-full bg-[#F2F0E6] flex items-center justify-center text-[11px] font-semibold text-[#C9A27A]">
-              {displayOwnerName?.[0] || '원'}
+              {ownerName?.[0] || '원'}
             </div>
             <div>
-              {profileLoading ? (
+              {loading ? (
                 <>
                   <div className="h-4 w-24 bg-neutral-100 rounded mb-1" />
                   <div className="h-3 w-32 bg-neutral-100 rounded mb-1" />
@@ -47,13 +47,13 @@ function ProfileScreen({ setCurrentScreen }) {
               ) : (
                 <>
                   <p className="text-sm font-semibold text-neutral-900">
-                    {displayOwnerName}
+                    {ownerName}
                   </p>
                   <p className="text-[11px] text-neutral-500">
-                    {displayShopName}
+                    {shopName}
                   </p>
                   <p className="text-[11px] text-neutral-400">
-                    {displayEmail}
+                    {email}
                   </p>
                 </>
               )}

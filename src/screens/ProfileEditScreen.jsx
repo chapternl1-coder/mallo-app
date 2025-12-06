@@ -1,32 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
-import useUserProfile from '../hooks/useUserProfile';
 import { useAuth } from '../contexts/AuthContext';
+import useProfile from '../hooks/useProfile';
 import { SCREENS } from '../constants/screens';
 
 export default function ProfileEditScreen({ setCurrentScreen }) {
   const { user } = useAuth();
-  const { profile, loading: profileLoading, updateProfile } = useUserProfile();
+  const { profile, loading, saving, updateProfile } = useProfile();
 
   const [ownerName, setOwnerName] = useState('');
   const [shopName, setShopName] = useState('');
-  const [shopEmail, setShopEmail] = useState('');
-  const [shopPhone, setShopPhone] = useState('');
-  const [shopAddress, setShopAddress] = useState('');
-  const [note, setNote] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [memo, setMemo] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
-  // 프로필 로딩이 끝나면 폼에 기본값 채우기
+  // Supabase에서 가져온 프로필을 폼에 채워 넣기
   useEffect(() => {
-    if (!profileLoading && profile) {
+    if (profile) {
       setOwnerName(profile.owner_name || '');
       setShopName(profile.shop_name || '');
-      setShopEmail(profile.shop_email || user?.email || '');
-      setShopPhone(profile.shop_phone || '');
-      setShopAddress(profile.shop_address || '');
-      setNote(profile.note || '');
+      // phone, address, memo는 아직 DB에 없어서 일단 빈 값 유지
     }
-  }, [profileLoading, profile, user]);
+  }, [profile]);
 
   const handleBack = () => {
     if (setCurrentScreen) {
@@ -34,154 +30,169 @@ export default function ProfileEditScreen({ setCurrentScreen }) {
     }
   };
 
-  const handleSave = async () => {
-    if (!profile) return;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
 
     try {
-      setSaving(true);
-
       await updateProfile({
-        owner_name: ownerName || null,
-        shop_name: shopName || null,
-        shop_email: shopEmail || null,
-        shop_phone: shopPhone || null,
-        shop_address: shopAddress || null,
-        note: note || null,
-        updated_at: new Date().toISOString(),
+        owner_name: ownerName.trim(),
+        shop_name: shopName.trim(),
+        // 나중에 profiles 테이블에 phone/address/memo 컬럼 추가하면
+        // phone, address, memo도 같이 넘기면 됨
       });
 
-      alert('프로필이 저장되었습니다.');
       if (setCurrentScreen) {
         setCurrentScreen(SCREENS.PROFILE);
       }
-    } catch (error) {
-      console.error('프로필 저장 중 오류', error);
-      alert('프로필 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
-    } finally {
-      setSaving(false);
+    } catch (err) {
+      console.error('프로필 저장 중 오류:', err);
+      setErrorMessage('프로필 저장 중 문제가 발생했어요. 다시 시도해 주세요.');
     }
   };
 
-  const disabled = saving || profileLoading;
+  const email = user?.email || '';
 
   return (
     <div
-      className="h-full flex flex-col"
+      className="h-full w-full flex items-center justify-center"
       style={{ backgroundColor: '#F2F0E6' }}
     >
-      {/* 상단바 */}
-      <div className="px-4 pt-4 pb-3 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={handleBack}
-          className="w-8 h-8 flex items-center justify-center rounded-full active:bg-neutral-200/40"
+      <div className="w-full max-w-md h-full sm:h-[90vh] sm:rounded-[2rem] sm:shadow-md overflow-hidden border-0 bg-[#F2F0E6] flex flex-col">
+        {/* 상단 헤더 */}
+        <div className="px-6 pt-6 pb-3 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#E7DFD4]"
+          >
+            <ChevronLeft className="w-4 h-4 text-neutral-700" />
+          </button>
+          <div>
+            <h1 className="text-sm font-semibold text-neutral-900">프로필 수정</h1>
+            <p className="text-[11px] text-neutral-500 mt-0.5">
+              원장님 이름과 샵 정보를 입력해 주세요.
+            </p>
+          </div>
+        </div>
+
+        {/* 폼 영역 */}
+        <form
+          onSubmit={handleSubmit}
+          className="flex-1 overflow-y-auto px-6 pb-28 pt-2 space-y-5"
         >
-          <ChevronLeft className="w-5 h-5 text-neutral-700" />
-        </button>
-        <p className="text-sm font-semibold text-neutral-900">
-          프로필 수정
-        </p>
-        {/* 오른쪽은 자리 맞추기용 빈 박스 */}
-        <div className="w-8 h-8" />
-      </div>
+          {/* 원장 정보 */}
+          <section className="bg-white rounded-3xl px-5 py-5 shadow-sm">
+            <h2 className="text-xs font-semibold text-neutral-900 mb-3">
+              원장 정보
+            </h2>
 
-      {/* 내용 영역 */}
-      <div className="flex-1 overflow-y-auto px-5 pb-28">
-        <div className="bg-white border border-[#E4D9CC] rounded-2xl px-5 py-4 mb-4">
-          <p className="text-xs font-semibold text-neutral-900 mb-3">
-            원장 정보
-          </p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[11px] text-neutral-500 mb-1">
+                  원장님 이름
+                </label>
+                <input
+                  type="text"
+                  className="w-full rounded-xl border border-[#E5D9CC] bg-[#FAF7F1] px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-[#C9A27A]"
+                  placeholder="예: 김말로"
+                  value={ownerName}
+                  onChange={(e) => setOwnerName(e.target.value)}
+                />
+              </div>
 
-          <LabelInput
-            label="원장님 이름"
-            placeholder="예: 김말로"
-            value={ownerName}
-            onChange={setOwnerName}
-            disabled={disabled}
-          />
+              <div>
+                <label className="block text-[11px] text-neutral-500 mb-1">
+                  샵 이름
+                </label>
+                <input
+                  type="text"
+                  className="w-full rounded-xl border border-[#E5D9CC] bg-[#FAF7F1] px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-[#C9A27A]"
+                  placeholder="예: 말로 뷰티 스튜디오"
+                  value={shopName}
+                  onChange={(e) => setShopName(e.target.value)}
+                />
+              </div>
+            </div>
+          </section>
 
-          <LabelInput
-            label="샵 이름"
-            placeholder="예: 말로 뷰티 스튜디오"
-            value={shopName}
-            onChange={setShopName}
-            disabled={disabled}
-          />
+          {/* 샵 연락처/정보 (아직 DB 저장 X, UI만 유지) */}
+          <section className="bg-white rounded-3xl px-5 py-5 shadow-sm">
+            <h2 className="text-xs font-semibold text-neutral-900 mb-3">
+              샵 연락처 / 정보
+            </h2>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[11px] text-neutral-500 mb-1">
+                  이메일
+                </label>
+                <input
+                  type="email"
+                  className="w-full rounded-xl border border-[#E5D9CC] bg-[#F5F0E6] px-3 py-2 text-xs text-neutral-500 outline-none"
+                  value={email}
+                  readOnly
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] text-neutral-500 mb-1">
+                  전화번호
+                </label>
+                <input
+                  type="tel"
+                  className="w-full rounded-xl border border-[#E5D9CC] bg-[#FAF7F1] px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-[#C9A27A]"
+                  placeholder="예: 010-0000-0000"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] text-neutral-500 mb-1">
+                  주소
+                </label>
+                <input
+                  type="text"
+                  className="w-full rounded-xl border border-[#E5D9CC] bg-[#FAF7F1] px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-[#C9A27A]"
+                  placeholder="예: 서울시 ○○구 ○○동 ○○빌딩 3층"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* 메모 (UI만) */}
+          <section className="bg-white rounded-3xl px-5 py-5 shadow-sm">
+            <h2 className="text-xs font-semibold text-neutral-900 mb-3">
+              메모
+            </h2>
+            <textarea
+              className="w-full min-h-[72px] rounded-xl border border-[#E5D9CC] bg-[#FAF7F1] px-3 py-2 text-xs outline-none resize-none focus:ring-1 focus:ring-[#C9A27A]"
+              placeholder="내 계정 / 샵에 대한 메모가 있다면 적어주세요."
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+            />
+          </section>
+
+          {errorMessage && (
+            <p className="text-[11px] text-red-500">{errorMessage}</p>
+          )}
+        </form>
+
+        {/* 하단 고정 버튼 */}
+        <div className="absolute bottom-0 left-0 right-0 px-6 pb-6 pt-3 bg-gradient-to-t from-[#F2F0E6] to-transparent">
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={saving || loading}
+            className="w-full rounded-2xl bg-[#C9A27A] text-white text-sm font-medium py-3 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {saving ? '저장 중…' : '저장 완료'}
+          </button>
         </div>
-
-        <div className="bg-white border border-[#E4D9CC] rounded-2xl px-5 py-4 mb-4">
-          <p className="text-xs font-semibold text-neutral-900 mb-3">
-            샵 연락처 / 정보
-          </p>
-
-          <LabelInput
-            label="이메일"
-            placeholder="샵에서 사용하는 이메일"
-            value={shopEmail}
-            onChange={setShopEmail}
-            disabled={disabled}
-          />
-
-          <LabelInput
-            label="전화번호"
-            placeholder="예: 010-0000-0000"
-            value={shopPhone}
-            onChange={setShopPhone}
-            disabled={disabled}
-          />
-
-          <LabelInput
-            label="주소"
-            placeholder="예: 서울시 ○○구 ○○동 ○○빌딩 3층"
-            value={shopAddress}
-            onChange={setShopAddress}
-            disabled={disabled}
-          />
-        </div>
-
-        <div className="bg-white border border-[#E4D9CC] rounded-2xl px-5 py-4 mb-4">
-          <p className="text-xs font-semibold text-neutral-900 mb-2">
-            메모
-          </p>
-          <textarea
-            className="w-full text-xs rounded-xl border border-[#E4D9CC] px-3 py-2 outline-none resize-none focus:ring-1 focus:ring-[#C9A27A]"
-            rows={3}
-            placeholder="내 계정 / 샵에 대한 메모가 있다면 적어두세요."
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            disabled={disabled}
-          />
-        </div>
       </div>
-
-      {/* 하단 저장 버튼 */}
-      <div className="px-5 pb-6 pt-3 border-t border-[#E4D9CC]/60 bg-[#F2F0E6]">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={disabled}
-          className="w-full rounded-full py-3 text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
-          style={{ backgroundColor: '#C9A27A' }}
-        >
-          {saving ? '저장 중...' : '저장 완료'}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function LabelInput({ label, value, onChange, placeholder, disabled }) {
-  return (
-    <div className="mb-3 last:mb-0">
-      <p className="text-[11px] text-neutral-500 mb-1.5">{label}</p>
-      <input
-        type="text"
-        className="w-full text-xs rounded-xl border border-[#E4D9CC] px-3 py-2 outline-none focus:ring-1 focus:ring-[#C9A27A]"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-      />
     </div>
   );
 }

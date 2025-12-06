@@ -1,0 +1,121 @@
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../lib/supabaseClient';
+import { useAuth } from '../contexts/AuthContext';
+
+/**
+ * 현재 로그인한 유저의 프로필을 Supabase에서 가져오고,
+ * 없으면 자동으로 생성한 뒤 반환해 주는 훅.
+ *
+ * - profile: { id, owner_name, shop_name, ... } 또는 null
+ * - loading: 프로필을 불러오는 중인지 여부
+ * - saving: 저장(업데이트) 중인지 여부
+ * - error: 마지막 에러 객체(또는 null)
+ * - updateProfile(updates): Supabase에 upsert 후 최신 profile 반환
+ * - refetch(): 프로필 다시 불러오기
+ */
+export default function useProfile() {
+  const { user } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchProfile = useCallback(async () => {
+    if (!user) {
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // 1) 내 id에 해당하는 프로필을 먼저 조회
+      const { data, error: selectError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (selectError && selectError.code !== 'PGRST116') {
+        // PGRST116 = row 없음
+        throw selectError;
+      }
+
+      if (!data) {
+        // 2) 없으면 새 프로필 생성 (최소 필드만)
+        const { data: inserted, error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            owner_name: '',
+            shop_name: '',
+          })
+          .select('*')
+          .single();
+
+        if (insertError) throw insertError;
+        setProfile(inserted);
+      } else {
+        setProfile(data);
+      }
+    } catch (e) {
+      console.error('[useProfile] fetchProfile error:', e);
+      setError(e);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+  const updateProfile = useCallback(
+    async (updates) => {
+      if (!user) return null;
+
+      setSaving(true);
+      setError(null);
+
+      try {
+        const { data, error: upsertError } = await supabase
+          .from('profiles')
+          .upsert(
+            {
+              id: user.id,
+              ...updates,
+            },
+            { onConflict: 'id' }
+          )
+          .select('*')
+          .single();
+
+        if (upsertError) {
+          throw upsertError;
+        }
+
+        setProfile(data);
+        return data;
+      } catch (e) {
+        console.error('[useProfile] updateProfile error:', e);
+        setError(e);
+        throw e;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [user]
+  );
+
+  return {
+    profile,
+    loading,
+    saving,
+    error,
+    updateProfile,
+    refetch: fetchProfile,
+  };
+}
+
