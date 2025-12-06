@@ -24,7 +24,11 @@ export default function MalloApp() {
   } = useMalloAppState(user);
 
   // Supabase 데이터 로딩 + 콘솔 출력용 (디버그용)
-  const { customers, reservations } = useSupabaseReservations(new Date());
+  const {
+    customers,
+    reservations,
+    loading: reservationsLoading,
+  } = useSupabaseReservations();
 
   // 필요하면 아래처럼 콘솔에 다시 한 번 찍을 수도 있음
   console.log('[MalloApp] Supabase customers 길이:', customers.length);
@@ -64,7 +68,7 @@ export default function MalloApp() {
         className="w-full max-w-md h-full sm:h-[90vh] sm:rounded-[2rem] sm:shadow-md overflow-hidden relative border-0"
         style={{ backgroundColor: '#F2F0E6' }}
       >
-        <ScreenRouter {...screenRouterProps} />
+        <ScreenRouter {...screenRouterProps} reservationsLoading={reservationsLoading} />
 
         {/* 스크롤이 일정 이상 내려갔을 때 공통으로 보이는 '맨 위로' 버튼 */}
         <ScrollToTopButton />

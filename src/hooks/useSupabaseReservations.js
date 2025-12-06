@@ -41,111 +41,133 @@ function formatLocalTime(dateString) {
  *      phone,
  *      memo,
  *      status,
+ *      isNew,
  *    }]
- *
- * 화면 JSX는 이 구조 그대로 쓰고 있으니, UI 수정 필요 없음.
+ *  - loading: boolean
+ *  - error: Error | null
  */
 export default function useSupabaseReservations() {
   const { user } = useAuth();
   const [customers, setCustomers] = useState([]);
   const [reservations, setReservations] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);   // ✅ 처음엔 무조건 true
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!user) {
-      console.log('[SupabaseHook] user 없음, 스킵');
+      // 로그인 안 돼 있으면 빈 상태 + 로딩 종료
       setCustomers([]);
       setReservations([]);
+      setLoading(false);
       return;
     }
 
-    const load = async () => {
-      setLoading(true);
+    let cancelled = false;
+
+    async function fetchData() {
+      setLoading(true);   // ✅ 새로 불러올 땐 true
+      setError(null);
+
       try {
-        console.log('[SupabaseHook] 로드 시작, user.id:', user.id);
+        const [customersRes, reservationsRes] = await Promise.all([
+          supabase
+            .from('customers')
+            .select('id, name, phone, created_at')
+            .eq('owner_id', user.id)
+            .order('created_at', { ascending: true }),
+          supabase
+            .from('reservations')
+            .select('id, customer_id, reserved_at, memo, status')
+            .eq('owner_id', user.id)
+            .order('reserved_at', { ascending: true }),
+        ]);
 
-        // 1) 고객 목록
-        const {
-          data: customerRows,
-          error: customerError,
-        } = await supabase
-          .from('customers')
-          .select('id, name, phone, created_at')
-          .eq('owner_id', user.id)
-          .order('created_at', { ascending: true });
+        if (cancelled) return;
 
-        if (customerError) {
-          console.error('[SupabaseHook] customers 에러:', customerError);
-          setCustomers([]);
-        } else {
-          const mappedCustomers =
-            (customerRows ?? []).map((row) => ({
-              id: row.id,
-              name: row.name || '',
-              phone: row.phone || '',
-              createdAt: row.created_at,
-            })) ?? [];
-
-          setCustomers(mappedCustomers);
-        }
-
-        // 고객 id → 객체 맵 (예약에서 빠르게 매칭하기 위해)
-        const customerMap = new Map(
-          (customerRows ?? []).map((row) => [row.id, row]),
-        );
-
-        // 2) 예약 목록
-        const {
-          data: reservationRows,
-          error: reservationError,
-        } = await supabase
-          .from('reservations')
-          .select('id, customer_id, reserved_at, memo, status')
-          .eq('owner_id', user.id)
-          .order('reserved_at', { ascending: true });
-
-        if (reservationError) {
-          console.error('[SupabaseHook] reservations 에러:', reservationError);
+        if (customersRes.error || reservationsRes.error) {
+          console.error(
+            '[SupabaseHook] error',
+            customersRes.error || reservationsRes.error
+          );
+          setError(customersRes.error || reservationsRes.error);
+          // 에러여도 배열은 최소한 []로
+          setCustomers(customersRes.data ?? []);
           setReservations([]);
         } else {
-          const mappedReservations =
-            (reservationRows ?? []).map((row) => {
-              const customer = customerMap.get(row.customer_id);
-              const localDate = formatLocalDate(row.reserved_at);
-              const localTime = formatLocalTime(row.reserved_at);
+          const customerRows = customersRes.data ?? [];
+          const reservationRows = reservationsRes.data ?? [];
 
-              return {
-                id: row.id,
-                customerId: row.customer_id,
-                date: localDate,           // ← 여기 날짜가 KST 기준으로 고정
-                time: localTime,
-                name: customer?.name || '',
-                phone: customer?.phone || '',
-                memo: row.memo || '',
-                status: row.status || 'scheduled',
-              };
-            }) ?? [];
+          // 고객 매핑
+          const mappedCustomers = customerRows.map((row) => ({
+            id: row.id,
+            name: row.name || '',
+            phone: row.phone || '',
+            createdAt: row.created_at,
+          }));
 
+          // 고객 id → 객체 맵 (예약에서 빠르게 매칭하기 위해)
+          const customerMap = new Map(
+            customerRows.map((row) => [row.id, row]),
+          );
+
+          // 예약마다 isNew 계산 + Home/예약화면에서 쓰기 좋은 형태로 변환
+          const safeReservations = reservationRows ?? [];
+          const mappedReservations = safeReservations.map((row) => {
+            const customer = customerMap.get(row.customer_id);
+            const localDate = formatLocalDate(row.reserved_at);
+            const localTime = formatLocalTime(row.reserved_at);
+
+            // 같은 고객(customer_id)의 예약이 딱 1개인 경우 → isNew: true
+            const countForThisCustomer = safeReservations.filter(
+              (res) => res.customer_id === row.customer_id
+            ).length;
+
+            return {
+              id: row.id,
+              customerId: row.customer_id,
+              date: localDate,           // ← 여기 날짜가 KST 기준으로 고정
+              time: localTime,
+              name: customer?.name || '',
+              phone: customer?.phone || '',
+              memo: row.memo || '',
+              status: row.status || 'scheduled',
+              // ✅ 이 값이 홈에서 '신규' 뱃지에 쓰이는 값
+              isNew: countForThisCustomer === 1,
+            };
+          });
+
+          setCustomers(mappedCustomers);
           setReservations(mappedReservations);
+
+          console.log(
+            '[SupabaseHook] customers:',
+            mappedCustomers.length,
+            'reservations:',
+            mappedReservations.length
+          );
         }
-
-        console.log(
-          '[SupabaseHook] customers:',
-          customers.length,
-          'reservations:',
-          reservations.length,
-        );
+      } catch (e) {
+        if (cancelled) return;
+        console.error('[SupabaseHook] unexpected error', e);
+        setError(e);
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);   // ✅ 진짜 끝났을 때만 false
+        }
       }
-    };
+    }
 
-    load();
+    fetchData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   return {
     customers,
     reservations,
     loading,
+    error,
   };
 }

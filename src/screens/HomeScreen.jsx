@@ -6,7 +6,6 @@ import { format, isToday, addDays, subDays } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import InputModeToggle from '../components/InputModeToggle';
 import AppLogo from '../components/AppLogo';
-import useSupabaseReservations from '../hooks/useSupabaseReservations';
 
 /**
  * 홈 화면 컴포넌트 - 검색 및 예약 중심의 현대적인 UI
@@ -47,6 +46,7 @@ function HomeScreen({
   setSelectedCustomerForRecord,
   startRecording,
   reservations = [],
+  reservationsLoading = false,
   toggleReservationComplete,
   visits = {},
   updateReservation,
@@ -77,17 +77,14 @@ function HomeScreen({
     return `${year}-${month}-${day}`;
   }, [selectedDate]);
 
-  // 1) Supabase 데이터 불러오기
-  const { reservations: supabaseReservations } = useSupabaseReservations();
-
-  // 2) 오늘 날짜 기준으로 Supabase 예약 필터 + UI용 데이터로 변환
+  // ✅ 1) Supabase 훅 제거, App에서 내려준 reservations 로만 필터링
   const todayReservationsForHome = useMemo(() => {
-    if (!supabaseReservations || supabaseReservations.length === 0) return [];
+    if (!reservations || reservations.length === 0) return [];
 
     const targetKey = selectedDateKey; // 예: '2025-12-06'
 
     // ① 날짜로 필터 (date 필드 직접 사용)
-    const sameDayRows = supabaseReservations.filter((row) => {
+    const sameDayRows = reservations.filter((row) => {
       return row.date === targetKey;
     });
 
@@ -106,7 +103,7 @@ function HomeScreen({
         date: row.date, // 'YYYY-MM-DD' 형식
         // 필요하면 isFirstVisit 같은 것도 여기서 계산
         isFirstVisit: false,
-        isNew: false, // 기존 코드 호환성
+        isNew: row.isNew ?? false, // Supabase에서 계산된 isNew 값 사용
         status: row.status || 'scheduled', // 기존 코드 호환성
       };
     });
@@ -120,7 +117,11 @@ function HomeScreen({
 
     // ★ 더 이상 .slice(0, 1) 이나 .slice(0, 3) 같은 거 안 함 → Supabase에 있는 오늘 예약 모두 노출
     return mapped;
-  }, [supabaseReservations, selectedDateKey]);
+  }, [reservations, selectedDateKey]);   // ✅ supabaseReservations 대신 reservations 사용
+
+  // 로딩 중이 아니고 예약이 없을 때만 true
+  const hasNoTodayReservations =
+    !reservationsLoading && todayReservationsForHome.length === 0;
   
   // 입력 모드를 localStorage에 저장
   useEffect(() => {
@@ -481,7 +482,7 @@ function HomeScreen({
                 </div>
               </div>
 
-              {todayReservationsForHome.length === 0 ? (
+              {hasNoTodayReservations && (
                 <div className="bg-white rounded-xl p-8 text-center shadow-sm">
                   <Clock size={32} className="mx-auto mb-3 text-gray-400" />
                   <p className="text-sm text-gray-500 mb-1">오늘 등록된 예약이 없습니다</p>
@@ -489,7 +490,9 @@ function HomeScreen({
                     예약을 연동하면 이곳에 손님 정보가 정리됩니다
                   </p>
                 </div>
-              ) : (
+              )}
+
+              {!reservationsLoading && todayReservationsForHome.length > 0 && (
                 <div className="space-y-3">
                   {todayReservationsForHome.map((reservation) => {
                     const matchedCustomer = findCustomerForReservation(reservation);

@@ -238,11 +238,12 @@ function ReservationScreen({
       console.error('[예약 추가 실패] addReservation 함수가 없습니다.');
     }
 
-    // 5) 폼 리셋 + 홈으로 이동 (기존 로직 그대로 유지)
+    // 5) 폼 리셋 (예약 화면에 그대로 머무름)
     resetForm();
-    if (setCurrentScreen) {
-      setCurrentScreen(SCREENS.HOME);
-    }
+    // 예약 추가 후 자동으로 홈으로 이동하는 동작 제거
+    // if (setCurrentScreen) {
+    //   setCurrentScreen(SCREENS.HOME);
+    // }
   };
 
   // 예약 삭제
