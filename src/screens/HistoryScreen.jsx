@@ -656,28 +656,28 @@ function HistoryScreen({
                   })();
 
                   const handleCustomerClick = (record) => {
-                    // 1) record 안에 customerId
-                    const recordCustomerId =
-                      record.customerId ?? record.customer_id ?? null;
+                    if (!record) return;
 
-                    // 2) 예약과 연결된 customerId
-                    const res = findConnectedReservation(record);
-                    const resCustomerId =
-                      res?.customerId ?? res?.customer_id ?? null;
+                    const recordCustomerId = record.customerId ?? record.customer_id;
+                    const targetCustomerId = recordCustomerId || record.customer?.id;
 
-                    // 3) 매칭된 customer 객체의 id
-                    const inferredId = customer?.id ?? null;
-
-                    const targetCustomerId =
-                      recordCustomerId || resCustomerId || inferredId;
-
+                    // 1단계: UUID 형식인지 확인
                     if (!targetCustomerId || !isValidUuid(targetCustomerId)) {
-                      alert(
-                        '이 방문 기록은 아직 고객 프로필과 연결되지 않았어요.'
-                      );
+                      alert('이 방문 기록은 아직 고객 프로필과 연결되지 않았어요.\n고객 페이지에서 먼저 프로필을 만들어 주세요.');
                       return;
                     }
 
+                    // 2단계: 실제 customers 배열에 존재하는지 확인
+                    const exists = customers?.some(
+                      (c) => c.id && String(c.id) === String(targetCustomerId)
+                    );
+
+                    if (!exists) {
+                      alert('이 ID로 된 고객 프로필이 없습니다.\n(예전 테스트 데이터일 수 있어요)');
+                      return;
+                    }
+
+                    // ✅ 여기까지 통과하면 안전하게 고객 상세로 이동
                     setSelectedCustomerId(targetCustomerId);
                     setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
                   };

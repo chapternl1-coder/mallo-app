@@ -12,6 +12,7 @@ import {
 } from '../utils/recordUtils';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
+import { ensureCustomerForVisit } from '../hooks/useVisitLogs';
 
 // UUID 검증 헬퍼 함수
 const isValidUuid = (value) => {
@@ -1297,14 +1298,28 @@ function RecordScreen({
               const finalRawText = rawTranscript || transcript || '';
               const finalTagNames = tagLabels;
               
-              // customer_id UUID 검증 (유효한 UUID가 아니면 null)
+              // 1) 고객 ID 확보: 전화번호(+이름) 기준으로 찾거나 새로 만들기
+              const ensuredCustomerId = await ensureCustomerForVisit({
+                supabaseClient: supabase,
+                ownerId: user.id,
+                name: customerName,
+                phone: customerPhone,
+              });
+
+              // 2) customer_id 우선순위: ensuredCustomerId > finalCustomerId > selectedCustomerForRecord.id
               let safeCustomerId = null;
-              const candidateCustomerId = selectedCustomerForRecord?.id
-                ?? selectedCustomerForRecord?.customerId
-                ?? finalCustomerId;
-              
-              if (candidateCustomerId && isValidUuid(String(candidateCustomerId))) {
-                safeCustomerId = String(candidateCustomerId);
+              if (ensuredCustomerId && isValidUuid(String(ensuredCustomerId))) {
+                safeCustomerId = String(ensuredCustomerId);
+                console.log('[RecordScreen] ensureCustomerForVisit로 고객 ID 확보:', safeCustomerId);
+              } else {
+                // 기존 로직: UUID 검증된 customer_id 사용
+                const candidateCustomerId = selectedCustomerForRecord?.id
+                  ?? selectedCustomerForRecord?.customerId
+                  ?? finalCustomerId;
+                
+                if (candidateCustomerId && isValidUuid(String(candidateCustomerId))) {
+                  safeCustomerId = String(candidateCustomerId);
+                }
               }
 
               // reservation_id UUID 검증 (유효한 UUID가 아니면 null)
@@ -1316,7 +1331,7 @@ function RecordScreen({
 
               const visitPayload = {
                 owner_id: user.id,                              // 로그인한 유저
-                customer_id: safeCustomerId,                    // UUID 검증된 customer_id 또는 null
+                customer_id: safeCustomerId || null,           // ensureCustomerForVisit로 확보한 customer_id 또는 null
 
                 reservation_id: safeReservationId,              // UUID 검증된 reservation_id 또는 null
 

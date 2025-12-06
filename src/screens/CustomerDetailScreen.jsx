@@ -1,5 +1,5 @@
 // 특정 고객의 정보와 방문 히스토리를 보여주는 화면
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ArrowLeft, MoreHorizontal, Phone, Edit, Mic, ChevronUp, ChevronDown, Calendar, Repeat, Keyboard, ChevronLeft } from 'lucide-react';
 import { formatRecordDateTime, formatServiceDateTimeLabel } from '../utils/date';
 import { SCREENS } from '../constants/screens';
@@ -44,39 +44,48 @@ function CustomerDetailScreen({
   setSelectedReservation,
   reservations = [] // 예약 정보 (예약과 연결된 방문 기록의 날짜/시간 확인용)
 }) {
-  // customers 배열에서 고객 찾기 (숫자와 문자열 ID 모두 처리)
-  // UUID 대소문자 차이도 고려하여 비교
-  let customer = null;
-  
-  if (customers && customers.length > 0 && selectedCustomerId) {
-    customer = customers.find(c => {
-      const cId = c.id;
-      const selectedId = selectedCustomerId;
-      
-      // 정확히 일치하는 경우
-      if (cId === selectedId) return true;
-      
-      // 문자열로 변환해서 비교
-      if (String(cId) === String(selectedId)) return true;
-      
-      // 소문자로 변환해서 비교 (UUID 대소문자 차이)
-      if (String(cId).toLowerCase() === String(selectedId).toLowerCase()) return true;
-      
-      return false;
-    });
-    
-    // 디버깅: 고객을 찾지 못한 경우
-    if (!customer) {
-      console.warn('[CustomerDetailScreen] 고객을 찾지 못함');
-      console.log('   selectedCustomerId:', selectedCustomerId, '(타입:', typeof selectedCustomerId, ')');
-      console.log('   customers 배열 길이:', customers.length);
-      console.log('   customers 배열의 ID들:');
-      customers.forEach((c, idx) => {
-        console.log(`     [${idx}] id: ${c.id} (타입: ${typeof c.id}), name: ${c.name}`);
-      });
-    }
-  }
-  
+  // 선택된 고객 찾기 (id 문자열/숫자 섞여도 대비)
+  const rawCustomer = customers?.find(
+    (c) =>
+      c.id === selectedCustomerId ||
+      String(c.id) === String(selectedCustomerId)
+  );
+
+  // visitLogs 에서 이 고객 id 로 연결된 방문 기록 하나 찾기
+  const relatedVisit =
+    (visitLogs || [])
+      .find(
+        (v) =>
+          v.customerId === selectedCustomerId ||
+          v.customer_id === selectedCustomerId
+      ) || null;
+
+  // visit_logs 안에 들어있는 summary_json / detail 안의 customer 정보 꺼내기
+  const summary = relatedVisit?.summaryJson || relatedVisit?.detail || {};
+  const summaryCustomer = summary.customer || summary.customerInfo || {};
+
+  // 최종 customer 객체 (실제 customers 에 있으면 그걸 우선 사용,
+  // 없으면 visit_logs 기반 임시 프로필로 생성)
+  let customer = rawCustomer || {
+    id: selectedCustomerId,
+    name:
+      summaryCustomer.name ||
+      relatedVisit?.customerName ||
+      '이름 미입력',
+    phone:
+      summaryCustomer.phone ||
+      relatedVisit?.customerPhone ||
+      '',
+    visitCount: 0,
+    lastVisit: relatedVisit?.serviceDate || relatedVisit?.date || null,
+    customerTags: {
+      caution: [],
+      trait: [],
+      payment: [],
+      pattern: [],
+    },
+  };
+
   // customerTags가 없으면 기본 구조 추가
   if (customer && !customer.customerTags) {
     customer = {
@@ -89,66 +98,12 @@ function CustomerDetailScreen({
       }
     };
   }
-  
-  // customer가 없을 때: visitLogs에서 summary_json을 확인하여 임시 고객 객체 생성 시도
-  if (!customer && selectedCustomerId && visitLogs && visitLogs.length > 0) {
-    // selectedCustomerId와 일치하는 방문 기록 찾기 (customer_id 또는 summary_json으로)
-    for (const visit of visitLogs) {
-      const visitCustomerId = visit.customerId || visit.customer_id;
-      
-      // customer_id가 일치하는 경우
-      if (visitCustomerId && (
-        String(visitCustomerId).toLowerCase() === String(selectedCustomerId).toLowerCase() ||
-        String(visitCustomerId) === String(selectedCustomerId) ||
-        visitCustomerId === selectedCustomerId
-      )) {
-        // summary_json에서 고객 정보 추출
-        const summaryJson = visit.summaryJson || visit.detail || {};
-        const customerInfo = summaryJson.customerInfo || summaryJson.customer || {};
-        
-        let extractedName = customerInfo.name?.trim();
-        let extractedPhone = customerInfo.phone?.trim();
-        
-        // sections에서도 고객 정보 추출 시도
-        if (!extractedName && summaryJson.sections) {
-          for (const section of summaryJson.sections) {
-            if (section.title && section.title.includes('고객 기본 정보') && section.content) {
-              for (const contentItem of section.content) {
-                if (typeof contentItem === 'string') {
-                  const nameMatch = contentItem.match(/이름[:\s]+([^\n/]+)/i);
-                  if (nameMatch && !extractedName) {
-                    extractedName = nameMatch[1].trim();
-                  }
-                  const phoneMatch = contentItem.match(/전화번호[:\s]+([^\n/]+)/i);
-                  if (phoneMatch && !extractedPhone) {
-                    extractedPhone = phoneMatch[1].trim();
-                  }
-                }
-              }
-            }
-          }
-        }
-        
-        // 임시 고객 객체 생성
-        if (extractedName) {
-          customer = {
-            id: selectedCustomerId,
-            name: extractedName,
-            phone: extractedPhone || '',
-            customerTags: {
-              caution: [],
-              trait: [],
-              payment: [],
-              pattern: []
-            },
-            visitCount: 0, // 나중에 업데이트됨
-            isDeleted: true // 삭제된 고객임을 표시
-          };
-          console.log('[CustomerDetailScreen] customer 없음, visitLogs에서 임시 고객 객체 생성:', customer);
-          break; // 첫 번째 일치하는 방문 기록에서 정보 추출 후 중단
-        }
-      }
-    }
+
+  if (!rawCustomer) {
+    console.warn(
+      '[CustomerDetailScreen] customers 배열에서 고객을 찾지 못해서 visit_logs 기반 임시 프로필로 표시합니다.',
+      { selectedCustomerId, relatedVisit }
+    );
   }
   
   // ========================================
@@ -220,607 +175,80 @@ function CustomerDetailScreen({
     return null;
   };
   
-  // visitLogsByCustomer에서 직접 가져오기 (이미 고객별로 그룹핑되어 있음)
-  // UUID 비교를 위해 모든 가능한 키 형식 시도
-  const selectedIdStr = String(selectedCustomerId);
-  const supabaseVisitsFromGroup = 
-    visits[selectedCustomerId] || 
-    visits[selectedIdStr] || 
-    visits[selectedIdStr.toLowerCase()] || 
-    visits[selectedIdStr.toUpperCase()] || 
-    [];
-  
-  // 'no_customer' 키의 방문 기록도 확인 (customer_id가 null인 경우)
-  const noCustomerVisits = visits['no_customer'] || [];
-  console.log(`🔍 [방문 기록 찾기] 'no_customer' 키의 방문 기록 개수: ${noCustomerVisits.length}`);
-  
-  // visitLogs 배열에서도 필터링 (백업용 - visits 객체에 없을 경우)
-  // customer_id가 null인 경우 summary_json의 고객 정보로 매칭 시도
-  const supabaseVisitsFromArray = (visitLogs || []).filter(visit => {
-    if (!visit || !visit.id) return false;
-    if (!selectedCustomerId) return false;
-    
-    // customer가 없어도 selectedCustomerId로 매칭 시도
-    
-    const visitCustomerId = visit.customerId ?? visit.customer_id;
-    
-    // 1) customer_id로 직접 매칭
-    if (visitCustomerId) {
-      const visitIdStr = String(visitCustomerId).toLowerCase();
-      const selectedIdStrLower = String(selectedCustomerId).toLowerCase();
-      if (visitIdStr === selectedIdStrLower || 
-          String(visitCustomerId) === String(selectedCustomerId) || 
-          visitCustomerId === selectedCustomerId) {
-        return true;
-      }
+  // 🔍 customerVisits 계산: customer_id 우선, 그다음 전화번호로 매칭
+  // 이름은 매칭 기준에서 완전히 제외
+  const normalizePhone = (raw) => {
+    if (!raw) return '';
+    // 숫자만 남기고, 한국 국제표기(82) -> 0 으로 정규화
+    const digits = String(raw).replace(/[^0-9]/g, '');
+    if (digits.startsWith('82') && digits.length > 2) {
+      return '0' + digits.slice(2);
     }
-    
-    // 2) customer_id가 null이면 예약 정보 또는 summary_json의 고객 정보로 매칭
-    const summaryJson = visit.summaryJson || visit.detail || {};
-    
-    // 우선순위: 예약의 고객 정보 > summary_json의 고객 정보
-    // 1) 예약과 연결되어 있으면 예약의 고객 정보를 우선 사용
-    const connectedReservation = findConnectedReservation(visit);
-    let summaryName = null;
-    let summaryPhone = null;
-    
-    if (connectedReservation) {
-      // 예약의 고객 정보 사용 (예약 추가할 때 사용한 정보)
-      const reservationCustomer = connectedReservation.customer_id 
-        ? customers.find(c => c.id === connectedReservation.customer_id)
-        : null;
-      
-      // 예약과 연결된 고객의 정보를 우선 사용
-      summaryName = reservationCustomer?.name?.trim() || 
-                   connectedReservation.customer_name?.trim() ||
-                   connectedReservation.name?.trim() ||
-                   null;
-      summaryPhone = reservationCustomer?.phone?.trim() || 
-                   connectedReservation.customer_phone?.trim() ||
-                   connectedReservation.phone?.trim() ||
-                   null;
-      
-      console.log(`🔍 [예약 연결됨] visit.id: ${visit.id?.substring(0, 8)}...`);
-      console.log(`   예약 고객 이름: "${summaryName}", 전화번호: "${summaryPhone}"`);
-      console.log(`   현재 고객 이름: "${customer?.name}", 전화번호: "${customer?.phone}"`);
-    }
-    
-    // 예약 정보가 없으면 summary_json에서 고객 정보 찾기
-    if (!summaryName) {
-      // 여러 경로에서 고객 정보 찾기
-      // 1) summary_json.customerInfo (가장 일반적)
-      const summaryCustomerInfo = summaryJson?.customerInfo || {};
-      summaryName = summaryCustomerInfo?.name?.trim();
-      if (!summaryPhone) {
-        summaryPhone = summaryCustomerInfo?.phone?.trim();
-      }
-      
-      // 2) summary_json.customer (하위 호환성)
-      if (!summaryName) {
-        const summaryCustomer = summaryJson?.customer || {};
-        summaryName = summaryCustomer?.name?.trim() || summaryName;
-        if (!summaryPhone) {
-          summaryPhone = summaryCustomer?.phone?.trim();
-        }
-      }
-      
-      // 3) summary_json.sections에서 찾기 (이름만, 전화번호는 예약 우선)
-      if (!summaryName && summaryJson?.sections) {
-        for (const section of summaryJson.sections) {
-          if (section.customer?.name) {
-            summaryName = section.customer.name.trim();
-            // 전화번호는 예약이 없을 때만 사용
-            if (!summaryPhone && section.customer.phone) {
-              summaryPhone = section.customer.phone.trim();
-            }
-            break;
-          }
-          // sections의 content에서 고객 정보 찾기
-          if (section.content && Array.isArray(section.content)) {
-            for (const contentItem of section.content) {
-              if (typeof contentItem === 'string') {
-                // "이름: 김민지" 같은 패턴 찾기
-                const nameMatch = contentItem.match(/이름[:\s]+([^\n/]+)/i);
-                if (nameMatch && !summaryName) {
-                  summaryName = nameMatch[1].trim();
-                }
-                // 전화번호는 예약이 없을 때만 사용
-                if (!summaryPhone) {
-                  const phoneMatch = contentItem.match(/전화번호[:\s]+([^\n/]+)/i);
-                  if (phoneMatch) {
-                    summaryPhone = phoneMatch[1].trim();
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    // customer가 없을 때는 summary_json에서 추출한 정보로 매칭 시도
-    // customer가 있으면 customer 정보 사용, 없으면 summary_json 정보만 사용
-    const customerName = customer?.name?.trim();
-    const customerPhone = customer?.phone?.trim();
-    
-    // 디버깅: summary_json에 고객 정보가 있는지 확인
-    if (!visitCustomerId && summaryJson) {
-      console.log(`🔍 [매칭 시도] visit.id: ${visit.id?.substring(0, 8)}...`);
-      console.log(`   📝 이름: "${summaryName}" vs "${customerName || '(고객 없음)'}"`);
-      console.log(`   📞 전화번호: "${summaryPhone}" vs "${customerPhone || '(고객 없음)'}"`);
-      if (connectedReservation) {
-        console.log(`   ✅ 예약 연결됨: reservation.id=${connectedReservation.id?.substring(0, 8)}..., 예약 고객 정보 사용`);
-        console.log(`   예약 customer_id: ${connectedReservation.customer_id}`);
-        console.log(`   현재 고객 id: ${selectedCustomerId}`);
-        // 예약의 customer_id와 현재 고객 id가 일치하는지 확인
-        const reservationCustomerIdMatch = connectedReservation.customer_id && 
-          (String(connectedReservation.customer_id).toLowerCase() === String(selectedCustomerId).toLowerCase() ||
-           connectedReservation.customer_id === selectedCustomerId);
-        console.log(`   예약 customer_id 일치?: ${reservationCustomerIdMatch ? '✅ YES' : '❌ NO'}`);
-      } else {
-        console.log(`   ⚠️ 예약 연결 안 됨: summary_json에서 고객 정보 사용`);
-      }
-    }
-    
-    // 예약과 연결된 경우: 예약의 customer_id가 현재 고객과 일치하면 무조건 포함
-    if (connectedReservation && connectedReservation.customer_id) {
-      const reservationCustomerIdMatch = 
-        String(connectedReservation.customer_id).toLowerCase() === String(selectedCustomerId).toLowerCase() ||
-        connectedReservation.customer_id === selectedCustomerId;
-      
-      if (reservationCustomerIdMatch) {
-        console.log(`✅ [예약 매칭 성공] visit.id: ${visit.id?.substring(0, 8)}..., 예약의 customer_id 일치`);
-        return true;
-      }
-    }
-    
-    // customer가 없을 때: customer_id가 selectedCustomerId와 일치하는 경우만 포함
-    // (이미 위에서 customer_id로 매칭했으므로 여기서는 false)
-    if (!customer) {
-      return false;
-    }
-    
-    // customer가 있을 때: 이름이 일치하는지 확인
-    if (!summaryName || !customerName || summaryName !== customerName) {
-      return false;
-    }
-    
-    // 이름이 일치하면, 전화번호도 확인
-    // 전화번호가 둘 다 있으면 반드시 일치해야 함
-    if (summaryPhone && customerPhone) {
-      const phoneMatch = summaryPhone === customerPhone || 
-                        summaryPhone.replace(/[^0-9]/g, '') === customerPhone.replace(/[^0-9]/g, '');
-      if (phoneMatch) {
-        console.log(`✅ [매칭 성공] visit.id: ${visit.id?.substring(0, 8)}..., 이름+전화번호 일치`);
-        return true;
-      } else {
-        // 이름은 같지만 전화번호가 다르면 다른 고객으로 간주
-        console.log(`❌ [매칭 실패] visit.id: ${visit.id?.substring(0, 8)}..., 이름은 같지만 전화번호가 다름`);
-        console.log(`   📞 "${summaryPhone}" ≠ "${customerPhone}"`);
-        return false;
-      }
-    }
-    
-    // 전화번호가 하나라도 없으면 이름만으로 매칭 (하지만 경고 로그)
-    if (summaryName === customerName) {
-      console.log(`⚠️ [매칭 성공] visit.id: ${visit.id?.substring(0, 8)}..., 이름만으로 매칭 (전화번호 없음)`);
-      return true;
-    }
-    
-    return false;
-  });
-  
-  // 기존 visits 객체에서 고객의 방문 기록 가져오기 (숫자와 문자열 ID 모두 처리)
-  const rawVisits = visits[selectedCustomerId] || visits[String(selectedCustomerId)] || [];
-  const localVisits = rawVisits.filter(visit => {
-    if (!visit || !visit.id) {
-      console.warn('[CustomerDetailScreen] 유효하지 않은 방문 기록:', visit);
-      return false;
-    }
-    return true;
-  });
-  
-  // Supabase와 로컬 visits 합치기 (id 기준으로 중복 제거)
-  // 'no_customer' 키의 방문 기록도 포함 (summary_json으로 매칭된 것만)
-  const allVisitsMap = new Map();
-  [...supabaseVisitsFromGroup, ...supabaseVisitsFromArray, ...localVisits].forEach(visit => {
-    const visitId = visit.id;
-    if (visitId && !allVisitsMap.has(visitId)) {
-      allVisitsMap.set(visitId, visit);
-    }
-  });
-  
-  // 'no_customer' 키의 방문 기록 중 현재 고객과 매칭되는 것만 추가
-  // customer가 있어야만 매칭 시도 (customer가 없으면 임시 고객 객체 생성 전이므로 제외)
-  if (customer) {
-    noCustomerVisits.forEach(visit => {
-      if (!visit || !visit.id) return;
-      
-      // summary_json에서 고객 정보 추출
-      const summaryJson = visit.summaryJson || visit.detail || {};
-      const summaryCustomerInfo = summaryJson?.customerInfo || summaryJson?.customer || {};
-      let summaryName = summaryCustomerInfo?.name?.trim();
-      let summaryPhone = summaryCustomerInfo?.phone?.trim();
-      
-      // sections에서도 고객 정보 추출 시도
-      if (!summaryName && summaryJson?.sections) {
-        for (const section of summaryJson.sections) {
-          if (section.title && section.title.includes('고객 기본 정보') && section.content) {
-            for (const contentItem of section.content) {
-              if (typeof contentItem === 'string') {
-                const nameMatch = contentItem.match(/이름[:\s]+([^\n/]+)/i);
-                if (nameMatch && !summaryName) {
-                  summaryName = nameMatch[1].trim();
-                }
-                const phoneMatch = contentItem.match(/전화번호[:\s]+([^\n/]+)/i);
-                if (phoneMatch && !summaryPhone) {
-                  summaryPhone = phoneMatch[1].trim();
-                }
-              }
-            }
-          }
-        }
-      }
-      
-      const customerName = customer?.name?.trim();
-      const customerPhone = customer?.phone?.trim();
-      
-      // 이름이 일치하는지 확인
-      if (!summaryName || !customerName || summaryName !== customerName) {
-        return; // 이름이 다르면 제외
-      }
-      
-      // 이름이 일치하면, 전화번호도 확인
-      // 전화번호가 둘 다 있으면 반드시 일치해야 함
-      if (summaryPhone && customerPhone) {
-        const phoneMatch = summaryPhone === customerPhone || 
-                          summaryPhone.replace(/[^0-9]/g, '') === customerPhone.replace(/[^0-9]/g, '');
-        if (phoneMatch && !allVisitsMap.has(visit.id)) {
-          console.log(`✅ [no_customer 매칭] visit.id: ${visit.id?.substring(0, 8)}..., 이름+전화번호 일치하여 추가`);
-          allVisitsMap.set(visit.id, visit);
-        } else if (!phoneMatch) {
-          // 이름은 같지만 전화번호가 다르면 다른 고객으로 간주
-          console.log(`❌ [no_customer 매칭 실패] visit.id: ${visit.id?.substring(0, 8)}..., 이름은 같지만 전화번호가 다름`);
-          console.log(`   📞 "${summaryPhone}" ≠ "${customerPhone}"`);
-        }
-      } else {
-        // 전화번호가 하나라도 없으면 이름만으로 매칭 (하지만 경고 로그)
-        if (!allVisitsMap.has(visit.id)) {
-          console.log(`⚠️ [no_customer 매칭] visit.id: ${visit.id?.substring(0, 8)}..., 이름만으로 매칭하여 추가 (전화번호 없음)`);
-          allVisitsMap.set(visit.id, visit);
-        }
-      }
-    });
-  }
-  
-  const customerVisits = Array.from(allVisitsMap.values());
-  
-  // 디버깅 로그 (콘솔에서 확인 가능)
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('🔍 [CustomerDetailScreen] 방문 기록 필터링 디버깅');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('1️⃣ 선택된 고객 ID:', selectedCustomerId);
-  console.log('   (문자열 변환):', String(selectedCustomerId));
-  console.log('');
-  console.log('2️⃣ visitLogs 전체 개수:', visitLogs?.length || 0);
-  console.log('');
-  console.log('3️⃣ visits 객체의 키들 (고객 ID 목록):');
-  const visitKeys = Object.keys(visits || {});
-  console.log('   키 개수:', visitKeys.length);
-  console.log('   키 목록:', visitKeys);
-  console.log('   선택된 ID가 키 목록에 있는가?', visitKeys.includes(String(selectedCustomerId)) || visitKeys.includes(selectedCustomerId));
-  console.log('');
-  console.log('4️⃣ 필터링 결과:');
-  console.log('   📦 visits 객체에서 가져온 개수:', supabaseVisitsFromGroup.length);
-  console.log('   📋 visitLogs 배열에서 필터링한 개수:', supabaseVisitsFromArray.length);
-  console.log('   🚫 no_customer 키의 방문 기록 개수:', noCustomerVisits.length);
-  console.log('   💾 로컬 visits 개수:', localVisits.length);
-  console.log('   ✅ 최종 합쳐진 방문 기록 개수:', customerVisits.length);
-  console.log('');
-  if (visitLogs && visitLogs.length > 0) {
-    console.log('5️⃣ visitLogs 샘플 (전체):');
-    visitLogs.forEach((v, idx) => {
-      const visitCustomerId = v.customerId || v.customer_id || null;
-      const matches = visitCustomerId && (
-        String(visitCustomerId).toLowerCase() === String(selectedCustomerId).toLowerCase() ||
-        String(visitCustomerId) === String(selectedCustomerId) ||
-        visitCustomerId === selectedCustomerId
-      );
-      
-      // summary_json 구조 확인
-      const summaryJson = v.summaryJson || v.detail || null;
-      
-      // summary_json의 전체 구조 확인 (첫 번째 항목만 상세히)
-      if (idx === 0 && summaryJson) {
-        console.log('   📋 [첫 번째 항목] summary_json 전체 구조:', JSON.stringify(summaryJson, null, 2));
-        console.log('   📋 [첫 번째 항목] summary_json 키들:', Object.keys(summaryJson || {}));
-        if (summaryJson.sections) {
-          console.log('   📋 [첫 번째 항목] summary_json.sections 개수:', summaryJson.sections.length);
-          if (summaryJson.sections.length > 0) {
-            console.log('   📋 [첫 번째 항목] summary_json.sections[0]:', JSON.stringify(summaryJson.sections[0], null, 2));
-          }
-        }
-      }
-      
-      // 여러 경로에서 고객 정보 찾기
-      // 1) summary_json.customerInfo (가장 일반적)
-      const summaryCustomerInfo = summaryJson?.customerInfo || null;
-      let summaryName = summaryCustomerInfo?.name?.trim() || null;
-      let summaryPhone = summaryCustomerInfo?.phone?.trim() || null;
-      
-      // 2) summary_json.customer (하위 호환성)
-      if (!summaryName) {
-        const summaryCustomer = summaryJson?.customer || null;
-        summaryName = summaryCustomer?.name?.trim() || null;
-        summaryPhone = summaryCustomer?.phone?.trim() || summaryPhone;
-      }
-      
-      // 3) summary_json.sections에서 찾기
-      if (!summaryName && summaryJson?.sections) {
-        for (const section of summaryJson.sections) {
-          if (section.customer?.name) {
-            summaryName = section.customer.name.trim();
-            summaryPhone = section.customer.phone?.trim() || summaryPhone;
-            break;
-          }
-          // sections의 content에서 고객 정보 찾기
-          if (section.content && Array.isArray(section.content)) {
-            for (const contentItem of section.content) {
-              if (typeof contentItem === 'string') {
-                // "이름: 김민지" 같은 패턴 찾기
-                const nameMatch = contentItem.match(/이름[:\s]+([^\n/]+)/i);
-                if (nameMatch && !summaryName) {
-                  summaryName = nameMatch[1].trim();
-                }
-                const phoneMatch = contentItem.match(/전화번호[:\s]+([^\n/]+)/i);
-                if (phoneMatch && !summaryPhone) {
-                  summaryPhone = phoneMatch[1].trim();
-                }
-              }
-            }
-          }
-        }
-      }
-      
-      // summaryCustomer 변수 정의 (로깅용)
-      const summaryCustomer = summaryJson?.customer || summaryCustomerInfo || null;
-      
-      console.log(`   [${idx + 1}]`, {
-        id: v.id,
-        customerId: v.customerId,
-        customer_id: v.customer_id,
-        title: v.title,
-        '고객ID 일치?': matches ? '✅ YES' : '❌ NO',
-        'selectedCustomerId': selectedCustomerId,
-        'visitCustomerId': visitCustomerId,
-        'summary_json 있음?': summaryJson ? '✅ YES' : '❌ NO',
-        'summary_json.customerInfo 있음?': summaryCustomerInfo ? '✅ YES' : '❌ NO',
-        'summary_json.customer 있음?': summaryCustomer ? '✅ YES' : '❌ NO',
-        'summary_json.customerInfo.name': summaryCustomerInfo?.name,
-        'summary_json.customerInfo.phone': summaryCustomerInfo?.phone,
-        '추출된 이름': summaryName,
-        '추출된 전화번호': summaryPhone,
-        '현재 고객 이름': customer?.name,
-        '현재 고객 전화번호': customer?.phone
-      });
-    });
-    
-    // 해당 고객의 방문 기록이 있는지 확인 (customer_id + summary_json 모두 확인)
-    const matchingVisits = visitLogs.filter(v => {
-      const visitCustomerId = v.customerId || v.customer_id || null;
-      
-      // 1) customer_id로 매칭
-      if (visitCustomerId) {
-        const matches = String(visitCustomerId).toLowerCase() === String(selectedCustomerId).toLowerCase() ||
-                       String(visitCustomerId) === String(selectedCustomerId) ||
-                       visitCustomerId === selectedCustomerId;
-        if (matches) return true;
-      }
-      
-      // 2) summary_json으로 매칭
-      if (!customer) return false;
-      const summaryJson = v.summaryJson || v.detail || {};
-      
-      // 우선순위: 예약의 전화번호 > summary_json의 전화번호
-      // 예약과 연결되어 있으면 예약의 전화번호 사용
-      const connectedReservation = findConnectedReservation({ ...v, customerId: visitCustomerId });
-      let summaryPhone = null;
-      
-      if (connectedReservation) {
-        // 예약의 고객 전화번호 사용 (예약 추가할 때 사용한 번호)
-        const reservationCustomer = connectedReservation.customer_id 
-          ? customers.find(c => c.id === connectedReservation.customer_id)
-          : null;
-        summaryPhone = reservationCustomer?.phone?.trim() || 
-                       connectedReservation.customer_phone?.trim() ||
-                       connectedReservation.phone?.trim() ||
-                       null;
-      }
-      
-      // 여러 경로에서 고객 정보 찾기
-      const summaryCustomerInfo = summaryJson?.customerInfo || {};
-      let summaryName = summaryCustomerInfo?.name?.trim();
-      
-      // 예약 전화번호가 없으면 summary_json에서 찾기
-      if (!summaryPhone) {
-        summaryPhone = summaryCustomerInfo?.phone?.trim();
-      }
-      
-      if (!summaryName) {
-        const summaryCustomer = summaryJson?.customer || {};
-        summaryName = summaryCustomer?.name?.trim() || summaryName;
-        if (!summaryPhone) {
-          summaryPhone = summaryCustomer?.phone?.trim();
-        }
-      }
-      
-      // sections에서도 찾기 (이름만, 전화번호는 예약 우선)
-      if (!summaryName && summaryJson?.sections) {
-        for (const section of summaryJson.sections) {
-          if (section.customer?.name) {
-            summaryName = section.customer.name.trim();
-            if (!summaryPhone && section.customer.phone) {
-              summaryPhone = section.customer.phone.trim();
-            }
-            break;
-          }
-          if (section.content && Array.isArray(section.content)) {
-            for (const contentItem of section.content) {
-              if (typeof contentItem === 'string') {
-                const nameMatch = contentItem.match(/이름[:\s]+([^\n/]+)/i);
-                if (nameMatch && !summaryName) {
-                  summaryName = nameMatch[1].trim();
-                }
-                if (!summaryPhone) {
-                  const phoneMatch = contentItem.match(/전화번호[:\s]+([^\n/]+)/i);
-                  if (phoneMatch) {
-                    summaryPhone = phoneMatch[1].trim();
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-      
-      const customerName = customer?.name?.trim();
-      const customerPhone = customer?.phone?.trim();
-      
-      // 이름이 일치하는지 확인
-      if (!summaryName || !customerName || summaryName !== customerName) {
-        return false;
-      }
-      
-      // 이름이 일치하면, 전화번호도 확인
-      // 전화번호가 둘 다 있으면 반드시 일치해야 함
-      if (summaryPhone && customerPhone) {
-        const phoneMatch = summaryPhone === customerPhone || 
-                          summaryPhone.replace(/[^0-9]/g, '') === customerPhone.replace(/[^0-9]/g, '');
-        return phoneMatch;
-      }
-      
-      // 전화번호가 하나라도 없으면 이름만으로 매칭
-      return true;
-      
-      return false;
-    });
-    console.log('6️⃣ 일치하는 방문 기록 개수:', matchingVisits.length);
-    if (matchingVisits.length > 0) {
-      console.log('   일치하는 방문 기록:', matchingVisits);
-    }
-  }
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
-  // 시간 추출 헬퍼 함수 (예약과 연결된 경우 예약 시간 우선, 그 다음 텍스트/녹음에서 추출한 시간)
-  const extractTimeFromVisit = (visit) => {
-    // 1순위: 예약과 연결된 경우 예약 시간 사용
-    const connectedReservation = findConnectedReservation(visit);
-    if (connectedReservation && connectedReservation.time) {
-      const timeStr = String(connectedReservation.time).trim();
-      if (/^\d{1,2}:\d{2}/.test(timeStr)) {
-        const [hour, minute] = timeStr.split(':');
-        return `${String(parseInt(hour, 10)).padStart(2, '0')}:${String(parseInt(minute, 10)).padStart(2, '0')}`;
-      }
-    }
-    
-    // 2순위: 텍스트/녹음에서 추출한 시간
-    const serviceDateTimeLabel = extractServiceDateTimeLabel(visit);
-    if (serviceDateTimeLabel) {
-      // "2025-12-27 17:30 방문/예약" -> "17:30" 추출
-      const timeMatch = serviceDateTimeLabel.match(/(\d{2}):(\d{2})/);
-      if (timeMatch) {
-        const [, hh, mm] = timeMatch;
-        return `${hh}:${mm}`;
-      }
-    }
-    
-    // 3순위: visit.time 직접 사용 (저장된 시간)
-    if (visit.time) {
-      const timeStr = String(visit.time).trim();
-      if (/^\d{1,2}:\d{2}/.test(timeStr)) {
-        const [hour, minute] = timeStr.split(':');
-        return `${String(parseInt(hour, 10)).padStart(2, '0')}:${String(parseInt(minute, 10)).padStart(2, '0')}`;
-      }
-    }
-    
-    // fallback: 빈 문자열
-    return '';
+    return digits;
   };
 
-  // 방문 기록 정렬: 날짜 내림차순(최신 날짜가 위), 같은 날짜면 시간 내림차순(늦은 시간이 위)
-  const sortedCustomerVisits = [...customerVisits].sort((a, b) => {
-    // 날짜 추출: 예약과 연결된 경우 예약 날짜 우선, 그 다음 텍스트/녹음에서 추출한 날짜, 없으면 저장된 날짜 사용
-    let baseDateA = null;
-    const connectedReservationA = findConnectedReservation(a);
-    if (connectedReservationA && connectedReservationA.date) {
-      baseDateA = connectedReservationA.date;
-    } else {
-      // 텍스트/녹음에서 추출한 날짜
-      if (a.detail && a.detail.sections) {
-        const visitDataA = { sections: a.detail.sections };
-        baseDateA = extractServiceDateFromSummary(visitDataA);
-      }
-      // 저장된 날짜 사용
-      if (!baseDateA) {
-        baseDateA = a.serviceDate || a.date;
-      }
-    }
-    
-    let baseDateB = null;
-    const connectedReservationB = findConnectedReservation(b);
-    if (connectedReservationB && connectedReservationB.date) {
-      baseDateB = connectedReservationB.date;
-    } else {
-      // 텍스트/녹음에서 추출한 날짜
-      if (b.detail && b.detail.sections) {
-        const visitDataB = { sections: b.detail.sections };
-        baseDateB = extractServiceDateFromSummary(visitDataB);
-      }
-      // 저장된 날짜 사용
-      if (!baseDateB) {
-        baseDateB = b.serviceDate || b.date;
-      }
-    }
-    
-    // 날짜 비교
-    const dateA = new Date(baseDateA);
-    const dateB = new Date(baseDateB);
-    if (dateA.getTime() !== dateB.getTime()) {
-      return dateB.getTime() - dateA.getTime(); // 최신 날짜가 먼저
-    }
-    
-    // 같은 날짜면 시간 내림차순으로 정렬 (늦은 시간이 위로)
-    const timeA = extractTimeFromVisit(a);
-    const timeB = extractTimeFromVisit(b);
-    
-    // "HH:mm" 형식의 시간을 비교
-    const timePartsA = timeA.split(':').map(Number);
-    const timePartsB = timeB.split(':').map(Number);
-    
-    // 시간 파싱 검증
-    if (timePartsA.length !== 2 || timePartsB.length !== 2 || 
-        isNaN(timePartsA[0]) || isNaN(timePartsA[1]) || 
-        isNaN(timePartsB[0]) || isNaN(timePartsB[1])) {
-      // 시간 파싱 실패 시 순서 유지
-      return 0;
-    }
-    
-    const [hourA, minuteA] = timePartsA;
-    const [hourB, minuteB] = timePartsB;
-    
-    // 시간 비교: 시간 * 60 + 분으로 변환해서 비교 (늦은 시간이 위로)
-    const totalMinutesA = hourA * 60 + minuteA;
-    const totalMinutesB = hourB * 60 + minuteB;
-    
-    // 내림차순: 큰 값(늦은 시간)이 앞으로
-    return totalMinutesB - totalMinutesA;
+  console.log('[CustomerDetailScreen] 필터링 결과:');
+
+  // 1) Supabase visit_logs 에서 선택된 고객의 방문 기록만 필터링
+  const supabaseCustomerVisits = (visitLogs || []).filter((v) => {
+    const vCustomerId = v.customerId ?? v.customer_id;
+    return (
+      vCustomerId &&
+      String(vCustomerId) === String(selectedCustomerId)
+    );
   });
+
+  // 2) 기존 로컬 visits (localStorage 기반)에서 선택된 고객의 방문 기록만 가져오기
+  let localCustomerVisits = [];
+  if (visits && typeof visits === 'object') {
+    const raw = visits[selectedCustomerId] || [];
+    if (Array.isArray(raw)) {
+      localCustomerVisits = raw;
+    }
+  }
+
+  // 3) Supabase + 로컬 방문 기록 합치기
+  const mergedVisits = [...supabaseCustomerVisits, ...localCustomerVisits];
+
+  // 4) 시간 기준 정렬 (serviceTime -> time 순으로 사용)
+  const sortedCustomerVisits = mergedVisits.sort((a, b) => {
+    const tA = (a.serviceTime || a.time || '').toString();
+    const tB = (b.serviceTime || b.time || '').toString();
+    return tA.localeCompare(tB);
+  });
+
+  console.log(
+    '[CustomerDetailScreen] 최종 방문 기록 개수:',
+    sortedCustomerVisits.length
+  );
+
+  // ✅ 중복 제거: 같은 visit.id가 여러 번 들어와도 처음 것만 유지
+  const uniqueSortedCustomerVisits = React.useMemo(() => {
+    if (!sortedCustomerVisits) return [];
+
+    const map = new Map();
+
+    sortedCustomerVisits.forEach((visit) => {
+      if (!visit || !visit.id) return;
+      // 같은 id가 여러 번 들어와도 처음 것만 유지
+      if (!map.has(visit.id)) {
+        map.set(visit.id, visit);
+      }
+    });
+
+    return Array.from(map.values());
+  }, [sortedCustomerVisits]);
+
+  console.log(
+    '[CustomerDetailScreen] uniqueSortedCustomerVisits.length:',
+    uniqueSortedCustomerVisits.length
+  );
   
   // customers 배열에서 찾지 못했지만 방문 기록이 있는 경우
   // summary_json에서 고객 정보를 추출하여 임시 고객 객체 생성
-  if (!customer && selectedCustomerId && customerVisits.length > 0) {
+  if (!customer && selectedCustomerId && uniqueSortedCustomerVisits.length > 0) {
     // 첫 번째 방문 기록의 summary_json에서 고객 정보 추출
-    const firstVisit = customerVisits[0];
+    const firstVisit = uniqueSortedCustomerVisits[0];
     const summaryJson = firstVisit.summaryJson || firstVisit.detail || {};
     const customerInfo = summaryJson.customerInfo || summaryJson.customer || {};
     
@@ -859,7 +287,7 @@ function CustomerDetailScreen({
           payment: [],
           pattern: []
         },
-        visitCount: customerVisits.length,
+        visitCount: uniqueSortedCustomerVisits.length,
         // 삭제된 고객임을 표시하는 플래그
         isDeleted: true
       };
@@ -869,32 +297,37 @@ function CustomerDetailScreen({
   
   console.log('CustomerDetailScreen - 최종 찾은 고객:', customer);
   console.log('CustomerDetailScreen - customer.customerTags:', customer?.customerTags);
-  console.log('CustomerDetailScreen - customerVisits:', customerVisits);
+  
+  // ✅ 선택된 고객의 방문 기록만 필터링해서 customerVisits로 사용
+  const customerVisits = React.useMemo(() => {
+    if (!visitLogs || !selectedCustomerId) return [];
+
+    return visitLogs
+      .filter((visit) => {
+        const cid =
+          visit.customer_id ??
+          visit.customerId ??
+          null;
+
+        if (!cid) return false;
+        return String(cid) === String(selectedCustomerId);
+      })
+      .sort((a, b) => {
+        const timeA = (a.service_time || a.time || '').toString();
+        const timeB = (b.service_time || b.time || '').toString();
+        return timeA.localeCompare(timeB);
+      });
+  }, [visitLogs, selectedCustomerId]);
+
+  console.log('[CustomerDetailScreen] 필터링된 방문 기록 개수:', customerVisits.length);
   console.log('[CustomerDetailScreen] customer:', customer);
   console.log('[CustomerDetailScreen] sortedCustomerVisits.length:', sortedCustomerVisits.length);
+  console.log('[CustomerDetailScreen] uniqueSortedCustomerVisits.length:', uniqueSortedCustomerVisits.length);
 
-  // selectedCustomerId는 있지만 customers 배열에서도 summary_json에서도 못 찾았을 때
-  if (selectedCustomerId && !customer) {
-    return (
-      <div className="flex flex-col h-full items-center justify-center" style={{ backgroundColor: '#F2F0E6' }}>
-        <p className="text-center text-sm mb-4" style={{ color: '#8A7A6A' }}>
-          고객 정보를 찾을 수 없습니다.<br/>
-          (ID: {selectedCustomerId})
-        </p>
-        <button 
-          onClick={() => setCurrentScreen(SCREENS.HISTORY)} 
-          className="px-6 py-2 rounded-xl font-medium text-white shadow-md hover:opacity-90 transition-all"
-          style={{ backgroundColor: '#C9A27A' }}
-        >
-          히스토리로 돌아가기
-        </button>
-      </div>
-    );
-  }
 
   // 더 보기 함수
   const handleLoadMoreVisits = () => {
-    setVisibleVisitCount((prev) => Math.min(prev + 10, sortedCustomerVisits.length));
+    setVisibleVisitCount((prev) => Math.min(prev + 10, uniqueSortedCustomerVisits.length));
   };
 
   // 접기 함수
@@ -1030,7 +463,7 @@ function CustomerDetailScreen({
               {/* 첫 방문일 및 평균 방문 주기 요약 박스 */}
               {(() => {
                 // 방문 기록에서 날짜 추출
-                const visitDates = sortedCustomerVisits
+                const visitDates = uniqueSortedCustomerVisits
                   .map(visit => {
                     let baseDate = visit.serviceDate;
                     if (!baseDate && visit.detail && visit.detail.sections) {
@@ -1133,12 +566,12 @@ function CustomerDetailScreen({
         {/* 방문 히스토리 */}
         <div className="space-y-4 pb-32">
           <h3 className="text-base font-bold" style={{ color: '#232323' }}>방문 히스토리</h3>
-          {sortedCustomerVisits.length === 0 ? (
+          {uniqueSortedCustomerVisits.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 shadow-sm">
               <p className="font-light text-base" style={{ color: '#232323', opacity: 0.6 }}>방문 기록이 없습니다</p>
             </div>
           ) : (
-            sortedCustomerVisits.slice(0, visibleVisitCount).map((visit) => {
+            uniqueSortedCustomerVisits.slice(0, visibleVisitCount).map((visit) => {
               // 날짜/시간 정보 준비 (예약과 연결된 경우 예약 날짜/시간 우선, 그 다음 텍스트/녹음에서 추출한 날짜/시간)
               let dateTimeDisplay = '';
               
@@ -1436,9 +869,9 @@ function CustomerDetailScreen({
           )}
           
           {/* 이전 기록 더 보기 / 접기 버튼 */}
-          {(sortedCustomerVisits.length > visibleVisitCount || visibleVisitCount > 10) && (
+          {(uniqueSortedCustomerVisits.length > visibleVisitCount || visibleVisitCount > 10) && (
             <div className="flex justify-center mt-4 mb-20 gap-3">
-              {sortedCustomerVisits.length > visibleVisitCount && (
+              {uniqueSortedCustomerVisits.length > visibleVisitCount && (
                 <button
                   onClick={handleLoadMoreVisits}
                   className="px-4 py-2 text-sm rounded-full border border-[#C9A27A] text-[#C9A27A] bg-white/90 shadow-sm hover:bg-[#C9A27A] hover:text-white transition-colors min-w-[180px]"
