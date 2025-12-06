@@ -82,6 +82,18 @@ export default function MalloApp() {
 
   }, [supabaseReservations]);
 
+  // Supabase customers를 localStorage에 동기화 (삭제된 고객 제거)
+  useEffect(() => {
+    if (customers && customers.length >= 0) {
+      try {
+        localStorage.setItem('mallo_customers', JSON.stringify(customers));
+        console.log('[App] Supabase customers를 localStorage에 동기화:', customers.length, '명');
+      } catch (e) {
+        console.error('[App] localStorage 동기화 실패:', e);
+      }
+    }
+  }, [customers]);
+
 
 
   // UUID 검증 헬퍼 함수
@@ -258,7 +270,7 @@ export default function MalloApp() {
 
           reservationsLoading={reservationsLoading}
 
-          customers={customers}
+          customers={customers}  // Supabase에서 가져온 최신 customers 사용 (localStorage의 customers 덮어쓰기)
 
           reservations={reservations}
 

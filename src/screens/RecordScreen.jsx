@@ -1022,13 +1022,59 @@ function RecordScreen({
               // ========================================
               // 1단계: customerId 확보 (기존/신규/자동생성)
               // ========================================
-              let finalCustomerId = selectedCustomerForRecord?.id ?? null;
-              let customerName = selectedCustomerForRecord?.name ?? tempName;
-              let customerPhone = selectedCustomerForRecord?.phone ?? tempPhone;
+              // selectedCustomerForRecord의 ID가 있으면 customers 배열에서 최신 정보 찾기
+              let finalCustomerId = null;
+              let customerName = tempName;
+              let customerPhone = tempPhone;
+              
+              if (selectedCustomerForRecord?.id && customers && customers.length > 0) {
+                // customers 배열에서 최신 고객 정보 찾기
+                let latestCustomer = customers.find(c => 
+                  c.id === selectedCustomerForRecord.id || 
+                  String(c.id) === String(selectedCustomerForRecord.id)
+                );
+                
+                // ID로 찾지 못하면 이름과 전화번호로 찾기 시도
+                if (!latestCustomer && selectedCustomerForRecord.name && selectedCustomerForRecord.phone) {
+                  latestCustomer = customers.find(c => {
+                    const nameMatch = c.name?.trim() === selectedCustomerForRecord.name?.trim();
+                    const phoneMatch = c.phone?.trim() === selectedCustomerForRecord.phone?.trim() ||
+                                    c.phone?.replace(/[^0-9]/g, '') === selectedCustomerForRecord.phone?.replace(/[^0-9]/g, '');
+                    return nameMatch && phoneMatch;
+                  });
+                }
+                
+                // 이름만으로도 찾기 시도 (전화번호가 다를 수 있으므로)
+                if (!latestCustomer && selectedCustomerForRecord.name) {
+                  latestCustomer = customers.find(c => {
+                    return c.name?.trim() === selectedCustomerForRecord.name?.trim();
+                  });
+                }
+                
+                if (latestCustomer) {
+                  // customers 배열에서 찾은 최신 정보 사용
+                  finalCustomerId = latestCustomer.id;
+                  customerName = latestCustomer.name || selectedCustomerForRecord.name || tempName;
+                  customerPhone = latestCustomer.phone || selectedCustomerForRecord.phone || tempPhone;
+                  console.log('[저장 시작] customers 배열에서 최신 고객 정보 찾음:', latestCustomer);
+                } else {
+                  // customers 배열에서 찾지 못하면 selectedCustomerForRecord 사용
+                  finalCustomerId = selectedCustomerForRecord.id;
+                  customerName = selectedCustomerForRecord.name || tempName;
+                  customerPhone = selectedCustomerForRecord.phone || tempPhone;
+                  console.warn('[저장 시작] customers 배열에서 고객을 찾지 못함. selectedCustomerForRecord 사용:', selectedCustomerForRecord);
+                }
+              } else if (selectedCustomerForRecord) {
+                // selectedCustomerForRecord만 있는 경우
+                finalCustomerId = selectedCustomerForRecord.id;
+                customerName = selectedCustomerForRecord.name || tempName;
+                customerPhone = selectedCustomerForRecord.phone || tempPhone;
+              }
               
               console.log('[저장 시작] selectedCustomerForRecord:', selectedCustomerForRecord);
               console.log('[저장 시작] tempName:', tempName, 'tempPhone:', tempPhone);
-              console.log('[저장 시작] 초기 customerId:', finalCustomerId);
+              console.log('[저장 시작] 최종 customerId:', finalCustomerId);
+              console.log('[저장 시작] 최종 customerName:', customerName, 'customerPhone:', customerPhone);
               
               // 날짜 검증 (모든 경우에 필수)
               if (!tempServiceDate || !tempServiceDate.trim()) {

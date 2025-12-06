@@ -49,6 +49,7 @@ function HomeScreen({
   reservationsLoading = false,
   toggleReservationComplete,
   visits = {},
+  visitLogs = [], // Supabase visit_logs 추가
   updateReservation,
   setReservations,
   setSelectedReservation,
@@ -525,7 +526,7 @@ function HomeScreen({
                     const customerId = reservation.customerId ?? reservation.customer_id;
                     
                     if (customerId) {
-                      // customerId로 방문 기록 찾기
+                      // 1) visits 객체에서 방문 기록 찾기
                       const customerVisits =
                         visits[customerId] ||
                         visits[String(customerId)] ||
@@ -546,6 +547,87 @@ function HomeScreen({
                         
                         return false;
                       });
+                      
+                      // 2) Supabase visitLogs에서도 확인 (visits 객체에 없을 경우)
+                      if (!hasSummary && visitLogs && visitLogs.length > 0) {
+                        hasSummary = visitLogs.some(visit => {
+                          const visitCustomerId = visit.customerId || visit.customer_id;
+                          
+                          // 1순위: reservationId가 일치하는 경우 (customerId 무관)
+                          const visitReservationId = visit.reservationId || visit.reservation_id;
+                          if (visitReservationId === reservation.id) {
+                            console.log(`[HomeScreen] hasSummary=true (reservationId 일치): reservation.id=${reservation.id}, visit.id=${visit.id?.substring(0, 8)}...`);
+                            return true;
+                          }
+                          
+                          // 2순위: customerId가 일치하고 날짜가 일치하는 경우
+                          if (visitCustomerId && customerId) {
+                            const customerIdMatch = 
+                              String(visitCustomerId).toLowerCase() === String(customerId).toLowerCase() ||
+                              String(visitCustomerId) === String(customerId) ||
+                              visitCustomerId === customerId;
+                            
+                            if (customerIdMatch) {
+                              const visitDate = visit.serviceDate || visit.service_date;
+                              if (visitDate === reservation.date) {
+                                console.log(`[HomeScreen] hasSummary=true (customerId+날짜 일치): customerId=${customerId}, date=${reservation.date}, visit.id=${visit.id?.substring(0, 8)}...`);
+                                return true;
+                              }
+                            }
+                          }
+                          
+                          // 3순위: 날짜와 시간이 일치하는 경우 (customerId 무관)
+                          const visitDate = visit.serviceDate || visit.service_date;
+                          const visitTime = visit.serviceTime || visit.service_time;
+                          const reservationTime = reservation.time || reservation.timeLabel;
+                          
+                          if (visitDate === reservation.date) {
+                            // 시간도 일치하면 매칭 (시간 형식 정규화)
+                            if (visitTime && reservationTime) {
+                              const normalizedVisitTime = visitTime.replace(/[^0-9:]/g, '').substring(0, 5);
+                              const normalizedReservationTime = reservationTime.replace(/[^0-9:]/g, '').substring(0, 5);
+                              if (normalizedVisitTime === normalizedReservationTime) {
+                                console.log(`[HomeScreen] hasSummary=true (날짜+시간 일치): date=${reservation.date}, time=${reservationTime}, visit.id=${visit.id?.substring(0, 8)}...`);
+                                return true;
+                              }
+                            } else {
+                              // 시간이 없으면 날짜만으로도 매칭 (같은 날짜에 하나의 방문 기록만 있는 경우)
+                              console.log(`[HomeScreen] hasSummary=true (날짜만 일치): date=${reservation.date}, visit.id=${visit.id?.substring(0, 8)}...`);
+                              return true;
+                            }
+                          }
+                          
+                          return false;
+                        });
+                      }
+                    } else if (!customerId && visitLogs && visitLogs.length > 0) {
+                      // customerId가 없는 예약의 경우: 날짜와 시간으로만 매칭
+                      hasSummary = visitLogs.some(visit => {
+                        const visitDate = visit.serviceDate || visit.service_date;
+                        const visitTime = visit.serviceTime || visit.service_time;
+                        const reservationTime = reservation.time || reservation.timeLabel;
+                        
+                        if (visitDate === reservation.date) {
+                          if (visitTime && reservationTime) {
+                            const normalizedVisitTime = visitTime.replace(/[^0-9:]/g, '').substring(0, 5);
+                            const normalizedReservationTime = reservationTime.replace(/[^0-9:]/g, '').substring(0, 5);
+                            if (normalizedVisitTime === normalizedReservationTime) {
+                              console.log(`[HomeScreen] hasSummary=true (customerId 없음, 날짜+시간 일치): date=${reservation.date}, time=${reservationTime}`);
+                              return true;
+                            }
+                          } else {
+                            console.log(`[HomeScreen] hasSummary=true (customerId 없음, 날짜만 일치): date=${reservation.date}`);
+                            return true;
+                          }
+                        }
+                        
+                        return false;
+                      });
+                    }
+                    
+                    // 디버깅: hasSummary 계산 결과 확인
+                    if (reservation.id) {
+                      console.log(`[HomeScreen] 예약 ${reservation.id?.substring(0, 8)}... hasSummary=${hasSummary}, customerId=${customerId}, date=${reservation.date}, time=${reservation.time}`);
                     }
 
                     const isEditingMemo = editingMemoReservationId === reservation.id;

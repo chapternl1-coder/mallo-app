@@ -153,19 +153,49 @@ function HistoryScreen({
         }
 
         // customerName과 customerPhone 설정
-        // 우선순위: customer 프로필 > v.customerName > summary_json에서 추출
-        let customerName = customer?.name || v.customerName || null;
-        let customerPhone = customer?.phone || v.customerPhone || null;
+        // 우선순위: customer 프로필 (customerId로 찾은 것) > summary_json으로 customers 배열에서 찾기 > v.customerName > summary_json에서 추출
+        // customerId가 있으면 무조건 customers 배열의 정보를 사용 (summary_json의 예전 정보 무시)
+        let customerName = null;
+        let customerPhone = null;
         
-        // summary_json에서 고객 정보 추출 (customerName이 없을 때만)
-        if (!customerName) {
+        if (customer) {
+          // customerId로 찾은 고객이 있으면 무조건 그 정보 사용
+          customerName = customer.name?.trim() || null;
+          customerPhone = customer.phone?.trim() || null;
+        } else {
+          // customerId가 없거나 찾지 못한 경우
+          // summary_json의 고객 정보로 customers 배열에서 다시 찾기 시도
           const summaryJson = v.summaryJson || v.detail || {};
           const summaryCustomerInfo = summaryJson?.customerInfo || summaryJson?.customer || {};
-          if (summaryCustomerInfo?.name?.trim()) {
-            customerName = summaryCustomerInfo.name.trim();
-          }
-          if (!customerPhone && summaryCustomerInfo?.phone?.trim()) {
-            customerPhone = summaryCustomerInfo.phone.trim();
+          
+          if (summaryCustomerInfo?.name && customers && customers.length > 0) {
+            // 이름으로 customers 배열에서 찾기
+            let matchedCustomer = customers.find(c => {
+              return c.name?.trim() === summaryCustomerInfo.name?.trim();
+            });
+            
+            // 이름으로 찾지 못하면 전화번호로 찾기 시도
+            if (!matchedCustomer && summaryCustomerInfo?.phone) {
+              const summaryPhone = String(summaryCustomerInfo.phone).replace(/[^0-9]/g, '');
+              matchedCustomer = customers.find(c => {
+                const customerPhone = String(c.phone || '').replace(/[^0-9]/g, '');
+                return customerPhone === summaryPhone && customerPhone.length > 0;
+              });
+            }
+            
+            if (matchedCustomer) {
+              // customers 배열에서 찾은 최신 정보 사용
+              customerName = matchedCustomer.name?.trim() || null;
+              customerPhone = matchedCustomer.phone?.trim() || null;
+            } else {
+              // customers 배열에서 찾지 못하면 summary_json의 정보 사용
+              customerName = summaryCustomerInfo?.name?.trim() || v.customerName?.trim() || null;
+              customerPhone = summaryCustomerInfo?.phone?.trim() || v.customerPhone?.trim() || null;
+            }
+          } else {
+            // summary_json에 고객 정보가 없으면 v.customerName 사용
+            customerName = v.customerName?.trim() || null;
+            customerPhone = v.customerPhone?.trim() || null;
           }
         }
 
@@ -387,10 +417,28 @@ function HistoryScreen({
                   if (recordCustomerId && customers?.length) {
                     customer =
                       customers.find(
-                        (c) =>
-                          String(c.id) === String(recordCustomerId) ||
-                          c.id === recordCustomerId
+                        (c) => {
+                          const cId = c.id;
+                          const rId = recordCustomerId;
+                          // 정확히 일치하는 경우
+                          if (cId === rId) return true;
+                          // 문자열로 변환해서 비교
+                          if (String(cId) === String(rId)) return true;
+                          // 소문자로 변환해서 비교 (UUID 대소문자 차이)
+                          if (String(cId).toLowerCase() === String(rId).toLowerCase()) return true;
+                          return false;
+                        }
                       ) || null;
+                    
+                    // 디버깅: 고객을 찾지 못한 경우
+                    if (!customer && recordCustomerId) {
+                      console.warn(`[HistoryScreen] customerId로 고객을 찾지 못함. record.id: ${record.id?.substring(0, 8)}..., customerId: ${recordCustomerId}`);
+                      console.log('   customers 배열 길이:', customers.length);
+                      console.log('   customers 배열의 ID들:');
+                      customers.forEach((c, idx) => {
+                        console.log(`     [${idx}] id: ${c.id} (타입: ${typeof c.id}), name: ${c.name}`);
+                      });
+                    }
                   }
 
                   const connectedReservation =
@@ -453,31 +501,131 @@ function HistoryScreen({
                   }
 
                   // --- 표시용 이름/전화 fallback ---
-                  let displayName =
-                    customer?.name?.trim() ||
-                    (record.customerName &&
-                    record.customerName.trim() !== '' &&
-                    record.customerName.trim() !== '이름 미입력'
-                      ? record.customerName.trim()
-                      : null) ||
-                    (summaryCustomer.name &&
-                    summaryCustomer.name.trim() !== '' &&
-                    summaryCustomer.name.trim() !== '미기재'
-                      ? summaryCustomer.name.trim()
-                      : null) ||
-                    null;
+                  // customerId로 찾은 고객이 있으면 무조건 그 정보 사용 (summary_json의 예전 정보 무시)
+                  let displayName = null;
+                  let displayPhone = null;
+                  
+                  if (customer) {
+                    // customerId로 찾은 고객이 있으면 무조건 그 정보 사용
+                    displayName = customer.name?.trim() || null;
+                    displayPhone = customer.phone?.trim() || null;
+                  } else {
+                    // customerId가 없거나 찾지 못한 경우
+                    // summary_json에서 고객 정보 추출 (customerInfo + sections 모두 확인)
+                    const summaryJson = record.summaryJson || record.detail || {};
+                    let summaryCustomerInfo = summaryJson?.customerInfo || summaryJson?.customer || {};
+                    
+                    // summary_json.customerInfo가 없으면 sections에서 추출 시도
+                    if (!summaryCustomerInfo?.name && summaryJson?.sections) {
+                      for (const section of summaryJson.sections) {
+                        if (section.title && section.title.includes('고객 기본 정보') && section.content) {
+                          for (const contentItem of section.content) {
+                            if (typeof contentItem === 'string') {
+                              const nameMatch = contentItem.match(/이름[:\s]+([^\n/]+)/i);
+                              if (nameMatch && !summaryCustomerInfo.name) {
+                                summaryCustomerInfo.name = nameMatch[1].trim();
+                              }
+                              const phoneMatch = contentItem.match(/전화번호[:\s]+([^\n/]+)/i);
+                              if (phoneMatch && !summaryCustomerInfo.phone) {
+                                summaryCustomerInfo.phone = phoneMatch[1].trim();
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                    
+                    if (summaryCustomerInfo?.name && customers?.length) {
+                      // 이름으로 customers 배열에서 찾기
+                      let matchedCustomer = customers.find(c => {
+                        return c.name?.trim() === summaryCustomerInfo.name?.trim();
+                      });
+                      
+                      // 이름으로 찾지 못하면 전화번호로 찾기 시도
+                      if (!matchedCustomer && summaryCustomerInfo?.phone) {
+                        const summaryPhone = String(summaryCustomerInfo.phone).replace(/[^0-9]/g, '');
+                        matchedCustomer = customers.find(c => {
+                          const customerPhone = String(c.phone || '').replace(/[^0-9]/g, '');
+                          return customerPhone === summaryPhone && customerPhone.length > 0;
+                        });
+                      }
+                      
+                      if (matchedCustomer) {
+                        // customers 배열에서 찾은 최신 정보 사용
+                        displayName = matchedCustomer.name?.trim() || null;
+                        displayPhone = matchedCustomer.phone?.trim() || null;
+                        console.log(`[HistoryScreen] summary_json으로 고객 찾기 성공: ${displayName} (${displayPhone})`);
+                      } else {
+                        // customers 배열에서 찾지 못하면 summary_json의 정보 사용
+                        displayName =
+                          (summaryCustomerInfo?.name &&
+                          summaryCustomerInfo.name.trim() !== '' &&
+                          summaryCustomerInfo.name.trim() !== '미기재'
+                            ? summaryCustomerInfo.name.trim()
+                            : null) ||
+                          (record.customerName &&
+                          record.customerName.trim() !== '' &&
+                          record.customerName.trim() !== '이름 미입력'
+                            ? record.customerName.trim()
+                            : null) ||
+                          null;
 
-                  let displayPhone =
-                    customer?.phone ||
-                    (record.customerPhone &&
-                    record.customerPhone.trim() !== ''
-                      ? record.customerPhone.trim()
-                      : null) ||
-                    (summaryCustomer.phone &&
-                    String(summaryCustomer.phone).trim() !== ''
-                      ? String(summaryCustomer.phone).trim()
-                      : null) ||
-                    null;
+                        displayPhone =
+                          (summaryCustomerInfo?.phone &&
+                          String(summaryCustomerInfo.phone).trim() !== ''
+                            ? String(summaryCustomerInfo.phone).trim()
+                            : null) ||
+                          (record.customerPhone &&
+                          record.customerPhone.trim() !== ''
+                            ? record.customerPhone.trim()
+                            : null) ||
+                          null;
+                        console.log(`[HistoryScreen] summary_json에서 고객 정보 추출: ${displayName} (${displayPhone})`);
+                      }
+                    } else if (summaryCustomerInfo?.name) {
+                      // summary_json에 고객 정보가 있지만 customers 배열이 없는 경우
+                      displayName = summaryCustomerInfo.name.trim() !== '' && summaryCustomerInfo.name.trim() !== '미기재'
+                        ? summaryCustomerInfo.name.trim()
+                        : null;
+                      displayPhone = summaryCustomerInfo.phone && String(summaryCustomerInfo.phone).trim() !== ''
+                        ? String(summaryCustomerInfo.phone).trim()
+                        : null;
+                      console.log(`[HistoryScreen] summary_json에서 고객 정보 직접 사용: ${displayName} (${displayPhone})`);
+                    } else {
+                      // summary_json에 고객 정보가 없으면 기존 로직 사용
+                      displayName =
+                        (record.customerName &&
+                        record.customerName.trim() !== '' &&
+                        record.customerName.trim() !== '이름 미입력'
+                          ? record.customerName.trim()
+                          : null) ||
+                        (summaryCustomer.name &&
+                        summaryCustomer.name.trim() !== '' &&
+                        summaryCustomer.name.trim() !== '미기재'
+                          ? summaryCustomer.name.trim()
+                          : null) ||
+                        null;
+
+                      displayPhone =
+                        (record.customerPhone &&
+                        record.customerPhone.trim() !== ''
+                          ? record.customerPhone.trim()
+                          : null) ||
+                        (summaryCustomer.phone &&
+                        String(summaryCustomer.phone).trim() !== ''
+                          ? String(summaryCustomer.phone).trim()
+                          : null) ||
+                        null;
+                    }
+                  }
+                  
+                  // 디버깅: 고객 연결 상태 확인
+                  if (!customer && recordCustomerId) {
+                    console.log(`[HistoryScreen] customerId가 있지만 고객을 찾지 못함. record.id: ${record.id?.substring(0, 8)}..., customerId: ${recordCustomerId}`);
+                  }
+                  if (!customer && !recordCustomerId) {
+                    console.log(`[HistoryScreen] customerId가 null. record.id: ${record.id?.substring(0, 8)}..., displayName: ${displayName}, displayPhone: ${displayPhone}`);
+                  }
 
                   const summaryTitle =
                     record.summaryJson?.title || record.title || '';

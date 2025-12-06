@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
 import { ArrowLeft, X } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
+import { supabase } from '../lib/supabaseClient';
+import { useAuth } from '../contexts/AuthContext';
+
+// UUID 검증 헬퍼 함수
+const isValidUuid = (value) => {
+  if (typeof value !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value
+  );
+};
 
 function EditCustomerScreen({
   editCustomerName,
@@ -26,8 +36,10 @@ function EditCustomerScreen({
   setSelectedCustomerId,
   saveToLocalStorage,
   reservations,
-  setReservations
+  setReservations,
+  refreshVisitLogs
 }) {
+  const { user } = useAuth();
   const handleComplete = () => {
     if (!editCustomerName.trim()) {
       alert('이름은 필수입니다.');
@@ -236,7 +248,7 @@ function EditCustomerScreen({
         {/* 고객 삭제 버튼 (스크롤 끝에만 표시) */}
         <div className="flex justify-center p-6 mt-5">
           <button 
-            onClick={() => {
+            onClick={async () => {
               // 경고 메시지 (더 명확하게)
               const confirmMessage = `⚠️ 경고: "${editCustomerName}" 고객을 삭제하시겠습니까?\n\n` +
                 `다음 항목이 모두 삭제됩니다:\n` +
@@ -248,7 +260,134 @@ function EditCustomerScreen({
               if (window.confirm(confirmMessage)) {
                 const customerId = selectedCustomerId;
                 
-                // 고객 삭제
+                // 1. Supabase에서 고객 삭제 (UUID인 경우만)
+                if (isValidUuid(customerId) && user) {
+                  try {
+                    const { error: customerError } = await supabase
+                      .from('customers')
+                      .delete()
+                      .eq('id', customerId)
+                      .eq('owner_id', user.id);
+                    
+                    if (customerError) {
+                      console.error('[Supabase] 고객 삭제 에러:', customerError);
+                      alert('고객 삭제 중 오류가 발생했습니다: ' + customerError.message);
+                      return;
+                    }
+                    console.log('[Supabase] 고객 삭제 성공:', customerId);
+                  } catch (e) {
+                    console.error('[Supabase] 고객 삭제 중 예외:', e);
+                    alert('고객 삭제 중 오류가 발생했습니다.');
+                    return;
+                  }
+                }
+                
+                // 2. Supabase에서 해당 고객의 예약 삭제
+                if (user && reservations) {
+                  const customerReservations = reservations.filter(res => {
+                    const resCustomerId = res.customerId || res.customer_id;
+                    return resCustomerId === customerId || 
+                           String(resCustomerId) === String(customerId);
+                  });
+                  
+                  for (const reservation of customerReservations) {
+                    if (isValidUuid(reservation.id)) {
+                      try {
+                        const { error: reservationError } = await supabase
+                          .from('reservations')
+                          .delete()
+                          .eq('id', reservation.id)
+                          .eq('owner_id', user.id);
+                        
+                        if (reservationError) {
+                          console.error('[Supabase] 예약 삭제 에러:', reservationError);
+                        } else {
+                          console.log('[Supabase] 예약 삭제 성공:', reservation.id);
+                        }
+                      } catch (e) {
+                        console.error('[Supabase] 예약 삭제 중 예외:', e);
+                      }
+                    }
+                  }
+                }
+                
+                // 3. Supabase에서 해당 고객의 방문 기록 삭제
+                // 3-1. customer_id로 직접 연결된 방문 기록 삭제
+                if (user && isValidUuid(customerId)) {
+                  try {
+                    const { error: visitLogsError } = await supabase
+                      .from('visit_logs')
+                      .delete()
+                      .eq('customer_id', customerId)
+                      .eq('owner_id', user.id);
+                    
+                    if (visitLogsError) {
+                      console.error('[Supabase] 방문 기록 삭제 에러 (customer_id):', visitLogsError);
+                    } else {
+                      console.log('[Supabase] 방문 기록 삭제 성공 (customer_id)');
+                    }
+                  } catch (e) {
+                    console.error('[Supabase] 방문 기록 삭제 중 예외 (customer_id):', e);
+                  }
+                }
+                
+                // 3-2. summary_json에 고객 정보가 있는 방문 기록도 삭제
+                // customer_id가 null이지만 summary_json.customerInfo에 이름/전화번호가 일치하는 경우
+                if (user && editCustomerName && editCustomerPhone) {
+                  try {
+                    // 먼저 모든 방문 기록을 가져와서 필터링
+                    const { data: allVisitLogs, error: fetchError } = await supabase
+                      .from('visit_logs')
+                      .select('id, summary_json, customer_id')
+                      .eq('owner_id', user.id)
+                      .is('customer_id', null); // customer_id가 null인 것만
+                    
+                    if (fetchError) {
+                      console.error('[Supabase] 방문 기록 조회 에러:', fetchError);
+                    } else if (allVisitLogs && allVisitLogs.length > 0) {
+                      // summary_json에서 고객 정보를 추출하여 일치하는 방문 기록 찾기
+                      const matchingVisitIds = [];
+                      
+                      allVisitLogs.forEach(visit => {
+                        const summaryJson = visit.summary_json || {};
+                        const customerInfo = summaryJson.customerInfo || summaryJson.customer || {};
+                        const summaryName = customerInfo.name?.trim();
+                        const summaryPhone = String(customerInfo.phone || '').replace(/[^0-9]/g, '');
+                        const customerName = editCustomerName.trim();
+                        const customerPhone = String(editCustomerPhone).replace(/[^0-9]/g, '');
+                        
+                        // 이름과 전화번호가 모두 일치하면 삭제 대상
+                        if (summaryName === customerName && summaryPhone === customerPhone && summaryPhone.length > 0) {
+                          matchingVisitIds.push(visit.id);
+                        }
+                      });
+                      
+                      // 일치하는 방문 기록 삭제
+                      if (matchingVisitIds.length > 0) {
+                        const { error: deleteError } = await supabase
+                          .from('visit_logs')
+                          .delete()
+                          .in('id', matchingVisitIds)
+                          .eq('owner_id', user.id);
+                        
+                        if (deleteError) {
+                          console.error('[Supabase] 방문 기록 삭제 에러 (summary_json):', deleteError);
+                        } else {
+                          console.log(`[Supabase] 방문 기록 삭제 성공 (summary_json): ${matchingVisitIds.length}개`);
+                        }
+                      }
+                    }
+                  } catch (e) {
+                    console.error('[Supabase] 방문 기록 삭제 중 예외 (summary_json):', e);
+                  }
+                }
+                
+                // 3-3. visit_logs 새로고침
+                if (refreshVisitLogs) {
+                  refreshVisitLogs();
+                }
+                
+                // 4. 로컬 state에서 고객 삭제
                 setCustomers(prev => {
                   const updated = prev.filter(c => c.id !== customerId);
                   // localStorage에 저장
@@ -258,22 +397,47 @@ function EditCustomerScreen({
                   return updated;
                 });
                 
-                // 해당 고객의 방문 기록 삭제
+                // 5. 로컬 state에서 해당 고객의 방문 기록 삭제
+                // customerId로 직접 연결된 것 + summary_json에 고객 정보가 있는 것도 삭제
                 setVisits(prev => {
                   const updated = { ...prev };
+                  
+                  // customerId로 직접 연결된 방문 기록 삭제
                   delete updated[customerId];
+                  delete updated[String(customerId)];
+                  
+                  // 'no_customer' 키의 방문 기록에서도 해당 고객의 기록 삭제
+                  if (updated['no_customer'] && Array.isArray(updated['no_customer'])) {
+                    updated['no_customer'] = updated['no_customer'].filter(visit => {
+                      const summaryJson = visit.summaryJson || visit.detail || {};
+                      const customerInfo = summaryJson.customerInfo || summaryJson.customer || {};
+                      const summaryName = customerInfo.name?.trim();
+                      const summaryPhone = String(customerInfo.phone || '').replace(/[^0-9]/g, '');
+                      const customerName = editCustomerName.trim();
+                      const customerPhone = String(editCustomerPhone).replace(/[^0-9]/g, '');
+                      
+                      // 이름과 전화번호가 모두 일치하면 삭제
+                      return !(summaryName === customerName && summaryPhone === customerPhone && summaryPhone.length > 0);
+                    });
+                    
+                    // 'no_customer' 배열이 비어있으면 키 자체를 삭제
+                    if (updated['no_customer'].length === 0) {
+                      delete updated['no_customer'];
+                    }
+                  }
+                  
                   // localStorage에 저장
                   localStorage.setItem('visits', JSON.stringify(updated));
                   return updated;
                 });
                 
-                // 해당 고객의 예약 정보 삭제 (customerId로 연결된 예약)
+                // 6. 로컬 state에서 해당 고객의 예약 정보 삭제
                 if (setReservations && reservations) {
                   setReservations(prev => {
                     const updated = prev.filter(res => {
                       // customerId가 일치하는 예약 삭제
                       // 숫자와 문자열 ID 모두 처리
-                      const resCustomerId = res.customerId;
+                      const resCustomerId = res.customerId || res.customer_id;
                       const matchById = resCustomerId === customerId || 
                                        String(resCustomerId) === String(customerId);
                       
@@ -292,7 +456,7 @@ function EditCustomerScreen({
                   });
                 }
                 
-                // 상태 초기화
+                // 7. 상태 초기화
                 setEditCustomerName('');
                 setEditCustomerPhone('');
                 setEditCustomerTags([]);
@@ -300,7 +464,7 @@ function EditCustomerScreen({
                 setEditCustomerMemo('');
                 setNewTag('');
                 
-                // History 화면으로 이동
+                // 8. History 화면으로 이동
                 setSelectedCustomerId(null);
                 setCurrentScreen(SCREENS.HISTORY);
               }

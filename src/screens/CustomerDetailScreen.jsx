@@ -42,41 +42,38 @@ function CustomerDetailScreen({
   setSelectedCustomerForRecord,
   startRecording,
   setSelectedReservation,
-  MOCK_CUSTOMERS,
   reservations = [] // 예약 정보 (예약과 연결된 방문 기록의 날짜/시간 확인용)
 }) {
   // customers 배열에서 고객 찾기 (숫자와 문자열 ID 모두 처리)
-  let customer = customers.find(c => {
-    return c.id === selectedCustomerId || String(c.id) === String(selectedCustomerId);
-  });
+  // UUID 대소문자 차이도 고려하여 비교
+  let customer = null;
   
-  // customers 배열에 없으면 MOCK_CUSTOMERS에서 직접 찾기
-  if (!customer) {
-    console.log('customers 배열에 고객이 없어서 MOCK_CUSTOMERS에서 찾는 중...');
-    const mockCustomer = MOCK_CUSTOMERS.find(c => {
-      return c.id === selectedCustomerId || String(c.id) === String(selectedCustomerId);
+  if (customers && customers.length > 0 && selectedCustomerId) {
+    customer = customers.find(c => {
+      const cId = c.id;
+      const selectedId = selectedCustomerId;
+      
+      // 정확히 일치하는 경우
+      if (cId === selectedId) return true;
+      
+      // 문자열로 변환해서 비교
+      if (String(cId) === String(selectedId)) return true;
+      
+      // 소문자로 변환해서 비교 (UUID 대소문자 차이)
+      if (String(cId).toLowerCase() === String(selectedId).toLowerCase()) return true;
+      
+      return false;
     });
-    if (mockCustomer) {
-      console.log('MOCK_CUSTOMERS에서 찾은 고객:', mockCustomer);
-      customer = { 
-        ...mockCustomer, 
-        tags: (mockCustomer.tags || []).filter(tag => tag !== '#신규'),
-        customerTags: mockCustomer.customerTags || {
-          caution: [],
-          trait: [],
-          payment: [],
-          pattern: []
-        }
-      };
-      // customers 배열에 추가 (useEffect로 처리)
-      setTimeout(() => {
-        setCustomers(prev => {
-          if (!prev.find(c => c.id === selectedCustomerId)) {
-            return [...prev, customer];
-          }
-          return prev;
-        });
-      }, 0);
+    
+    // 디버깅: 고객을 찾지 못한 경우
+    if (!customer) {
+      console.warn('[CustomerDetailScreen] 고객을 찾지 못함');
+      console.log('   selectedCustomerId:', selectedCustomerId, '(타입:', typeof selectedCustomerId, ')');
+      console.log('   customers 배열 길이:', customers.length);
+      console.log('   customers 배열의 ID들:');
+      customers.forEach((c, idx) => {
+        console.log(`     [${idx}] id: ${c.id} (타입: ${typeof c.id}), name: ${c.name}`);
+      });
     }
   }
   
@@ -720,13 +717,64 @@ function CustomerDetailScreen({
     return totalMinutesB - totalMinutesA;
   });
   
+  // customers 배열에서 찾지 못했지만 방문 기록이 있는 경우
+  // summary_json에서 고객 정보를 추출하여 임시 고객 객체 생성
+  if (!customer && selectedCustomerId && customerVisits.length > 0) {
+    // 첫 번째 방문 기록의 summary_json에서 고객 정보 추출
+    const firstVisit = customerVisits[0];
+    const summaryJson = firstVisit.summaryJson || firstVisit.detail || {};
+    const customerInfo = summaryJson.customerInfo || summaryJson.customer || {};
+    
+    // sections에서도 고객 정보 추출 시도
+    let extractedName = customerInfo.name?.trim();
+    let extractedPhone = customerInfo.phone?.trim();
+    
+    if (!extractedName && summaryJson.sections) {
+      for (const section of summaryJson.sections) {
+        if (section.title && section.title.includes('고객 기본 정보') && section.content) {
+          for (const contentItem of section.content) {
+            if (typeof contentItem === 'string') {
+              const nameMatch = contentItem.match(/이름[:\s]+([^\n/]+)/i);
+              if (nameMatch && !extractedName) {
+                extractedName = nameMatch[1].trim();
+              }
+              const phoneMatch = contentItem.match(/전화번호[:\s]+([^\n/]+)/i);
+              if (phoneMatch && !extractedPhone) {
+                extractedPhone = phoneMatch[1].trim();
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // 임시 고객 객체 생성
+    if (extractedName) {
+      customer = {
+        id: selectedCustomerId,
+        name: extractedName,
+        phone: extractedPhone || '',
+        customerTags: {
+          caution: [],
+          trait: [],
+          payment: [],
+          pattern: []
+        },
+        visitCount: customerVisits.length,
+        // 삭제된 고객임을 표시하는 플래그
+        isDeleted: true
+      };
+      console.log('[CustomerDetailScreen] summary_json에서 고객 정보 추출:', customer);
+    }
+  }
+  
   console.log('CustomerDetailScreen - 최종 찾은 고객:', customer);
   console.log('CustomerDetailScreen - customer.customerTags:', customer?.customerTags);
   console.log('CustomerDetailScreen - customerVisits:', customerVisits);
   console.log('[CustomerDetailScreen] customer:', customer);
   console.log('[CustomerDetailScreen] sortedCustomerVisits.length:', sortedCustomerVisits.length);
 
-  // selectedCustomerId는 있지만 customers 배열에서 못 찾았을 때
+  // selectedCustomerId는 있지만 customers 배열에서도 summary_json에서도 못 찾았을 때
   if (selectedCustomerId && !customer) {
     return (
       <div className="flex flex-col h-full items-center justify-center" style={{ backgroundColor: '#F2F0E6' }}>
@@ -766,7 +814,7 @@ function CustomerDetailScreen({
 
   // 이 고객에 대한 새 기록 남기기 핸들러 (고객 상세 전용 화면으로 이동)
   const handleCreateRecordForCustomer = () => {
-    // customers 배열에서 최신 고객 정보를 다시 찾아서 사용 (MOCK_CUSTOMERS에서 온 경우 대비)
+    // customers 배열에서 최신 고객 정보를 다시 찾아서 사용
     const latestCustomer = customers.find(c => 
       c.id === customer.id || 
       String(c.id) === String(customer.id) ||
