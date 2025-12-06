@@ -12,6 +12,7 @@ import { normalizePhone } from '../utils/customerListUtils';
 import { SYSTEM_PROMPT } from '../constants/systemPrompt';
 import TagPickerModal from '../components/TagPickerModal';
 import CustomerTagPickerModal from '../components/CustomerTagPickerModal';
+import { supabase } from '../lib/supabaseClient';
 
 // 녹음 시간 제한 상수
 const MAX_RECORD_SECONDS = 120; // 2분
@@ -46,7 +47,16 @@ function clearMalloStorage() {
   }
 }
 
-export default function useMalloAppState() {
+// 로컬 날짜 기준 오늘 날짜 키 생성 (UTC 버그 방지)
+function getLocalTodayKey() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export default function useMalloAppState(user) {
   const [currentScreen, setCurrentScreenState] = useState(SCREENS.LOGIN);
   const [previousScreen, setPreviousScreen] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -1629,7 +1639,7 @@ export default function useMalloAppState() {
   };
 
   // 예약 관련 함수들
-  const addReservation = ({ time, name, customerId = null, date, phone, phoneLast4 }) => {
+  const addReservation = async ({ time, name, customerId = null, date, phone, phoneLast4, memo }) => {
     // 예약 생성 시점에 신규 여부 판단
     let isNewReservation = true;
     
@@ -1654,18 +1664,70 @@ export default function useMalloAppState() {
       }
     }
     
+    // 날짜 키 생성 (YYYY-MM-DD 형식)
+    const dateKey = date || (() => {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    })();
+    
+    // 시간 입력이 없을 수도 있으니까 기본값은 '00:00'으로
+    const safeTime = time && time.length >= 4 ? time : '00:00';
+    
+    // KST(+09:00)를 기준으로 reserved_at 타임스탬프 만들기
+    const reservedAt = new Date(`${dateKey}T${safeTime}:00+09:00`).toISOString();
+    
+    // ⚠️ Supabase insert는 ReservationScreen에서만 처리하도록 변경
+    // 예약 추가 = ReservationScreen 한 군데에서만 insert
+    // 읽기 = useSupabaseReservations 훅이 select만 담당
+    // if (user && user.id) {
+    //   try {
+    //     const { data, error } = await supabase
+    //       .from('reservations')
+    //       .insert({
+    //         owner_id: user.id,
+    //         reserved_at: reservedAt,
+    //         customer_id: customerId || null,
+    //         status: 'scheduled',
+    //         memo: memo || '',
+    //       })
+    //       .select()
+    //       .single();
+    //     
+    //     console.log('[예약 추가 결과]', data, error);
+    //     
+    //     if (error) {
+    //       console.error('[예약 추가 에러]', error);
+    //     } else if (data) {
+    //       const newReservation = {
+    //         id: data.id,
+    //         time,
+    //         name,
+    //         customerId: data.customer_id || null,
+    //         date: dateKey,
+    //         phone: phone || '',
+    //         phoneLast4: phoneLast4 || (phone ? phone.slice(-4) : ''),
+    //         isCompleted: false,
+    //         isNew: isNewReservation,
+    //         reserved_at: data.reserved_at,
+    //       };
+    //       setReservations(prev => [...prev, newReservation]);
+    //       return newReservation;
+    //     }
+    //   } catch (err) {
+    //     console.error('[예약 추가 예외]', err);
+    //   }
+    // }
+    
+    // Supabase insert 실패 시 또는 user가 없을 때 로컬 state만 업데이트 (fallback)
     const newReservation = {
       id: `${Date.now()}_${Math.random().toString(16).slice(2, 6)}`,
       time,
       name,
       customerId, // 고객 id 연결 (없으면 null)
-      date: date || (() => {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      })(),
+      date: dateKey,
       phone: phone || '',
       phoneLast4: phoneLast4 || (phone ? phone.slice(-4) : ''),
       isCompleted: false,

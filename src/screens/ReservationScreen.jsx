@@ -5,6 +5,8 @@ import { formatPhoneNumber } from '../utils/formatters';
 import { filterCustomersBySearch } from '../utils/customerListUtils';
 import ExpandableCalendar from '../components/ExpandableCalendar';
 import { format } from 'date-fns';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabaseClient';
 
 function ReservationScreen({
   reservations,
@@ -25,6 +27,8 @@ function ReservationScreen({
     useState(null);
   const [showMatchingCustomers, setShowMatchingCustomers] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  
+  const { user } = useAuth();
 
   // 페이지 진입 시 스크롤을 최상단으로 이동
   useEffect(() => {
@@ -103,45 +107,142 @@ function ReservationScreen({
     setShowMatchingCustomers(false);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const trimmedName = nameInput.trim();
     const trimmedPhone = phoneInput.trim();
 
-    if (!timeInput || !trimmedName) {
-      alert('시간과 이름을 모두 입력해주세요.');
-      return;
-    }
-    
-    if (!trimmedPhone) {
-      alert('전화번호를 입력해주세요.');
+    // 1) 기본 입력값 검증 (시간/이름/전화)
+    if (!timeInput || !trimmedName || !trimmedPhone) {
+      alert('시간, 이름, 전화번호를 모두 입력해 주세요.');
       return;
     }
 
-    // ✨ 자동완성에서 직접 선택했을 때만 기존 고객으로 연결
-    // 선택하지 않으면 customerId는 null로 신규 예약으로 추가됨
-    const customerIdToUse = selectedExistingCustomerId || null;
+    const time = timeInput;
+    const name = trimmedName;
+    const phone = trimmedPhone;
+    const selectedDateKey = selectedDateStr;
+    const memo = ''; // 메모는 현재 폼에 없으므로 빈 문자열
 
-      const reservationData = {
-      date: selectedDateStr, // 선택된 날짜로 예약 추가
-      time: timeInput,
-      name: trimmedName,
-      phone: trimmedPhone,
-      customerId: customerIdToUse,
-      phoneLast4: trimmedPhone.slice(-4),
+    // Supabase에 연결할 수 없는 경우: 기존 로컬 로직만 실행해서 앱이 깨지지 않도록
+    const isSupabaseReady = !!user;
+
+    let customerId = null;
+
+    // 2) customers 테이블에서 (owner_id + phone) 으로 고객 찾기, 없으면 새로 생성
+    if (isSupabaseReady) {
+      try {
+        // 기존 고객 조회
+        const { data: existing, error: selectError } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('owner_id', user.id)
+          .eq('phone', phone)
+          .limit(1);
+
+        if (selectError) {
+          console.error('[Supabase] customers 조회 에러:', selectError);
+        }
+
+        let customerRow = existing?.[0] ?? null;
+
+        // 없으면 새로 insert
+        if (!customerRow) {
+          const { data: inserted, error: insertError } = await supabase
+            .from('customers')
+            .insert({
+              owner_id: user.id,
+              name,
+              phone,
+              memo: '', // 필요하면 나중에 메모도 넣자
+            })
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error('[Supabase] customers insert 에러:', insertError);
+          } else {
+            customerRow = inserted;
+          }
+        }
+
+        customerId = customerRow?.id ?? null;
+      } catch (e) {
+        console.error('[Supabase] customers 처리 중 예외:', e);
+      }
+    }
+
+    // 자동완성에서 직접 선택한 고객 ID가 있으면 우선 사용
+    const customerIdToUse = selectedExistingCustomerId || customerId || null;
+
+    // 3) reservations 테이블에 예약 row insert
+    let supabaseReservationId = null;
+
+    if (isSupabaseReady) {
+      try {
+        // selectedDateKey 예: '2025-12-06'
+        const dateKey = selectedDateKey;
+
+        // time 예: '11:11'
+        const [hh, mm] =
+          typeof time === 'string' && time.includes(':')
+            ? time.split(':')
+            : ['00', '00'];
+
+        const reservedAt = new Date(`${dateKey}T${hh}:${mm}:00+09:00`).toISOString();
+
+        const { data: reservationRow, error: reservationError } = await supabase
+          .from('reservations')
+          .insert({
+            owner_id: user.id,         // RLS를 위해 꼭 필요
+            customer_id: customerIdToUse,   // 위에서 구한 고객 id (없으면 null 허용)
+            reserved_at: reservedAt,   // 예약 날짜/시간
+            status: 'scheduled',
+            memo: memo || '',
+          })
+          .select()
+          .single();
+
+        if (reservationError) {
+          console.error('[Supabase] reservations insert 에러:', reservationError);
+        } else {
+          supabaseReservationId = reservationRow.id;
+          console.log('[Supabase] reservations insert 성공:', reservationRow);
+        }
+      } catch (e) {
+        console.error('[Supabase] reservations 처리 중 예외:', e);
+      }
+    }
+
+    // 4) 기존 앱 내부 상태(로컬)에도 동일한 예약 추가
+    //    - id는 Supabase에서 넘어온 id가 있으면 그걸 쓰고, 아니면 기존 방식(Date.now 등)을 그대로 써줘.
+    const localReservation = {
+      id: supabaseReservationId || Date.now().toString(),
+      date: selectedDateKey,
+      time,
+      name,
+      phone,
+      memo,
+      customerId: customerIdToUse || null,
+      phoneLast4: phone.slice(-4),
       isCompleted: false,
     };
 
-    console.log('[예약 추가]', reservationData);
+    console.log('[예약 추가 로컬]', localReservation);
 
-      if (addReservation) {
-      const result = addReservation(reservationData);
+    // 기존에 사용하던 addReservation / addReservationForDate 등의 함수 그대로 사용
+    if (addReservation) {
+      const result = addReservation(localReservation);
       console.log('[예약 추가 결과]', result);
     } else {
       console.error('[예약 추가 실패] addReservation 함수가 없습니다.');
-      }
+    }
 
+    // 5) 폼 리셋 + 홈으로 이동 (기존 로직 그대로 유지)
     resetForm();
+    if (setCurrentScreen) {
+      setCurrentScreen(SCREENS.HOME);
+    }
   };
 
   // 예약 삭제
@@ -183,8 +284,7 @@ function ReservationScreen({
           )}
 
           {showForm && (
-                <form
-                  onSubmit={handleSubmit}
+                <div
                   className="mb-4 rounded-2xl bg-[#F8F5EE] px-4 py-3 shadow-sm relative"
               >
                   {/* 시간과 이름 입력 (한 줄) */}
@@ -318,7 +418,8 @@ function ReservationScreen({
 
                   <div className="mt-3 flex gap-2">
                     <button
-                      type="submit"
+                      type="button"
+                      onClick={handleSubmit}
                       className="flex-[6.5] h-9 rounded-lg bg-[#C9A27A] text-xs font-semibold text-white"
                     >
                       추가
@@ -337,7 +438,7 @@ function ReservationScreen({
                     자동완성 목록에서 고객을 선택하면 전화번호가 자동으로 입력되고 기존 고객과 연결됩니다.
                     자동완성 목록을 선택하지 않고 다른 곳을 클릭하면 신규 고객으로 등록할 수 있습니다.
                   </p>
-                </form>
+                </div>
           )}
 
           {/* 예약 리스트 */}

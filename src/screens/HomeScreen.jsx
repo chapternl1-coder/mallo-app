@@ -16,6 +16,25 @@ import useSupabaseReservations from '../hooks/useSupabaseReservations';
  * - 오늘 방문 예정 고객 리스트
  * - 플로팅 녹음 버튼 (신규/비예약 고객용)
  */
+
+// HomeScreen.jsx 상단, 컴포넌트 바깥에 추가
+function getDateKeyFromTimestamp(ts) {
+  if (!ts) return '';
+  const d = typeof ts === 'string' ? new Date(ts) : ts;
+  // 로컬 날짜 기준 YYYY-MM-DD 형태 키 (UTC 버그 방지)
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatTimeLabelFromTimestamp(ts) {
+  if (!ts) return '--:--';
+  const d = typeof ts === 'string' ? new Date(ts) : ts;
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
 function HomeScreen({
   currentScreen,
   setCurrentScreen,
@@ -50,12 +69,58 @@ function HomeScreen({
     return saved === 'voice' || saved === 'text' ? saved : 'voice';
   });
 
-  // Supabase에서 가져온 예약들을 홈 카드용으로 변환해서 받는다
-  const {
-    reservationsForSelectedDate: supabaseReservationsForSelectedDate,
-    loading: supabaseLoading,
-    error: supabaseError,
-  } = useSupabaseReservations(selectedDate);
+  // 선택된 날짜를 YYYY-MM-DD 형식으로 변환
+  const selectedDateKey = useMemo(() => {
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(selectedDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, [selectedDate]);
+
+  // 1) Supabase 데이터 불러오기
+  const { reservations: supabaseReservations } = useSupabaseReservations();
+
+  // 2) 오늘 날짜 기준으로 Supabase 예약 필터 + UI용 데이터로 변환
+  const todayReservationsForHome = useMemo(() => {
+    if (!supabaseReservations || supabaseReservations.length === 0) return [];
+
+    const targetKey = selectedDateKey; // 예: '2025-12-06'
+
+    // ① 날짜로 필터 (date 필드 직접 사용)
+    const sameDayRows = supabaseReservations.filter((row) => {
+      return row.date === targetKey;
+    });
+
+    // ② 홈 카드에서 쓰는 형태로 변환 (이미 필요한 필드가 모두 있음)
+    const mapped = sameDayRows.map((row) => {
+      return {
+        // ⚠️ 아래 필드 이름은 "홈 카드 JSX에서 실제로 쓰는 이름"에 맞춰서 사용해
+        id: row.id,
+        timeLabel: row.time, // 'HH:MM' 형식
+        time: row.time, // 기존 코드 호환성
+        name: row.name || '이름 없음',
+        phone: row.phone || '',
+        memo: row.memo || '',
+        note: row.memo || '', // 기존 코드 호환성
+        customerId: row.customerId || null, // 기존 코드 호환성
+        date: row.date, // 'YYYY-MM-DD' 형식
+        // 필요하면 isFirstVisit 같은 것도 여기서 계산
+        isFirstVisit: false,
+        isNew: false, // 기존 코드 호환성
+        status: row.status || 'scheduled', // 기존 코드 호환성
+      };
+    });
+
+    // ③ 시간순 정렬 (오름차순)
+    mapped.sort((a, b) => {
+      if (a.timeLabel < b.timeLabel) return -1;
+      if (a.timeLabel > b.timeLabel) return 1;
+      return 0;
+    });
+
+    // ★ 더 이상 .slice(0, 1) 이나 .slice(0, 3) 같은 거 안 함 → Supabase에 있는 오늘 예약 모두 노출
+    return mapped;
+  }, [supabaseReservations, selectedDateKey]);
   
   // 입력 모드를 localStorage에 저장
   useEffect(() => {
@@ -72,13 +137,6 @@ function HomeScreen({
     return 30; // 기본값
   };
 
-  // 선택된 날짜를 YYYY-MM-DD 형식으로 변환
-  const selectedDateStr = useMemo(() => {
-    const year = selectedDate.getFullYear();
-    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-    const day = String(selectedDate.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }, [selectedDate]);
 
   // 오늘 날짜 표시용 (헤더)
   const todayStr = useMemo(() => {
@@ -108,18 +166,6 @@ function HomeScreen({
     return filterCustomersBySearch(customers, trimmedSearch);
   }, [customers, searchText]);
 
-  // 선택된 날짜의 예약 손님 필터링 및 정렬 (완료된 것도 포함)
-  const todaysReservations = useMemo(() => {
-    const filtered = (reservations || []).filter(
-      (res) => res && res.date === selectedDateStr
-    );
-    // 시간순으로 정렬
-    return filtered.sort((a, b) => {
-      const timeA = a.time || '';
-      const timeB = b.time || '';
-      return timeA.localeCompare(timeB);
-    });
-    }, [reservations, selectedDateStr]);
 
   // 검색창 포커스 핸들러
   const handleSearchFocus = () => {
@@ -229,7 +275,7 @@ function HomeScreen({
       timeLabel: reservation.time || '--:--',
       dateLabel: dateTitle, // 선택된 날짜의 제목 (예: "12월 5일 (목)")
       customerId: reservation.customerId || null,
-      date: reservation.date || selectedDateStr,
+      date: reservation.date || selectedDateKey,
     };
     
     setSelectedReservation(reservationInfo);
@@ -411,7 +457,7 @@ function HomeScreen({
                     <input
                       ref={dateInputRef}
                       type="date"
-                      value={selectedDateStr}
+                      value={selectedDateKey}
                       onChange={(e) => setSelectedDate(new Date(e.target.value))}
                       className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
                       style={{ pointerEvents: 'none' }}
@@ -427,21 +473,15 @@ function HomeScreen({
                 </div>
 
                 <div className="flex items-center">
-                  {!supabaseLoading && supabaseReservationsForSelectedDate.length > 0 && (
+                  {todayReservationsForHome.length > 0 && (
                     <span className="text-sm text-gray-500">
-                      {supabaseReservationsForSelectedDate.length}명
+                      {todayReservationsForHome.length}명
                     </span>
                   )}
                 </div>
               </div>
 
-              {supabaseLoading ? (
-                <div className="w-full rounded-2xl bg-white border border-[#F0E7DA] py-10 text-center">
-                  <p className="text-[12px] text-neutral-500">
-                    오늘 예약 정보를 불러오는 중입니다...
-                  </p>
-                </div>
-              ) : supabaseReservationsForSelectedDate.length === 0 ? (
+              {todayReservationsForHome.length === 0 ? (
                 <div className="bg-white rounded-xl p-8 text-center shadow-sm">
                   <Clock size={32} className="mx-auto mb-3 text-gray-400" />
                   <p className="text-sm text-gray-500 mb-1">오늘 등록된 예약이 없습니다</p>
@@ -451,7 +491,7 @@ function HomeScreen({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {supabaseReservationsForSelectedDate.map((reservation) => {
+                  {todayReservationsForHome.map((reservation) => {
                     const matchedCustomer = findCustomerForReservation(reservation);
                     const displayName = reservation.name || matchedCustomer?.name || '이름 미입력';
                     const displayPhone = matchedCustomer?.phone || reservation.phone || '전화번호 미입력';
