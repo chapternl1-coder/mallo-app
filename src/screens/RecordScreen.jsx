@@ -1145,7 +1145,31 @@ function RecordScreen({
               const serviceDateKey = serviceDate; // 'YYYY-MM-DD' 형식
               const serviceTimeLabel = serviceTime; // 'HH:MM' 형식 또는 null
               const finalTitle = cleanedTitle;
-              const finalSummaryJson = resultData; // AI 요약 전체 JSON
+              
+              // summary_json에 고객 정보 명시적으로 추가 (HistoryScreen에서 사용)
+              // 예약의 고객 정보를 우선 사용 (AI 요약 결과의 고객 정보를 덮어씀)
+              const finalSummaryJson = resultData ? {
+                ...resultData,
+                customerInfo: {
+                  // 예약의 고객 정보를 우선 사용 (AI 요약 결과와 관계없이)
+                  name: customerName || null,
+                  phone: customerPhone || null,
+                  // AI 요약 결과의 다른 customerInfo 필드는 유지 (name, phone 제외)
+                  ...(resultData.customerInfo ? Object.fromEntries(
+                    Object.entries(resultData.customerInfo).filter(([key]) => key !== 'name' && key !== 'phone')
+                  ) : {})
+                }
+              } : {
+                customerInfo: {
+                  name: customerName || null,
+                  phone: customerPhone || null
+                },
+                sections: []
+              };
+              
+              console.log('[RecordScreen] finalSummaryJson.customerInfo:', finalSummaryJson.customerInfo);
+              console.log('[RecordScreen] 예약 고객 정보 - 이름:', customerName, '전화번호:', customerPhone);
+              
               const finalRawText = rawTranscript || transcript || '';
               const finalTagNames = tagLabels;
               

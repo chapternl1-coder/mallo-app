@@ -100,74 +100,86 @@ function HistoryScreen({
 
   const selectedDateKey = selectedDate || getTodayDateString();
 
-  /**
-   * Supabase visit_logs + 로컬 visits 를 합쳐서 사용
-   * (id 기반으로 중복 제거)
-   */
+  // 선택된 날짜의 방문 기록 가져오기 (Supabase visit_logs + 로컬 visits 모두 사용)
   const recordsForSelectedDate = useMemo(() => {
     const dateKey = selectedDateKey; // 'YYYY-MM-DD'
 
-    const supaVisits = Array.isArray(visitLogs) ? visitLogs : [];
+    // 1) 로컬 visits를 평탄화
+    const localVisitsArray = visits
+      ? Object.values(visits).flat()
+      : [];
 
-    const localVisitsArray = (() => {
-      if (!visits) return [];
-      if (Array.isArray(visits)) return visits;
-      return Object.values(visits).flat();
-    })();
+    // 2) Supabase visit_logs 배열
+    const supabaseVisitsArray = visitLogs || [];
 
-    const merged = [...supaVisits, ...localVisitsArray];
+    // 3) 두 소스를 id 기준으로 머지 (Supabase 우선, 로컬은 없는 id만 추가)
+    const merged = [...supabaseVisitsArray];
+    if (localVisitsArray.length > 0) {
+      const existingIds = new Set(
+        merged
+          .filter(v => v && v.id != null)
+          .map(v => String(v.id))
+      );
 
-    const uniqueMap = new Map();
-    merged.forEach((v) => {
-      const primaryId = v.id;
-      const fallbackId = `${v.serviceDate || v.service_date || v.date || ''}_${
-        v.customerId || v.customer_id || ''
-      }_${v.title || ''}`;
-      const key = primaryId ?? fallbackId;
-      if (!uniqueMap.has(key)) uniqueMap.set(key, v);
-    });
+      localVisitsArray.forEach(v => {
+        if (!v || v.id == null) return;
+        const vid = String(v.id);
+        if (!existingIds.has(vid)) {
+          merged.push(v);
+        }
+      });
+    }
 
-    const source = Array.from(uniqueMap.values());
+    const source = merged;
 
     return source
-      .filter((v) => {
-        const vDate = v.serviceDate || v.service_date || v.date || '';
+      .filter(v => {
+        // serviceDate 필드로 필터링
+        const vDate = v.serviceDate || v.date || '';
         return vDate === dateKey;
       })
-      .map((v) => {
+      .map(v => {
+        // 고객 정보 매칭 (customerId로 customers 배열에서 찾기)
         const vCustomerId = v.customerId || v.customer_id;
         let customer = null;
 
         if (vCustomerId && customers && customers.length > 0) {
-          customer = customers.find((c) => {
+          customer = customers.find(c => {
             const cId = c.id;
             const vId = vCustomerId;
+            // UUID 비교 (문자열로 변환해서 비교)
             return String(cId) === String(vId) || cId === vId;
           });
         }
 
-        // summaryJson에서 customer 정보 가져오기
-        const summaryCustomer = v.summaryJson?.customer || v.detail?.customer || {};
+        // customerName과 customerPhone 설정
+        // 우선순위: customer 프로필 > v.customerName > summary_json에서 추출
+        let customerName = customer?.name || v.customerName || null;
+        let customerPhone = customer?.phone || v.customerPhone || null;
         
-        const customerName = customer?.name 
-          || v.customerName 
-          || (summaryCustomer.name && summaryCustomer.name.trim() !== '' && summaryCustomer.name.trim() !== '미기재' ? summaryCustomer.name.trim() : null)
-          || null;
-        const customerPhone = customer?.phone 
-          || v.customerPhone 
-          || (summaryCustomer.phone && String(summaryCustomer.phone).trim() !== '' ? String(summaryCustomer.phone).trim() : null)
-          || null;
+        // summary_json에서 고객 정보 추출 (customerName이 없을 때만)
+        if (!customerName) {
+          const summaryJson = v.summaryJson || v.detail || {};
+          const summaryCustomerInfo = summaryJson?.customerInfo || summaryJson?.customer || {};
+          if (summaryCustomerInfo?.name?.trim()) {
+            customerName = summaryCustomerInfo.name.trim();
+          }
+          if (!customerPhone && summaryCustomerInfo?.phone?.trim()) {
+            customerPhone = summaryCustomerInfo.phone.trim();
+          }
+        }
 
         return {
           id: v.id,
           type: 'visit',
           timeLabel: v.serviceTime || v.time || '--:--',
-          customerName,
-          customerPhone,
+          customerName: customerName,
+          customerPhone: customerPhone,
           title: v.title || '',
           summaryJson: v.summaryJson || v.detail || null,
           reservationId: v.reservationId || v.reservation_id || null,
           customerId: vCustomerId || null,
+          // 하위 호환성을 위한 필드들
           ...v,
         };
       })
