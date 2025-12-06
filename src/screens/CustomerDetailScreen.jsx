@@ -90,6 +90,67 @@ function CustomerDetailScreen({
     };
   }
   
+  // customer가 없을 때: visitLogs에서 summary_json을 확인하여 임시 고객 객체 생성 시도
+  if (!customer && selectedCustomerId && visitLogs && visitLogs.length > 0) {
+    // selectedCustomerId와 일치하는 방문 기록 찾기 (customer_id 또는 summary_json으로)
+    for (const visit of visitLogs) {
+      const visitCustomerId = visit.customerId || visit.customer_id;
+      
+      // customer_id가 일치하는 경우
+      if (visitCustomerId && (
+        String(visitCustomerId).toLowerCase() === String(selectedCustomerId).toLowerCase() ||
+        String(visitCustomerId) === String(selectedCustomerId) ||
+        visitCustomerId === selectedCustomerId
+      )) {
+        // summary_json에서 고객 정보 추출
+        const summaryJson = visit.summaryJson || visit.detail || {};
+        const customerInfo = summaryJson.customerInfo || summaryJson.customer || {};
+        
+        let extractedName = customerInfo.name?.trim();
+        let extractedPhone = customerInfo.phone?.trim();
+        
+        // sections에서도 고객 정보 추출 시도
+        if (!extractedName && summaryJson.sections) {
+          for (const section of summaryJson.sections) {
+            if (section.title && section.title.includes('고객 기본 정보') && section.content) {
+              for (const contentItem of section.content) {
+                if (typeof contentItem === 'string') {
+                  const nameMatch = contentItem.match(/이름[:\s]+([^\n/]+)/i);
+                  if (nameMatch && !extractedName) {
+                    extractedName = nameMatch[1].trim();
+                  }
+                  const phoneMatch = contentItem.match(/전화번호[:\s]+([^\n/]+)/i);
+                  if (phoneMatch && !extractedPhone) {
+                    extractedPhone = phoneMatch[1].trim();
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        // 임시 고객 객체 생성
+        if (extractedName) {
+          customer = {
+            id: selectedCustomerId,
+            name: extractedName,
+            phone: extractedPhone || '',
+            customerTags: {
+              caution: [],
+              trait: [],
+              payment: [],
+              pattern: []
+            },
+            visitCount: 0, // 나중에 업데이트됨
+            isDeleted: true // 삭제된 고객임을 표시
+          };
+          console.log('[CustomerDetailScreen] customer 없음, visitLogs에서 임시 고객 객체 생성:', customer);
+          break; // 첫 번째 일치하는 방문 기록에서 정보 추출 후 중단
+        }
+      }
+    }
+  }
+  
   // ========================================
   // selectedCustomerId === null 방어
   // ========================================
@@ -177,7 +238,9 @@ function CustomerDetailScreen({
   // customer_id가 null인 경우 summary_json의 고객 정보로 매칭 시도
   const supabaseVisitsFromArray = (visitLogs || []).filter(visit => {
     if (!visit || !visit.id) return false;
-    if (!selectedCustomerId || !customer) return false;
+    if (!selectedCustomerId) return false;
+    
+    // customer가 없어도 selectedCustomerId로 매칭 시도
     
     const visitCustomerId = visit.customerId ?? visit.customer_id;
     
@@ -275,14 +338,16 @@ function CustomerDetailScreen({
       }
     }
     
+    // customer가 없을 때는 summary_json에서 추출한 정보로 매칭 시도
+    // customer가 있으면 customer 정보 사용, 없으면 summary_json 정보만 사용
     const customerName = customer?.name?.trim();
     const customerPhone = customer?.phone?.trim();
     
     // 디버깅: summary_json에 고객 정보가 있는지 확인
     if (!visitCustomerId && summaryJson) {
       console.log(`🔍 [매칭 시도] visit.id: ${visit.id?.substring(0, 8)}...`);
-      console.log(`   📝 이름: "${summaryName}" vs "${customerName}"`);
-      console.log(`   📞 전화번호: "${summaryPhone}" vs "${customerPhone}"`);
+      console.log(`   📝 이름: "${summaryName}" vs "${customerName || '(고객 없음)'}"`);
+      console.log(`   📞 전화번호: "${summaryPhone}" vs "${customerPhone || '(고객 없음)'}"`);
       if (connectedReservation) {
         console.log(`   ✅ 예약 연결됨: reservation.id=${connectedReservation.id?.substring(0, 8)}..., 예약 고객 정보 사용`);
         console.log(`   예약 customer_id: ${connectedReservation.customer_id}`);
@@ -309,7 +374,13 @@ function CustomerDetailScreen({
       }
     }
     
-    // 이름이 일치하는지 확인
+    // customer가 없을 때: customer_id가 selectedCustomerId와 일치하는 경우만 포함
+    // (이미 위에서 customer_id로 매칭했으므로 여기서는 false)
+    if (!customer) {
+      return false;
+    }
+    
+    // customer가 있을 때: 이름이 일치하는지 확인
     if (!summaryName || !customerName || summaryName !== customerName) {
       return false;
     }
@@ -337,8 +408,6 @@ function CustomerDetailScreen({
     }
     
     return false;
-    
-    return false;
   });
   
   // 기존 visits 객체에서 고객의 방문 기록 가져오기 (숫자와 문자열 ID 모두 처리)
@@ -362,37 +431,67 @@ function CustomerDetailScreen({
   });
   
   // 'no_customer' 키의 방문 기록 중 현재 고객과 매칭되는 것만 추가
-  noCustomerVisits.forEach(visit => {
-    if (!visit || !visit.id) return;
-    
-    // summary_json에서 고객 정보 추출
-    const summaryJson = visit.summaryJson || visit.detail || {};
-    const summaryCustomerInfo = summaryJson?.customerInfo || summaryJson?.customer || {};
-    const summaryName = summaryCustomerInfo?.name?.trim();
-    const summaryPhone = summaryCustomerInfo?.phone?.trim();
-    
-    const customerName = customer?.name?.trim();
-    const customerPhone = customer?.phone?.trim();
-    
-    // 이름이 일치하는지 확인
-    if (summaryName && customerName && summaryName === customerName) {
-      // 전화번호가 둘 다 있으면 일치해야 함
+  // customer가 있어야만 매칭 시도 (customer가 없으면 임시 고객 객체 생성 전이므로 제외)
+  if (customer) {
+    noCustomerVisits.forEach(visit => {
+      if (!visit || !visit.id) return;
+      
+      // summary_json에서 고객 정보 추출
+      const summaryJson = visit.summaryJson || visit.detail || {};
+      const summaryCustomerInfo = summaryJson?.customerInfo || summaryJson?.customer || {};
+      let summaryName = summaryCustomerInfo?.name?.trim();
+      let summaryPhone = summaryCustomerInfo?.phone?.trim();
+      
+      // sections에서도 고객 정보 추출 시도
+      if (!summaryName && summaryJson?.sections) {
+        for (const section of summaryJson.sections) {
+          if (section.title && section.title.includes('고객 기본 정보') && section.content) {
+            for (const contentItem of section.content) {
+              if (typeof contentItem === 'string') {
+                const nameMatch = contentItem.match(/이름[:\s]+([^\n/]+)/i);
+                if (nameMatch && !summaryName) {
+                  summaryName = nameMatch[1].trim();
+                }
+                const phoneMatch = contentItem.match(/전화번호[:\s]+([^\n/]+)/i);
+                if (phoneMatch && !summaryPhone) {
+                  summaryPhone = phoneMatch[1].trim();
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      const customerName = customer?.name?.trim();
+      const customerPhone = customer?.phone?.trim();
+      
+      // 이름이 일치하는지 확인
+      if (!summaryName || !customerName || summaryName !== customerName) {
+        return; // 이름이 다르면 제외
+      }
+      
+      // 이름이 일치하면, 전화번호도 확인
+      // 전화번호가 둘 다 있으면 반드시 일치해야 함
       if (summaryPhone && customerPhone) {
         const phoneMatch = summaryPhone === customerPhone || 
                           summaryPhone.replace(/[^0-9]/g, '') === customerPhone.replace(/[^0-9]/g, '');
         if (phoneMatch && !allVisitsMap.has(visit.id)) {
           console.log(`✅ [no_customer 매칭] visit.id: ${visit.id?.substring(0, 8)}..., 이름+전화번호 일치하여 추가`);
           allVisitsMap.set(visit.id, visit);
+        } else if (!phoneMatch) {
+          // 이름은 같지만 전화번호가 다르면 다른 고객으로 간주
+          console.log(`❌ [no_customer 매칭 실패] visit.id: ${visit.id?.substring(0, 8)}..., 이름은 같지만 전화번호가 다름`);
+          console.log(`   📞 "${summaryPhone}" ≠ "${customerPhone}"`);
         }
       } else {
-        // 전화번호가 없으면 이름만으로 매칭
+        // 전화번호가 하나라도 없으면 이름만으로 매칭 (하지만 경고 로그)
         if (!allVisitsMap.has(visit.id)) {
-          console.log(`⚠️ [no_customer 매칭] visit.id: ${visit.id?.substring(0, 8)}..., 이름만으로 매칭하여 추가`);
+          console.log(`⚠️ [no_customer 매칭] visit.id: ${visit.id?.substring(0, 8)}..., 이름만으로 매칭하여 추가 (전화번호 없음)`);
           allVisitsMap.set(visit.id, visit);
         }
       }
-    }
-  });
+    });
+  }
   
   const customerVisits = Array.from(allVisitsMap.values());
   

@@ -1458,17 +1458,37 @@ function RecordScreen({
               // ========================================
               const targetCustomerId = finalCustomerId || selectedCustomerForRecord?.id || null;
               
-              if (targetCustomerId && isValidUuid(targetCustomerId)) {
-                // Supabase 고객과 연결돼 있으면 고객 상세로 이동
+              // targetCustomerId가 customers 배열에 있는지 확인
+              let customerExists = false;
+              if (targetCustomerId && isValidUuid(targetCustomerId) && customers && customers.length > 0) {
+                customerExists = customers.some(c => {
+                  const cId = c.id;
+                  const tId = targetCustomerId;
+                  return cId === tId || 
+                         String(cId) === String(tId) ||
+                         String(cId).toLowerCase() === String(tId).toLowerCase();
+                });
+                
+                if (!customerExists) {
+                  console.warn(`[RecordScreen] targetCustomerId(${targetCustomerId})가 customers 배열에 없음. HISTORY로 이동`);
+                  console.log('   customers 배열의 ID들:');
+                  customers.forEach((c, idx) => {
+                    console.log(`     [${idx}] id: ${c.id}, name: ${c.name}`);
+                  });
+                }
+              }
+              
+              if (targetCustomerId && isValidUuid(targetCustomerId) && customerExists) {
+                // Supabase 고객과 연결돼 있고 customers 배열에 있으면 고객 상세로 이동
                 setSelectedCustomerId(targetCustomerId);
                 setTimeout(() => {
                   console.log('[화면 전환] CUSTOMER_DETAIL로 이동, customerId:', targetCustomerId);
                   setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
                 }, 100);
               } else {
-                // 고객 프로필이 아직 없으면 히스토리 탭으로만 이동
+                // 고객 프로필이 없거나 customers 배열에 없으면 히스토리 탭으로만 이동
                 setTimeout(() => {
-                  console.log('[화면 전환] HISTORY로 이동 (고객 프로필 없음)');
+                  console.log('[화면 전환] HISTORY로 이동 (고객 프로필 없음 또는 customers 배열에 없음)');
                   setCurrentScreen(SCREENS.HISTORY);
                 }, 100);
               }
