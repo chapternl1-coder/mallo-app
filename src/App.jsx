@@ -1,4 +1,4 @@
-﻿import React from 'react';
+﻿import React, { useState, useEffect } from 'react';
 
 import ScreenRouter from './components/ScreenRouter';
 
@@ -19,6 +19,8 @@ import useSupabaseDebug from './hooks/useSupabaseDebug';
 import useSupabaseReservations from './hooks/useSupabaseReservations';
 
 import useVisitLogs from './hooks/useVisitLogs';
+
+import { supabase } from './lib/supabaseClient';
 
 
 
@@ -56,11 +58,97 @@ export default function MalloApp() {
 
     customers,
 
-    reservations,
+    reservations: supabaseReservations,
 
     loading: reservationsLoading,
 
+    error: reservationsError,
+
   } = useSupabaseReservations();
+
+
+
+  // Supabase 값으로 초기화되는 로컬 state
+
+  const [reservations, setReservations] = useState([]);
+
+
+
+  useEffect(() => {
+
+    // Supabase에서 새로 가져오면 로컬 state를 덮어씀
+
+    setReservations(supabaseReservations || []);
+
+  }, [supabaseReservations]);
+
+
+
+  // UUID 검증 헬퍼 함수
+  const isValidUuid = (value) => {
+    if (typeof value !== 'string') return false;
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      value
+    );
+  };
+
+  // 예약 추가/삭제 함수 정의
+
+  const addReservation = (newReservation) => {
+
+    setReservations((prev) => [...prev, newReservation]);
+
+  };
+
+
+
+  const deleteReservation = async (reservationId) => {
+
+    // 3-1. 먼저 로컬 state에서 삭제 (UI 즉시 반영)
+
+    setReservations((prev) => prev.filter((res) => res.id !== reservationId));
+
+
+
+    // 3-2. id 가 uuid가 아니면 Supabase 삭제는 생략 (옛 로컬 id 보호)
+
+    if (!isValidUuid(reservationId)) {
+
+      return;
+
+    }
+
+
+
+    try {
+
+      const { error } = await supabase
+
+        .from('reservations')
+
+        .delete()
+
+        .eq('id', reservationId)
+
+        .eq('owner_id', user.id);
+
+
+
+      if (error) {
+
+        console.error('[Supabase] 예약 삭제 에러:', error);
+
+        // 필요하면 여기서 alert 한 줄 추가 가능
+
+      }
+
+    } catch (e) {
+
+      console.error('[Supabase] 예약 삭제 중 예외:', e);
+
+    }
+
+  };
 
 
 
@@ -70,11 +158,15 @@ export default function MalloApp() {
 
     visitLogsByCustomer,
 
+    visitLogs,
+
     allVisitLogs,
 
     loading: visitLogsLoading,
 
     error: visitLogsError,
+
+    refresh: refreshVisitLogs,
 
   } = useVisitLogs();
 
@@ -84,7 +176,9 @@ export default function MalloApp() {
 
   console.log('[MalloApp] Supabase customers 길이:', customers.length);
 
-  console.log('[MalloApp] Supabase reservations 길이:', reservations.length);
+  console.log('[MalloApp] Supabase reservations 길이:', supabaseReservations.length);
+
+  console.log('[MalloApp] 로컬 reservations 길이:', reservations.length);
 
   console.log('[MalloApp] Supabase visit_logs 길이:', allVisitLogs.length);
 
@@ -170,7 +264,15 @@ export default function MalloApp() {
 
           visits={visitLogsByCustomer}
 
+          visitLogs={visitLogs}
+
           allRecords={allVisitLogs}
+
+          addReservation={addReservation}
+
+          deleteReservation={deleteReservation}
+
+          refreshVisitLogs={refreshVisitLogs}
 
         />
 

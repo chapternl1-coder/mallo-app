@@ -9,7 +9,7 @@ export default function useVisitLogs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
+  const fetchVisitLogs = async () => {
     // 로그인 안 된 상태면 비워두기
     if (!user) {
       setVisitLogsByCustomer({});
@@ -18,77 +18,81 @@ export default function useVisitLogs() {
       return;
     }
 
-    const fetchVisitLogs = async () => {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      const { data, error } = await supabase
-        .from('visit_logs')
-        .select(`
-          id,
-          owner_id,
-          customer_id,
-          reservation_id,
-          recorded_at,
-          service_date,
-          service_time,
-          title,
-          summary_json,
-          raw_text,
-          tags
-        `)
-        .eq('owner_id', user.id)
-        .order('recorded_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('visit_logs')
+      .select(`
+        id,
+        owner_id,
+        customer_id,
+        reservation_id,
+        recorded_at,
+        service_date,
+        service_time,
+        title,
+        summary_json,
+        raw_text,
+        tags
+      `)
+      .eq('owner_id', user.id)
+      .order('recorded_at', { ascending: false });
 
-      if (error) {
-        console.error('visit_logs 불러오기 오류', error);
-        setError(error);
-        setVisitLogsByCustomer({});
-        setAllVisitLogs([]);
-        setLoading(false);
-        return;
-      }
-
-      const normalized = (data || []).map((row) => ({
-        id: row.id,
-        ownerId: row.owner_id,
-        customerId: row.customer_id,
-        reservationId: row.reservation_id,
-        recordedAt: row.recorded_at,
-        serviceDate: row.service_date,       // YYYY-MM-DD
-        time: row.service_time || null,      // "HH:MM"
-        title: row.title || '',
-        // 요약 전체 JSON (sections 포함) – 없으면 빈 구조
-        detail: row.summary_json || { sections: [] },
-        rawText: row.raw_text || '',
-        tags: row.tags || [],               // text[] → string[]
-      }));
-
-      // 고객별로 그룹핑 (CustomerDetailScreen, HomeScreen용)
-      const byCustomer = normalized.reduce((acc, visit) => {
-        const key =
-          visit.customerId !== null && visit.customerId !== undefined
-            ? String(visit.customerId)
-            : 'no_customer';
-
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(visit);
-        return acc;
-      }, {});
-
-      setVisitLogsByCustomer(byCustomer);
-      setAllVisitLogs(normalized);
+    if (error) {
+      console.error('visit_logs 불러오기 오류', error);
+      setError(error);
+      setVisitLogsByCustomer({});
+      setAllVisitLogs([]);
       setLoading(false);
-    };
+      return;
+    }
 
+    const mappedVisitLogs = (data || []).map((row) => ({
+      id: row.id,
+      customerId: row.customer_id,           // uuid
+      reservationId: row.reservation_id,     // uuid 또는 null
+      serviceDate: row.service_date,         // 'YYYY-MM-DD' (date 컬럼)
+      serviceTime: row.service_time || '',   // 'HH:MM' (text 컬럼)
+      title: row.title || '',
+      summaryJson: row.summary_json || null,
+      rawText: row.raw_text || '',
+      tags: row.tags || [],                  // text[]
+      // 고객 이름/전화는 join 안 되어 있으면 나중에 customers랑 매칭해서 씀
+      // 하위 호환성을 위한 필드들
+      ownerId: row.owner_id,
+      recordedAt: row.recorded_at,
+      detail: row.summary_json || { sections: [] },
+    }));
+
+    // 고객별로 그룹핑 (CustomerDetailScreen, HomeScreen용)
+    const byCustomer = mappedVisitLogs.reduce((acc, visit) => {
+      const key =
+        visit.customerId !== null && visit.customerId !== undefined
+          ? String(visit.customerId)
+          : 'no_customer';
+
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(visit);
+      return acc;
+    }, {});
+
+    setVisitLogsByCustomer(byCustomer);
+    setAllVisitLogs(mappedVisitLogs);
+    setLoading(false);
+  };
+
+  useEffect(() => {
     fetchVisitLogs();
   }, [user]);
 
   return {
     visitLogsByCustomer,
-    allVisitLogs,
+    visitLogs: allVisitLogs,  // visitLogs 이름으로 반환
+    allVisitLogs,             // 하위 호환성 유지
     loading,
     error,
+    refresh: fetchVisitLogs,  // 수동으로 새로고침하는 함수 추가
   };
 }
 

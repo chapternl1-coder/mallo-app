@@ -112,15 +112,31 @@ export default function useSupabaseReservations() {
 
           // 예약마다 isNew 계산 + Home/예약화면에서 쓰기 좋은 형태로 변환
           const safeReservations = reservationRows ?? [];
+
+          // ✅ 고객별 가장 빠른 reserved_at 계산
+          const firstReservedAtByCustomer = new Map();
+          safeReservations.forEach((row) => {
+            if (!row.customer_id) return;
+            const currentFirst = firstReservedAtByCustomer.get(row.customer_id);
+            if (!currentFirst || new Date(row.reserved_at) < new Date(currentFirst)) {
+              firstReservedAtByCustomer.set(row.customer_id, row.reserved_at);
+            }
+          });
+
           const mappedReservations = safeReservations.map((row) => {
             const customer = customerMap.get(row.customer_id);
             const localDate = formatLocalDate(row.reserved_at);
             const localTime = formatLocalTime(row.reserved_at);
 
-            // 같은 고객(customer_id)의 예약이 딱 1개인 경우 → isNew: true
-            const countForThisCustomer = safeReservations.filter(
-              (res) => res.customer_id === row.customer_id
-            ).length;
+            // ✅ isNew 계산
+            let isNew = false;
+            if (!row.customer_id) {
+              // 고객 프로필이 안 묶인 예약 → 일단 '신규' 취급
+              isNew = true;
+            } else {
+              const first = firstReservedAtByCustomer.get(row.customer_id);
+              isNew = !!first && first === row.reserved_at;
+            }
 
             return {
               id: row.id,
@@ -132,7 +148,7 @@ export default function useSupabaseReservations() {
               memo: row.memo || '',
               status: row.status || 'scheduled',
               // ✅ 이 값이 홈에서 '신규' 뱃지에 쓰이는 값
-              isNew: countForThisCustomer === 1,
+              isNew,
             };
           });
 

@@ -71,10 +71,10 @@ export default function ScreenRouter(props) {
     case SCREENS.RECORD:
       return <RecordScreen {...props} />;
     case SCREENS.HISTORY:
-      // allRecords prop이 있으면 Supabase 데이터 사용, 없으면 기존 로직 사용
-      return <HistoryScreen {...props} allRecords={props.allRecords || calculateAllRecords()} />;
+      // visitLogs prop이 있으면 Supabase 데이터 사용, 없으면 기존 로직 사용
+      return <HistoryScreen {...props} visitLogs={props.visitLogs} allRecords={props.allRecords || calculateAllRecords()} />;
     case SCREENS.CUSTOMER_DETAIL:
-      return <CustomerDetailScreen {...props} />;
+      return <CustomerDetailScreen {...props} visitLogs={props.visitLogs} />;
     case SCREENS.EDIT:
       return <EditScreen {...props} />;
     case SCREENS.EDIT_CUSTOMER:

@@ -216,6 +216,16 @@ function ReservationScreen({
 
     // 4) 기존 앱 내부 상태(로컬)에도 동일한 예약 추가
     //    - id는 Supabase에서 넘어온 id가 있으면 그걸 쓰고, 아니면 기존 방식(Date.now 등)을 그대로 써줘.
+    
+    // isNew 플래그 계산
+    let isFirstReservationForCustomer = true;
+    if (customerIdToUse) {
+      isFirstReservationForCustomer = !(reservations || []).some(
+        (res) => res.customerId === customerIdToUse
+      );
+    }
+    const isNewFlag = !customerIdToUse || isFirstReservationForCustomer;
+    
     const localReservation = {
       id: supabaseReservationId || Date.now().toString(),
       date: selectedDateKey,
@@ -226,6 +236,7 @@ function ReservationScreen({
       customerId: customerIdToUse || null,
       phoneLast4: phone.slice(-4),
       isCompleted: false,
+      isNew: isNewFlag, // 👈 추가
     };
 
     console.log('[예약 추가 로컬]', localReservation);

@@ -20,6 +20,7 @@ function CustomerDetailScreen({
   customers,
   setCustomers,
   visits,
+  visitLogs = [], // Supabase visit_logs 추가
   visibleVisitCount,
   setVisibleVisitCount,
   expandedVisitId,
@@ -119,10 +120,32 @@ function CustomerDetailScreen({
   // TODO: null customerId로 저장된 예전 방문 기록들을,
   //       전화번호/이름 기반으로 실제 고객에게 재할당하는 마이그레이션 도구가 필요하면 추후 추가.
   
-  // customerId가 null인 방문 기록 필터링
-  // visits 객체에서 고객의 방문 기록 가져오기 (숫자와 문자열 ID 모두 처리)
+  // visitLogsByCustomer에서 직접 가져오기 (이미 고객별로 그룹핑되어 있음)
+  // UUID 비교를 위해 모든 가능한 키 형식 시도
+  const selectedIdStr = String(selectedCustomerId);
+  const supabaseVisitsFromGroup = 
+    visits[selectedCustomerId] || 
+    visits[selectedIdStr] || 
+    visits[selectedIdStr.toLowerCase()] || 
+    visits[selectedIdStr.toUpperCase()] || 
+    [];
+  
+  // visitLogs 배열에서도 필터링 (백업용 - visits 객체에 없을 경우)
+  const supabaseVisitsFromArray = (visitLogs || []).filter(visit => {
+    if (!visit || !visit.id) return false;
+    const visitCustomerId = visit.customerId ?? visit.customer_id;
+    if (!visitCustomerId || !selectedCustomerId) return false;
+    // UUID 비교 (대소문자 무시, 문자열로 변환해서 비교)
+    const visitIdStr = String(visitCustomerId).toLowerCase();
+    const selectedIdStrLower = String(selectedCustomerId).toLowerCase();
+    return visitIdStr === selectedIdStrLower || 
+           String(visitCustomerId) === String(selectedCustomerId) || 
+           visitCustomerId === selectedCustomerId;
+  });
+  
+  // 기존 visits 객체에서 고객의 방문 기록 가져오기 (숫자와 문자열 ID 모두 처리)
   const rawVisits = visits[selectedCustomerId] || visits[String(selectedCustomerId)] || [];
-  const customerVisits = rawVisits.filter(visit => {
+  const localVisits = rawVisits.filter(visit => {
     if (!visit || !visit.id) {
       console.warn('[CustomerDetailScreen] 유효하지 않은 방문 기록:', visit);
       return false;
@@ -130,8 +153,72 @@ function CustomerDetailScreen({
     return true;
   });
   
-  console.log('[CustomerDetailScreen] selectedCustomerId:', selectedCustomerId);
-  console.log('[CustomerDetailScreen] customerVisits.length:', customerVisits.length);
+  // Supabase와 로컬 visits 합치기 (id 기준으로 중복 제거)
+  const allVisitsMap = new Map();
+  [...supabaseVisitsFromGroup, ...supabaseVisitsFromArray, ...localVisits].forEach(visit => {
+    const visitId = visit.id;
+    if (visitId && !allVisitsMap.has(visitId)) {
+      allVisitsMap.set(visitId, visit);
+    }
+  });
+  
+  const customerVisits = Array.from(allVisitsMap.values());
+  
+  // 디버깅 로그 (콘솔에서 확인 가능)
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🔍 [CustomerDetailScreen] 방문 기록 필터링 디버깅');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('1️⃣ 선택된 고객 ID:', selectedCustomerId);
+  console.log('   (문자열 변환):', String(selectedCustomerId));
+  console.log('');
+  console.log('2️⃣ visitLogs 전체 개수:', visitLogs?.length || 0);
+  console.log('');
+  console.log('3️⃣ visits 객체의 키들 (고객 ID 목록):');
+  const visitKeys = Object.keys(visits || {});
+  console.log('   키 개수:', visitKeys.length);
+  console.log('   키 목록:', visitKeys);
+  console.log('   선택된 ID가 키 목록에 있는가?', visitKeys.includes(String(selectedCustomerId)) || visitKeys.includes(selectedCustomerId));
+  console.log('');
+  console.log('4️⃣ 필터링 결과:');
+  console.log('   📦 visits 객체에서 가져온 개수:', supabaseVisitsFromGroup.length);
+  console.log('   📋 visitLogs 배열에서 필터링한 개수:', supabaseVisitsFromArray.length);
+  console.log('   💾 로컬 visits 개수:', localVisits.length);
+  console.log('   ✅ 최종 합쳐진 방문 기록 개수:', customerVisits.length);
+  console.log('');
+  if (visitLogs && visitLogs.length > 0) {
+    console.log('5️⃣ visitLogs 샘플 (전체):');
+    visitLogs.forEach((v, idx) => {
+      const visitCustomerId = v.customerId || v.customer_id || null;
+      const matches = visitCustomerId && (
+        String(visitCustomerId).toLowerCase() === String(selectedCustomerId).toLowerCase() ||
+        String(visitCustomerId) === String(selectedCustomerId) ||
+        visitCustomerId === selectedCustomerId
+      );
+      console.log(`   [${idx + 1}]`, {
+        id: v.id,
+        customerId: v.customerId,
+        customer_id: v.customer_id,
+        title: v.title,
+        '고객ID 일치?': matches ? '✅ YES' : '❌ NO',
+        'selectedCustomerId': selectedCustomerId,
+        'visitCustomerId': visitCustomerId
+      });
+    });
+    
+    // 해당 고객의 방문 기록이 있는지 확인
+    const matchingVisits = visitLogs.filter(v => {
+      const visitCustomerId = v.customerId || v.customer_id || null;
+      if (!visitCustomerId) return false;
+      return String(visitCustomerId).toLowerCase() === String(selectedCustomerId).toLowerCase() ||
+             String(visitCustomerId) === String(selectedCustomerId) ||
+             visitCustomerId === selectedCustomerId;
+    });
+    console.log('6️⃣ 일치하는 방문 기록 개수:', matchingVisits.length);
+    if (matchingVisits.length > 0) {
+      console.log('   일치하는 방문 기록:', matchingVisits);
+    }
+  }
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   
   // 예약과 연결된 방문 기록인지 확인하는 헬퍼 함수
   const findConnectedReservation = (visit) => {
