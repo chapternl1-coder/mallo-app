@@ -18,6 +18,8 @@ import useSupabaseDebug from './hooks/useSupabaseDebug';
 
 import useSupabaseReservations from './hooks/useSupabaseReservations';
 
+import useVisitLogs from './hooks/useVisitLogs';
+
 
 
 export default function MalloApp() {
@@ -62,11 +64,29 @@ export default function MalloApp() {
 
 
 
+  // Supabase visit_logs 데이터 로딩
+
+  const {
+
+    visitLogsByCustomer,
+
+    allVisitLogs,
+
+    loading: visitLogsLoading,
+
+    error: visitLogsError,
+
+  } = useVisitLogs();
+
+
+
   // 필요하면 아래처럼 콘솔에 다시 한 번 찍을 수도 있음
 
   console.log('[MalloApp] Supabase customers 길이:', customers.length);
 
   console.log('[MalloApp] Supabase reservations 길이:', reservations.length);
+
+  console.log('[MalloApp] Supabase visit_logs 길이:', allVisitLogs.length);
 
 
 
@@ -147,6 +167,10 @@ export default function MalloApp() {
           customers={customers}
 
           reservations={reservations}
+
+          visits={visitLogsByCustomer}
+
+          allRecords={allVisitLogs}
 
         />
 
