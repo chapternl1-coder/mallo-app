@@ -7,7 +7,7 @@ import useMalloAppState from './hooks/useMalloAppState';
 import { useAuth } from './contexts/AuthContext';
 import LoginScreen from './screens/LoginScreen';
 import useSupabaseDebug from './hooks/useSupabaseDebug';
-import { useSupabaseReservations } from './hooks/useSupabaseReservations';
+import useSupabaseReservations from './hooks/useSupabaseReservations';
 
 export default function MalloApp() {
   const { user, loading } = useAuth();
@@ -23,8 +23,8 @@ export default function MalloApp() {
     handleTabClick,
   } = useMalloAppState(user);
 
-  // Supabase 데이터 로딩 + 콘솔 출력용
-  const { customers, reservations } = useSupabaseReservations();
+  // Supabase 데이터 로딩 + 콘솔 출력용 (디버그용)
+  const { customers, reservations } = useSupabaseReservations(new Date());
 
   // 필요하면 아래처럼 콘솔에 다시 한 번 찍을 수도 있음
   console.log('[MalloApp] Supabase customers 길이:', customers.length);

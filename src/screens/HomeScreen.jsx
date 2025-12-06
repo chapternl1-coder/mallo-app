@@ -6,6 +6,7 @@ import { format, isToday, addDays, subDays } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import InputModeToggle from '../components/InputModeToggle';
 import AppLogo from '../components/AppLogo';
+import useSupabaseReservations from '../hooks/useSupabaseReservations';
 
 /**
  * 홈 화면 컴포넌트 - 검색 및 예약 중심의 현대적인 UI
@@ -48,6 +49,13 @@ function HomeScreen({
     const saved = window.localStorage.getItem('mallo_input_mode');
     return saved === 'voice' || saved === 'text' ? saved : 'voice';
   });
+
+  // Supabase에서 가져온 예약들을 홈 카드용으로 변환해서 받는다
+  const {
+    reservationsForSelectedDate: supabaseReservationsForSelectedDate,
+    loading: supabaseLoading,
+    error: supabaseError,
+  } = useSupabaseReservations(selectedDate);
   
   // 입력 모드를 localStorage에 저장
   useEffect(() => {
@@ -419,15 +427,21 @@ function HomeScreen({
                 </div>
 
                 <div className="flex items-center">
-                  {todaysReservations.length > 0 && (
+                  {!supabaseLoading && supabaseReservationsForSelectedDate.length > 0 && (
                     <span className="text-sm text-gray-500">
-                      {todaysReservations.length}명
+                      {supabaseReservationsForSelectedDate.length}명
                     </span>
                   )}
                 </div>
               </div>
 
-              {todaysReservations.length === 0 ? (
+              {supabaseLoading ? (
+                <div className="w-full rounded-2xl bg-white border border-[#F0E7DA] py-10 text-center">
+                  <p className="text-[12px] text-neutral-500">
+                    오늘 예약 정보를 불러오는 중입니다...
+                  </p>
+                </div>
+              ) : supabaseReservationsForSelectedDate.length === 0 ? (
                 <div className="bg-white rounded-xl p-8 text-center shadow-sm">
                   <Clock size={32} className="mx-auto mb-3 text-gray-400" />
                   <p className="text-sm text-gray-500 mb-1">오늘 등록된 예약이 없습니다</p>
@@ -437,7 +451,7 @@ function HomeScreen({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {todaysReservations.map((reservation) => {
+                  {supabaseReservationsForSelectedDate.map((reservation) => {
                     const matchedCustomer = findCustomerForReservation(reservation);
                     const displayName = reservation.name || matchedCustomer?.name || '이름 미입력';
                     const displayPhone = matchedCustomer?.phone || reservation.phone || '전화번호 미입력';
