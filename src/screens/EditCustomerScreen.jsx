@@ -126,10 +126,10 @@ function EditCustomerScreen({
       {/* Header */}
       <header className="flex items-center justify-between px-5 pt-4 pb-2 bg-[#F2F0E6] sticky top-0 z-20">
         {/* 뒤로가기 버튼 */}
-        <button
+        <button 
           type="button"
           onClick={handleCancel}
-          className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
+          className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" 
           style={{ color: '#232323' }}
         >
           <span className="text-[32px]">&#x2039;</span>
@@ -139,7 +139,7 @@ function EditCustomerScreen({
         <h2 className="font-bold text-base" style={{ color: '#232323' }}>고객 정보 편집</h2>
 
         {/* 오른쪽 완료 버튼 */}
-        <button
+        <button 
           type="button"
           onClick={handleComplete}
           className="px-3 py-1.5 text-[12px] font-medium rounded-full bg-[#C9A27A] text-white"
