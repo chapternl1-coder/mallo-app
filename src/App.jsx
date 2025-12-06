@@ -1,7 +1,4 @@
-﻿/// 파일: src/App.jsx
-/// 작업: AuthContext의 user/loading을 올바르게 사용하고, 로그인/로딩 분기 정리
-
-import React from 'react';
+﻿import React from 'react';
 import ScreenRouter from './components/ScreenRouter';
 import BottomNavigation from './components/BottomNavigation';
 import ScrollToTopButton from './components/ScrollToTopButton';
@@ -9,17 +6,23 @@ import { SCREENS } from './constants/screens';
 import useMalloAppState from './hooks/useMalloAppState';
 import { useAuth } from './contexts/AuthContext';
 import LoginScreen from './screens/LoginScreen';
+import useSupabaseDebug from './hooks/useSupabaseDebug';
 
 export default function MalloApp() {
-  // ✅ 항상 컴포넌트 함수 안에서만 user/loading을 꺼내쓴다
   const { user, loading } = useAuth();
-  const { screenRouterProps, currentScreen, activeTab, handleTabClick } =
-    useMalloAppState();
 
-  // 디버깅용 로그 (여기는 에러 안 남)
-  console.log('[MalloApp] user:', user, 'loading:', loading);
+  // Supabase에 있는 고객/예약 데이터를 콘솔로 확인하는 디버그용 훅
+  useSupabaseDebug();
 
-  // ✅ 1) 초기 로딩 중일 때
+  // Supabase 연동을 위해 user를 훅에 넘겨줌
+  const {
+    screenRouterProps,
+    currentScreen,
+    activeTab,
+    handleTabClick,
+  } = useMalloAppState(user);
+
+  // 1) Auth 로딩 중 로딩 화면
   if (loading) {
     return (
       <div
@@ -28,27 +31,22 @@ export default function MalloApp() {
       >
         <div className="text-center">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full border border-[#E4D9CC] bg-white mb-3">
-            <span
-              className="text-xs font-semibold tracking-widest"
-              style={{ color: '#C9A27A' }}
-            >
+            <span className="text-xs font-semibold tracking-widest" style={{ color: '#C9A27A' }}>
               MALLO
             </span>
           </div>
-          <p className="text-xs text-neutral-600">
-            계정 정보를 불러오는 중입니다...
-          </p>
+          <p className="text-xs text-neutral-600">계정 정보를 불러오는 중입니다...</p>
         </div>
       </div>
     );
   }
 
-  // ✅ 2) 로그인 안 된 상태면 무조건 로그인 화면
+  // 2) 로그인 안 된 상태면 → 로그인 화면
   if (!user) {
     return <LoginScreen />;
   }
 
-  // ✅ 3) 로그인 된 상태면 기존 말로 앱 UI
+  // 3) 로그인 된 상태면 → 메인 앱
   return (
     <div
       className="h-screen w-full flex items-center justify-center font-sans"
@@ -67,10 +65,7 @@ export default function MalloApp() {
           currentScreen === SCREENS.RESERVATION ||
           currentScreen === SCREENS.HISTORY ||
           currentScreen === SCREENS.PROFILE) && (
-          <BottomNavigation
-            activeTab={activeTab}
-            onTabChange={handleTabClick}
-          />
+          <BottomNavigation activeTab={activeTab} onTabChange={handleTabClick} />
         )}
       </div>
     </div>
