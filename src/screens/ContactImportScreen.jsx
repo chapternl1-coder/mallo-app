@@ -63,6 +63,7 @@ function ContactImportScreen({
           lastVisit: null,
           avatar: '👤',
           customerTags: {
+            feature: [],
             caution: [],
             trait: [],
             payment: [],

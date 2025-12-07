@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import ScreenRouter from './components/ScreenRouter';
 
@@ -73,6 +73,7 @@ export default function MalloApp() {
   // Supabase 값으로 초기화되는 로컬 state
 
   const [reservations, setReservations] = useState([]);
+  const [mergedCustomers, setMergedCustomers] = useState([]);
 
 
 
@@ -84,15 +85,52 @@ export default function MalloApp() {
 
   }, [supabaseReservations]);
 
-  // Supabase customers를 localStorage에 동기화 (삭제된 고객 제거)
+  // Supabase customers를 localStorage와 병합하여 실제 사용할 customers 생성
+  // 기존 localStorage의 customerTags를 보존하면서 병합
   useEffect(() => {
     if (customers && customers.length >= 0) {
       try {
-        localStorage.setItem('mallo_customers', JSON.stringify(customers));
-        console.log('[App] Supabase customers를 localStorage에 동기화:', customers.length, '명');
+        // 기존 localStorage의 customerTags 보존
+        const existingCustomersStr = localStorage.getItem('mallo_customers');
+        const existingCustomers = existingCustomersStr ? JSON.parse(existingCustomersStr) : [];
+        const existingTagsMap = new Map();
+        existingCustomers.forEach(c => {
+          if (c.id && c.customerTags) {
+            existingTagsMap.set(c.id, c.customerTags);
+          }
+        });
+
+        // Supabase에서 가져온 customers에 기존 customerTags 병합
+        // Supabase에 customerTags가 있으면 우선 사용, 없으면 localStorage의 것을 사용
+        const merged = customers.map(c => {
+          const existingTags = existingTagsMap.get(c.id);
+          // Supabase에 customerTags가 있고 비어있지 않으면 Supabase 것을 사용
+          if (c.customerTags && typeof c.customerTags === 'object' && Object.keys(c.customerTags).length > 0) {
+            return c; // Supabase의 customerTags 사용
+          }
+          // Supabase에 없거나 비어있으면 localStorage의 것을 사용
+          if (existingTags) {
+            return {
+              ...c,
+              customerTags: existingTags
+            };
+          }
+          return c;
+        });
+
+        // 병합된 결과를 state에 저장하여 실제로 사용
+        setMergedCustomers(merged);
+        
+        // localStorage에도 저장 (다음 로드 시 사용)
+        localStorage.setItem('mallo_customers', JSON.stringify(merged));
+        console.log('[App] Supabase customers를 localStorage와 병합:', merged.length, '명');
       } catch (e) {
         console.error('[App] localStorage 동기화 실패:', e);
+        // 에러 발생 시 Supabase 데이터라도 사용
+        setMergedCustomers(customers);
       }
+    } else {
+      setMergedCustomers([]);
     }
   }, [customers]);
 
@@ -272,7 +310,7 @@ export default function MalloApp() {
 
           reservationsLoading={reservationsLoading}
 
-          customers={customers}  // Supabase에서 가져온 최신 customers 사용 (localStorage의 customers 덮어쓰기)
+          customers={mergedCustomers.length > 0 ? mergedCustomers : customers}  // 병합된 customers 사용 (customerTags 보존)
 
           reservations={reservations}
 
@@ -289,6 +327,8 @@ export default function MalloApp() {
           refreshVisitLogs={refreshVisitLogs}
 
           refreshReservations={refreshReservations}
+
+          refreshCustomers={refreshReservations}
 
         />
 

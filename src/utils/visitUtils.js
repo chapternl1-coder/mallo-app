@@ -114,6 +114,12 @@ export function formatCustomerTagsForDisplay(customerTags = {}, visitCount = 0) 
   }
   
   // 나머지 태그 추가
+  // 특징 태그 추가
+  if (customerTags.feature && customerTags.feature.length > 0) {
+    customerTags.feature.forEach(tag => {
+      allTags.push({ tag, type: 'feature' });
+    });
+  }
   if (customerTags.trait && customerTags.trait.length > 0) {
     customerTags.trait.forEach(tag => {
       allTags.push({ tag, type: 'trait' });

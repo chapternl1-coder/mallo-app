@@ -38,7 +38,8 @@ function EditCustomerScreen({
   reservations,
   setReservations,
   refreshVisitLogs,
-  refreshReservations
+  refreshReservations,
+  refreshCustomers
 }) {
   const { user } = useAuth();
 
@@ -48,110 +49,166 @@ function EditCustomerScreen({
       return;
     }
 
-    // 편집된 고객 특징 태그를 카테고리별로 분류
+    // 1) 고객 특징 태그를 카테고리별로 정리
     const updatedCustomerTags = {
+      feature: [],  // 특징 카테고리 추가
       caution: [],
       trait: [],
       payment: [],
-      pattern: []
+      pattern: [],
     };
-    
+
     editCustomerTagIds.forEach(tagId => {
       const tag = allCustomerTags.find(t => t.id === tagId);
       if (tag) {
         const category = tag.category;
         if (updatedCustomerTags[category]) {
-          updatedCustomerTags[category] = [...updatedCustomerTags[category], tag.label];
+          updatedCustomerTags[category] = [
+            ...updatedCustomerTags[category],
+            tag.label,
+          ];
         } else {
           updatedCustomerTags[category] = [tag.label];
         }
       }
     });
 
-    // 🔹 Supabase customers 테이블 업데이트 (UUID인 경우만, 기본 필드만)
-    let supabaseUpdatedCustomer = null;
+    const trimmedName = editCustomerName.trim();
+    const trimmedPhone = editCustomerPhone.trim();
+    const trimmedMemo = editCustomerMemo.trim();
 
-    if (selectedCustomerId && isValidUuid(String(selectedCustomerId)) && user) {
+    // 2) Supabase customers 테이블 업데이트 (UUID 고객인 경우만)
+    if (
+      selectedCustomerId &&
+      isValidUuid(String(selectedCustomerId)) &&
+      user
+    ) {
       try {
-        const updatePayload = {
-          name: editCustomerName.trim(),
-          phone: editCustomerPhone.trim() || null,
-          memo: editCustomerMemo.trim() || null,
+        // 기본 필드 업데이트 (name, phone, memo)
+        const basicUpdatePayload = {
+          name: trimmedName,
+          phone: trimmedPhone || null,
+          memo: trimmedMemo || null,
         };
 
-        const { data, error } = await supabase
+        const { error: basicUpdateError } = await supabase
           .from('customers')
-          .update(updatePayload)
+          .update(basicUpdatePayload)
           .eq('id', selectedCustomerId)
-          .eq('owner_id', user.id)
-          .select()
-          .single();
+          .eq('owner_id', user.id);
 
-        if (error) {
-          console.error('[EditCustomerScreen] Supabase 업데이트 에러:', error);
-          alert('고객 정보를 저장하는 중 오류가 발생했습니다: ' + error.message);
+        if (basicUpdateError) {
+          console.error(
+            '[EditCustomerScreen] Supabase 기본 필드 업데이트 에러:',
+            basicUpdateError,
+          );
+          alert(
+            '고객 정보를 저장하는 중 오류가 발생했습니다: ' +
+              basicUpdateError.message,
+          );
           return;
         }
 
-        supabaseUpdatedCustomer = data;
-        console.log('[EditCustomerScreen] Supabase 업데이트 성공:', {
+        // customer_tags는 별도로 업데이트 (컬럼이 없을 수 있음)
+        try {
+          const { error: tagsError } = await supabase
+            .from('customers')
+            .update({ customer_tags: updatedCustomerTags })
+            .eq('id', selectedCustomerId)
+            .eq('owner_id', user.id);
+
+          if (tagsError) {
+            console.warn(
+              '[EditCustomerScreen] customer_tags 컬럼이 없거나 업데이트 실패:',
+              tagsError.message,
+            );
+            // customer_tags 업데이트 실패해도 계속 진행
+          } else {
+            console.log('[EditCustomerScreen] customer_tags 업데이트 성공');
+          }
+        } catch (tagsErr) {
+          console.warn(
+            '[EditCustomerScreen] customer_tags 업데이트 중 예외 (무시):',
+            tagsErr,
+          );
+          // customer_tags 업데이트 실패해도 계속 진행
+        }
+
+        console.log('[EditCustomerScreen] Supabase 고객 업데이트 성공:', {
           customerId: selectedCustomerId,
-          updatePayload,
+          basicUpdatePayload,
         });
       } catch (e) {
-        console.error('[EditCustomerScreen] Supabase 업데이트 중 예외:', e);
+        console.error(
+          '[EditCustomerScreen] Supabase 업데이트 중 예외:',
+          e,
+        );
         alert('고객 정보를 저장하는 중 오류가 발생했습니다.');
         return;
       }
     }
 
-    // 🔹 고객 정보 업데이트 (전역 state + localStorage)
+    // 3) 로컬 customers 상태 업데이트 (바로 화면 반영용)
+    // refreshCustomers 호출 전에 로컬 상태를 먼저 업데이트하여 customerTags가 유지되도록 함
     setCustomers(prev => {
       const updated = prev.map(c => {
         if (c.id === selectedCustomerId) {
-          // Supabase에서 최신 데이터를 받아온 경우 그걸 우선 반영
-          const base = supabaseUpdatedCustomer ? { ...c, ...supabaseUpdatedCustomer } : c;
           return {
-            ...base,
-            name: editCustomerName.trim(),
-            phone: editCustomerPhone.trim() || null,
-            // 레거시 태그는 유지
-            tags: editCustomerTags.filter(tag => tag.trim() !== ''),
-            // 새로운 고객 특징 태그
-            customerTags: updatedCustomerTags,
-            memo: editCustomerMemo.trim() || null
+            ...c,
+            name: trimmedName,
+            phone: trimmedPhone || null,
+            tags: editCustomerTags.filter(tag => tag.trim() !== ''), // 레거시 태그
+            customerTags: updatedCustomerTags, // 고객 특징 태그
+            memo: trimmedMemo || null,
           };
         }
         return c;
       });
-      
+
       if (saveToLocalStorage) {
         saveToLocalStorage('mallo_customers', updated);
       }
+
       return updated;
     });
 
-    // 🔹 관련된 visits의 customerName, customerPhone도 업데이트 (로컬 상태)
+    // 4) 서버 기준 데이터 새로고침 (로컬 상태 업데이트 후)
+    // refreshCustomers를 호출하여 App.jsx의 customers state를 갱신
+    // App.jsx의 병합 로직이 localStorage의 customerTags를 보존하므로 안전함
+    if (typeof refreshCustomers === 'function') {
+      await refreshCustomers();
+    }
+    if (typeof refreshVisitLogs === 'function') {
+      await refreshVisitLogs();
+    }
+    if (typeof refreshReservations === 'function') {
+      await refreshReservations();
+    }
+
+    // 5) 로컬 visits 상태에서도 고객 이름/전화번호 동기화
     setVisits(prev => {
       const updated = { ...prev };
       if (updated[selectedCustomerId]) {
-        updated[selectedCustomerId] = updated[selectedCustomerId].map(visit => ({
-          ...visit,
-          customerName: editCustomerName.trim(),
-          customerPhone: editCustomerPhone.trim() || null
-        }));
+        updated[selectedCustomerId] = updated[selectedCustomerId].map(
+          visit => ({
+            ...visit,
+            customerName: trimmedName,
+            customerPhone: trimmedPhone || null,
+          }),
+        );
       }
       localStorage.setItem('visits', JSON.stringify(updated));
       return updated;
     });
 
-    // 🔹 편집 화면 닫기 + 상태 초기화
+    // 6) 편집 상태 초기화 + 고객 상세 화면으로 복귀
     setEditCustomerName('');
     setEditCustomerPhone('');
     setEditCustomerTags([]);
     setEditCustomerTagIds([]);
     setEditCustomerMemo('');
     setNewTag('');
+
     setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
   };
 
@@ -240,8 +297,9 @@ function EditCustomerScreen({
                 const tag = allCustomerTags.find((t) => t.id === tagId);
                 if (!tag) return null;
 
-                // 주의 태그만 빨간색, 나머지는 회색
+                // 카테고리별 색상 구분
                 const isCaution = tag.category === 'caution';
+                const isFeature = tag.category === 'feature';
 
                 return (
                   <button
@@ -255,6 +313,8 @@ function EditCustomerScreen({
                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all border flex items-center gap-1 ${
                       isCaution 
                         ? 'bg-red-50 text-red-700 border-red-200'
+                        : isFeature
+                        ? 'bg-blue-50 text-blue-700 border-blue-200'
                         : 'bg-gray-100 text-gray-600 border-gray-200'
                     }`}
                   >

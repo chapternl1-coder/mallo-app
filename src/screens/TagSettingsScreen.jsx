@@ -353,14 +353,15 @@ function TagSettingsScreen({
                 const tagLabel = typeof tag === 'string' ? tag : (tag.label || tag);
                 const tagKeywords = typeof tag === 'object' && tag.keywords ? tag.keywords : [];
                 const displayLabel = tagLabel.replace(/^#/, '');
+                const isFeatureTab = tagSettingsSubTab === 'feature';
                 return (
                   <span
                     key={idx}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium"
                     style={{ 
-                      backgroundColor: isCautionTab ? '#FEF2F2' : '#F7F5F0',
-                      color: isCautionTab ? '#DC2626' : '#4A4A4A',
-                      border: isCautionTab ? '1px solid #FECACA' : 'none'
+                      backgroundColor: isCautionTab ? '#FEF2F2' : (isFeatureTab ? '#DBEAFE' : '#F7F5F0'),
+                      color: isCautionTab ? '#DC2626' : (isFeatureTab ? '#1E40AF' : '#4A4A4A'),
+                      border: isCautionTab ? '1px solid #FECACA' : (isFeatureTab ? '1px solid #93C5FD' : 'none')
                     }}
                   >
                     {displayLabel}
@@ -368,7 +369,7 @@ function TagSettingsScreen({
                       <button
                         onClick={() => handleDeleteTag(idx)}
                         className="ml-1 hover:opacity-70 transition-opacity"
-                        style={{ color: isCautionTab ? '#DC2626' : '#B8A08A' }}
+                        style={{ color: isCautionTab ? '#DC2626' : (isFeatureTab ? '#1E40AF' : '#B8A08A') }}
                       >
                         <X size={14} />
                       </button>

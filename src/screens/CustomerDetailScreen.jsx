@@ -79,6 +79,7 @@ function CustomerDetailScreen({
     visitCount: 0,
     lastVisit: relatedVisit?.serviceDate || relatedVisit?.date || null,
     customerTags: {
+      feature: [],
       caution: [],
       trait: [],
       payment: [],
@@ -91,6 +92,7 @@ function CustomerDetailScreen({
     customer = {
       ...customer,
       customerTags: {
+        feature: [],
         caution: [],
         trait: [],
         payment: [],
@@ -287,6 +289,7 @@ function CustomerDetailScreen({
         name: extractedName,
         phone: extractedPhone || '',
         customerTags: {
+          feature: [],
           caution: [],
           trait: [],
           payment: [],
@@ -578,12 +581,15 @@ function CustomerDetailScreen({
                   <div className="flex flex-wrap gap-2 mt-2">
                     {allTags.map((item, idx) => {
                       const isCaution = item.type === 'caution';
+                      const isFeature = item.type === 'feature';
                       return (
                         <span
                           key={idx}
                           className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
                             isCaution 
                               ? 'bg-red-50 text-red-600 border border-red-100' 
+                              : isFeature
+                              ? 'bg-blue-50 text-blue-700 border border-blue-200'
                               : 'bg-gray-100 text-gray-600'
                           }`}
                         >
@@ -596,33 +602,6 @@ function CustomerDetailScreen({
                 );
               })()}
               
-              {/* 고객 태그 섹션 */}
-              <section className="mt-4">
-                <h3 className="text-[13px] font-semibold mb-2 text-[#3F352B]">
-                  고객 태그
-                </h3>
-
-                {customerTagChips.length === 0 ? (
-                  <p className="text-[11px] text-[#A79A8E]">
-                    아직 등록된 고객 태그가 없어요.
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap gap-2 max-h-[80px] overflow-y-auto">
-                    {customerTagChips.map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2.5 py-1 rounded-full text-[11px] font-medium"
-                        style={{
-                          backgroundColor: '#F2F0E6',
-                          color: '#8C6D46',
-                        }}
-                      >
-                        {tag.label}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </section>
               
               {/* 메모 */}
               {customer.memo && customer.memo.trim() && (

@@ -1380,6 +1380,7 @@ function RecordScreen({
                   const updatedCustomerTags = updateCustomerTags({
                     existingCustomerTags:
                       targetCustomer?.customerTags || {
+                        feature: [],
                         caution: [],
                         trait: [],
                         payment: [],

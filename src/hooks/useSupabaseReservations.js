@@ -70,13 +70,22 @@ export default function useSupabaseReservations() {
       setError(null);
 
       try {
-        // customer_tags, visit_count, last_visit 컬럼이 없을 수 있으므로 기본 필드만 조회
-        // 추가 필드가 필요하면 나중에 Supabase 스키마에 추가한 후 사용
-        const customersRes = await supabase
+        // customer_tags 컬럼이 있을 수도 있으므로 시도해보고, 없으면 기본 필드만 사용
+        let customersRes = await supabase
           .from('customers')
-          .select('id, name, phone, created_at, memo')
+          .select('id, name, phone, created_at, memo, customer_tags')
           .eq('owner_id', user.id)
           .order('created_at', { ascending: true });
+
+        // customer_tags 컬럼이 없으면 기본 필드만 다시 조회
+        if (customersRes.error && customersRes.error.message && customersRes.error.message.includes('customer_tags')) {
+          console.warn('[SupabaseHook] customer_tags 컬럼이 없어서 기본 필드만 조회');
+          customersRes = await supabase
+            .from('customers')
+            .select('id, name, phone, created_at, memo')
+            .eq('owner_id', user.id)
+            .order('created_at', { ascending: true });
+        }
 
         // reservations는 별도로 가져오기
         const reservationsRes = await supabase
@@ -110,6 +119,7 @@ export default function useSupabaseReservations() {
             phone: row.phone || '',
             createdAt: row.created_at,
             customerTags: (row.customer_tags || {
+              feature: [],
               caution: [],
               trait: [],
               payment: [],
