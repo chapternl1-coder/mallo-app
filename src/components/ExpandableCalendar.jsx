@@ -174,10 +174,13 @@ function ExpandableCalendar({ selectedDate, onDateSelect, reservations = [] }) {
       {/* 헤더: 월/년 표시 + 네비게이션 */}
       <div className="px-4 py-3 bg-[#F9F5EF]">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center">
-            <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center border border-[#E3D7C7] mr-1">
-              <Calendar size={16} className="text-[#7A6A58]" />
-            </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={goToToday}
+              className="px-3 py-1 text-[10px] font-medium text-[#7A6A58] hover:bg-[#F2EDE4] rounded-lg transition-colors border border-[#E3D7C7] bg-white"
+            >
+              오늘
+            </button>
             <button
               onClick={isExpanded ? goToPrevMonth : goToPrevWeek}
               className="p-1 hover:bg-[#F2EDE4] rounded-lg transition-colors flex items-center justify-center -mr-2"
@@ -194,13 +197,7 @@ function ExpandableCalendar({ selectedDate, onDateSelect, reservations = [] }) {
               <ChevronRight size={18} className="text-[#7A6A58]" />
             </button>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={goToToday}
-              className="px-3 py-1 text-[10px] font-medium text-[#7A6A58] hover:bg-[#F2EDE4] rounded-lg transition-colors border border-[#E3D7C7]"
-            >
-              오늘
-            </button>
+          <div className="flex items-center">
             <button
               onClick={toggleExpand}
               className="p-1 hover:bg-[#F2EDE4] rounded-lg transition-colors"
