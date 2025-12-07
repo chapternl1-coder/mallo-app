@@ -243,6 +243,33 @@ function CustomerDetailScreen({
     return Array.from(map.values());
   }, [supabaseCustomerVisits, localCustomerVisits]);
 
+  // 방문 회차 계산: 오름차순 정렬된 리스트를 기준으로 회차 매핑 생성
+  const visitOrderMap = React.useMemo(() => {
+    // 오름차순 정렬 (가장 옛날 = 1번째, 최신 = N번째)
+    const ascendingSorted = [...uniqueSortedCustomerVisits].sort((a, b) => {
+      const dateA = (a.serviceDate || a.date || '').toString();
+      const dateB = (b.serviceDate || b.date || '').toString();
+      
+      if (dateA !== dateB) {
+        return dateA.localeCompare(dateB); // 오름차순
+      }
+      
+      const tA = (a.serviceTime || a.time || '').toString();
+      const tB = (b.serviceTime || b.time || '').toString();
+      return tA.localeCompare(tB); // 오름차순
+    });
+    
+    // 각 방문 기록에 회차 번호 매핑
+    const orderMap = new Map();
+    ascendingSorted.forEach((visit, index) => {
+      if (visit && visit.id) {
+        orderMap.set(visit.id, index + 1); // 1번째부터 시작
+      }
+    });
+    
+    return orderMap;
+  }, [uniqueSortedCustomerVisits]);
+
   // 성능 최적화: visibleVisitCount만큼만 렌더링할 방문 기록 메모이제이션
   const visibleVisits = React.useMemo(() => {
     return uniqueSortedCustomerVisits.slice(0, visibleVisitCount);
@@ -750,24 +777,35 @@ function CustomerDetailScreen({
                 safeName
               );
 
+              // 방문 회차 계산
+              const visitOrder = visitOrderMap.get(visit.id) || 0;
+              const isFirstVisit = visitOrder === 1;
+
               return (
                 <div key={visit.id} className="bg-white rounded-xl shadow-sm overflow-hidden relative" style={{ padding: '12px 16px' }}>
                   <div className="record-card-main flex flex-col relative">
-                    {/* 맨 위줄: 날짜/시간과 아이콘들 */}
+                    {/* 맨 위줄: 날짜/시간과 뱃지, 아이콘들 */}
                     <div className="flex items-center justify-between mb-2">
-                      {dateTimeDisplay && (
-                        <div 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
-                          }}
-                          style={{ cursor: 'pointer' }}
-                        >
+                      <div 
+                        className="flex items-center gap-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {dateTimeDisplay && (
                           <span className="text-xs font-bold text-[#C9A27A]">
                             {dateTimeDisplay}
                           </span>
-                        </div>
-                      )}
+                        )}
+                        {/* 방문 회차 뱃지 (날짜 오른쪽) */}
+                        {visitOrder > 0 && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-600">
+                            {visitOrder}회차
+                          </span>
+                        )}
+                      </div>
                       
                       {/* 편집 버튼과 화살표 아이콘 (우측 상단) */}
                       <div className="flex items-center gap-2">
