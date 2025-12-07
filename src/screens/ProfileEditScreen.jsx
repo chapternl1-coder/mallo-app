@@ -9,7 +9,7 @@ export default function ProfileEditScreen({ setCurrentScreen }) {
   const { profile, loading, saving, updateProfile } = useProfile();
 
   const [ownerName, setOwnerName] = useState('');
-  const [shopName, setShopName] = useState('');
+  const [shopName, setShopName] = useState('말로뷰티스튜디오');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [memo, setMemo] = useState('');
@@ -19,8 +19,17 @@ export default function ProfileEditScreen({ setCurrentScreen }) {
   useEffect(() => {
     if (profile) {
       setOwnerName(profile.owner_name || '');
-      setShopName(profile.shop_name || '');
+      // "강민샵"이거나 빈 값이면 "말로뷰티스튜디오"로 설정
+      const currentShopName = profile.shop_name || '';
+      if (currentShopName === '강민샵' || currentShopName === '' || !currentShopName.trim()) {
+        setShopName('말로뷰티스튜디오');
+      } else {
+        setShopName(currentShopName);
+      }
       // phone, address, memo는 아직 DB에 없어서 일단 빈 값 유지
+    } else {
+      // 프로필이 없을 때 기본값 설정
+      setShopName('말로뷰티스튜디오');
     }
   }, [profile]);
 
@@ -108,7 +117,7 @@ export default function ProfileEditScreen({ setCurrentScreen }) {
                 <input
                   type="text"
                   className="w-full rounded-xl border border-[#E5D9CC] bg-[#FAF7F1] px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-[#C9A27A]"
-                  placeholder="예: 말로 뷰티 스튜디오"
+                  placeholder="예: 말로뷰티스튜디오"
                   value={shopName}
                   onChange={(e) => setShopName(e.target.value)}
                 />

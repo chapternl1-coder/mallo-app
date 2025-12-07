@@ -244,6 +244,11 @@ function CustomerDetailScreen({
     uniqueSortedCustomerVisits.length
   );
   
+  // 고객별 방문 기록 개수 (Supabase visit_logs 기준)
+  const visitCountFromLogs = Array.isArray(uniqueSortedCustomerVisits)
+    ? uniqueSortedCustomerVisits.length
+    : 0;
+  
   // customers 배열에서 찾지 못했지만 방문 기록이 있는 경우
   // summary_json에서 고객 정보를 추출하여 임시 고객 객체 생성
   if (!customer && selectedCustomerId && uniqueSortedCustomerVisits.length > 0) {
@@ -450,7 +455,7 @@ function CustomerDetailScreen({
               <div className="flex items-center gap-2 mb-2">
                 <h3 className="font-bold text-2xl" style={{ color: '#232323' }}>{customer.name}</h3>
                 <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100" style={{ color: '#232323' }}>
-                  {customer.visitCount}회방문
+                  {visitCountFromLogs}회방문
                 </span>
               </div>
               <div className="space-y-3 mb-4">
@@ -527,7 +532,7 @@ function CustomerDetailScreen({
               
               {/* customerTags 표시 (주의 태그가 맨 앞) */}
               {(() => {
-                const allTags = formatCustomerTagsForDisplay(customer.customerTags || {}, customer.visitCount || 0);
+                const allTags = formatCustomerTagsForDisplay(customer.customerTags || {}, visitCountFromLogs);
                 
                 if (allTags.length === 0) return null;
                 
