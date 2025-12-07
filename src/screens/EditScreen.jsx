@@ -150,42 +150,60 @@ function EditScreen({
 
   // 완료 버튼 클릭 핸들러
   const handleComplete = async () => {
-    // 1) 빈 항목 제거한 요약 데이터 만들기
+    if (!tempResultData) {
+      // 편집 데이터 없으면 그냥 원래 화면으로
+      if (editingVisit) {
+        setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+      } else {
+        setCurrentScreen(SCREENS.RECORD);
+      }
+      return;
+    }
+
+    // 1) 섹션 내용에서 빈 줄 정리
+    const cleanedSections = tempResultData.sections.map((section) => ({
+      ...section,
+      content: Array.isArray(section.content)
+        ? section.content
+            .map((item) => (item == null ? '' : String(item)))
+            .filter((item) => item.trim() !== '')
+        : [],
+    }));
+
     const cleanedData = {
       ...tempResultData,
-      sections: tempResultData.sections.map(section => ({
-        ...section,
-        content: Array.isArray(section.content)
-          ? section.content
-              .map(item => (item == null ? '' : String(item)))
-              .filter(item => item.trim() !== '')
-          : []
-      }))
+      // 제목은 이미 textarea에서 cleanTitle을 거쳐서 들어오고 있음
+      sections: cleanedSections,
     };
 
     // RecordScreen 쪽 resultData 업데이트
     setResultData(cleanedData);
 
-    // 2) 편집 중인 방문/고객이 있을 때만 visits 상태 갱신
-    if (editingVisit && editingCustomer) {
+    // 2) 편집 중인 방문 + 고객이 있을 때만 visits 상태 업데이트
+    const currentNormalizedVisit =
+      editingVisit && editingCustomer
+        ? normalizeRecordWithCustomer(editingVisit, editingCustomer)
+        : null;
+
+    if (editingVisit && editingCustomer && currentNormalizedVisit) {
       const customerId = editingCustomer.id;
 
-      // (1) 요약 섹션을 자동 태그 매칭용 포맷으로 변환
+      // (1) 자동 태그 재매칭 실행
       let autoMatchedIds = [];
       try {
-        const summarySections = cleanedData.sections.map(section => ({
+        const summarySections = cleanedSections.map((section) => ({
           title:
             typeof section.title === 'string'
               ? section.title
               : String(section.title || ''),
           content: Array.isArray(section.content)
             ? section.content.join('\n')
-            : String(section.content || '')
+            : String(section.content || ''),
         }));
 
         const { visitTags } = runAutoTagMatchingForVisit({
           summarySections,
-          allTags: allVisitTags
+          allTags: allVisitTags,
         });
 
         autoMatchedIds = Array.isArray(visitTags) ? visitTags : [];
@@ -196,87 +214,139 @@ function EditScreen({
       // (2) 기존 선택 태그 + 자동 매칭 태그 합치고 중복 제거
       const finalVisitTagIds = [...new Set([...editingVisitTagIds, ...autoMatchedIds])];
 
-      // (3) ID → 라벨 배열로 변환
-      const editedTagLabels = finalVisitTagIds
-        .map(id => {
-          const tag = allVisitTags.find(t => t.id === id);
+      // (3) ID → 라벨 배열로 변환 (빈 값 제거)
+      const finalTagLabels = finalVisitTagIds
+        .map((id) => {
+          const tag = allVisitTags.find((t) => t.id === id);
           return tag ? tag.label : null;
         })
-        .filter(label => label !== null);
+        .filter((label) => label !== null);
 
       // (4) visits 상태 업데이트
-      setVisits(prev => {
-        const updated = { ...prev };
+      setVisits((prev) => {
+        const cloned = { ...prev };
+        const list = cloned[customerId];
 
-        if (updated[customerId]) {
-          updated[customerId] = updated[customerId].map(v => {
-            if (v.id !== editingVisit.id) return v;
-
-            const updatedVisit = {
-              ...v,
-              // 이름/전화번호 최신화
-              customerName: editingCustomer.name || v.customerName,
-              customerPhone: editingCustomer.phone || v.customerPhone,
-              // 태그 관련 필드들 전부 맞춰주기
-              tags: editedTagLabels,
-              summaryTags: editedTagLabels,
-              serviceTags: editedTagLabels,
-              visitTagIds: finalVisitTagIds,
-              tagIds: finalVisitTagIds,
-              // 상세 섹션 반영
-              detail: {
-                ...(v.detail || {}),
-                sections: cleanedData.sections
-              }
-            };
-
-            return updatedVisit;
-          });
+        if (!Array.isArray(list)) {
+          return prev;
         }
 
-        // 로컬 스토리지에도 저장 (이전 로컬 기록 대비)
+        cloned[customerId] = list.map((v) => {
+          if (v.id !== editingVisit.id) return v;
+
+          const baseName =
+            currentNormalizedVisit.customerName ||
+            editingCustomer.name ||
+            v.customerName;
+          const basePhone =
+            currentNormalizedVisit.customerPhone ||
+            editingCustomer.phone ||
+            v.customerPhone;
+
+          const updatedDetail = {
+            ...(v.detail || {}),
+            sections: cleanedSections,
+            // 혹시 detail에서 태그를 참조하는 화면이 있을 수 있으니 같이 넣기
+            tags: finalTagLabels,
+            tagIds: finalVisitTagIds,
+          };
+
+          const prevSummaryJson = v.summaryJson || v.summary_json || {};
+          const updatedSummaryJson = {
+            ...prevSummaryJson,
+            tags: finalTagLabels,
+            tagIds: finalVisitTagIds,
+          };
+
+          return {
+            ...v,
+            // 제목 / 고객 정보 최신화
+            title: cleanedData.title || v.title,
+            customerName: baseName,
+            customerPhone: basePhone,
+
+            // === 태그 관련 필드 전부 통일해서 박아 넣기 ===
+            tags: finalTagLabels,
+            serviceTags: finalTagLabels,
+            summaryTags: finalTagLabels,
+            visitTags: finalTagLabels,
+
+            tagIds: finalVisitTagIds,
+            visitTagIds: finalVisitTagIds,
+            summaryTagIds: finalVisitTagIds,
+
+            detail: updatedDetail,
+            summaryJson: updatedSummaryJson,
+            summary_json: updatedSummaryJson,
+          };
+        });
+
         try {
-          localStorage.setItem('visits', JSON.stringify(updated));
+          localStorage.setItem('visits', JSON.stringify(cloned));
         } catch (e) {
           console.warn('[편집 저장] localStorage(visits) 저장 실패:', e);
         }
 
-        return updated;
+        return cloned;
       });
 
-      // (5) editingVisit 자체도 동기화 (바로 다시 편집 들어갈 때 대비)
-      setEditingVisit(prev => {
+      // (5) 편집용 editingVisit / editingVisitTagIds 도 동일하게 맞춰두기
+      setEditingVisit((prev) => {
         if (!prev || prev.id !== editingVisit.id) return prev;
+
+        const prevSummaryJson = prev.summaryJson || prev.summary_json || {};
+        const updatedSummaryJson = {
+          ...prevSummaryJson,
+          tags: finalTagLabels,
+          tagIds: finalVisitTagIds,
+        };
 
         return {
           ...prev,
-          customerName: editingCustomer.name || prev.customerName,
-          customerPhone: editingCustomer.phone || prev.customerPhone,
-          tags: editedTagLabels,
-          summaryTags: editedTagLabels,
-          serviceTags: editedTagLabels,
-          visitTagIds: finalVisitTagIds,
+          title: cleanedData.title || prev.title,
+          customerName:
+            currentNormalizedVisit.customerName ||
+            editingCustomer.name ||
+            prev.customerName,
+          customerPhone:
+            currentNormalizedVisit.customerPhone ||
+            editingCustomer.phone ||
+            prev.customerPhone,
+
+          tags: finalTagLabels,
+          serviceTags: finalTagLabels,
+          summaryTags: finalTagLabels,
+          visitTags: finalTagLabels,
+
           tagIds: finalVisitTagIds,
+          visitTagIds: finalVisitTagIds,
+          summaryTagIds: finalVisitTagIds,
+
           detail: {
             ...(prev.detail || {}),
-            sections: cleanedData.sections
-          }
+            sections: cleanedSections,
+            tags: finalTagLabels,
+            tagIds: finalVisitTagIds,
+          },
+          summaryJson: updatedSummaryJson,
+          summary_json: updatedSummaryJson,
         };
       });
+
+      setEditingVisitTagIds(finalVisitTagIds);
     }
 
-    // 3) 편집용 상태 리셋
+    // 3) 편집용 상태 리셋 + 화면 이동
     setTempResultData(null);
     setEditingVisit(null);
     setEditingCustomer(null);
     setEditingVisitTagIds([]);
 
-    // 4) 어디서 왔는지에 따라 화면 이동
     if (editingVisit) {
-      // 고객 상세에서 연필 눌러서 온 경우 → 다시 고객 상세
+      // 고객 상세에서 온 경우 → 다시 고객 상세
       setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
     } else {
-      // 녹음/키보드 요약 화면에서 바로 편집 온 경우 → 다시 요약 결과
+      // 녹음/키보드 요약에서 온 경우 → 다시 요약 결과
       setCurrentScreen(SCREENS.RECORD);
     }
   };

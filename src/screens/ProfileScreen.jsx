@@ -1,12 +1,16 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { ChevronRight, Pencil } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import useProfile from '../hooks/useProfile';
 import { SCREENS } from '../constants/screens';
 
-function ProfileScreen({ setCurrentScreen, isAutoTaggingEnabled, setIsAutoTaggingEnabled }) {
+function ProfileScreen({ 
+  setCurrentScreen, 
+  isAutoTaggingEnabled, 
+  setIsAutoTaggingEnabled,
+  cachedProfile,
+  profileLoading
+}) {
   const { user, signOut } = useAuth();
-  const { profile, loading } = useProfile();
 
   const handleSignOutClick = async () => {
     try {
@@ -23,50 +27,16 @@ function ProfileScreen({ setCurrentScreen, isAutoTaggingEnabled, setIsAutoTaggin
     }
   };
 
-  // DB 값이 없을 때 보여줄 기본 텍스트
-  const ownerName = profile?.owner_name || '원장님 이름을 입력해 주세요';
-  const shopName = profile?.shop_name || '샵 이름을 입력해 주세요';
-  const email = user?.email || '';
-
   return (
     <div className="h-full overflow-y-auto" style={{ backgroundColor: '#F2F0E6' }}>
       <div className="px-5 pt-5 pb-6">
         {/* 상단 프로필 카드 */}
-        <div className="bg-white border border-[#E4D9CC] rounded-2xl px-5 py-4 mb-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-[#F2F0E6] flex items-center justify-center text-[11px] font-semibold text-[#C9A27A]">
-              {ownerName?.[0] || '원'}
-            </div>
-            <div>
-              {loading ? (
-                <>
-                  <div className="h-4 w-24 bg-neutral-100 rounded mb-1" />
-                  <div className="h-3 w-32 bg-neutral-100 rounded mb-1" />
-                  <div className="h-3 w-40 bg-neutral-100 rounded" />
-                </>
-              ) : (
-                <>
-                  <p className="text-sm font-semibold text-neutral-900">
-                    {ownerName}
-                  </p>
-                  <p className="text-[11px] text-neutral-500">
-                    {shopName}
-                  </p>
-                  <p className="text-[11px] text-neutral-400">
-                    {email}
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleEditProfileClick}
-            className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-[#E4D9CC] bg-white active:bg-neutral-50"
-          >
-            <Pencil className="w-3.5 h-3.5 text-neutral-500" />
-          </button>
-        </div>
+        <UserProfileCard
+          profile={cachedProfile}
+          loading={profileLoading}
+          email={user?.email || ''}
+          onEditClick={handleEditProfileClick}
+        />
 
         {/* 시술 태그/알림/AI 추천/테마/고객 데이터 관리 카드들 */}
         <div className="space-y-3">
@@ -185,5 +155,58 @@ function ToggleRow({ label, enabled = false, onToggle }) {
     </div>
   );
 }
+
+// 프로필 카드 컴포넌트 (React.memo로 최적화, 깜빡임 제거)
+const UserProfileCard = memo(({ profile, loading, email, onEditClick }) => {
+  // 기존 데이터가 있으면 로딩 중에도 스켈레톤을 보여주지 않음 (Stale Data First)
+  const hasStaleData = profile !== null && profile !== undefined;
+  
+  // DB 값이 없을 때 보여줄 기본 텍스트 (초기값 확보)
+  const ownerName = profile?.owner_name || '원장님 이름을 입력해 주세요';
+  const shopName = profile?.shop_name || '샵 이름을 입력해 주세요';
+  
+  // 로딩 중이지만 기존 데이터가 있으면 스켈레톤을 보여주지 않음
+  const showSkeleton = loading && !hasStaleData;
+
+  return (
+    <div className="bg-white border border-[#E4D9CC] rounded-2xl px-5 py-4 mb-5 flex items-center justify-between h-[88px]">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="w-11 h-11 rounded-full bg-[#F2F0E6] flex items-center justify-center text-[11px] font-semibold text-[#C9A27A] flex-shrink-0">
+          {ownerName?.[0] || '원'}
+        </div>
+        <div className="flex-1 min-w-0">
+          {showSkeleton ? (
+            <>
+              <div className="h-4 w-24 bg-neutral-100 rounded mb-1 animate-pulse" />
+              <div className="h-3 w-32 bg-neutral-100 rounded mb-1 animate-pulse" />
+              <div className="h-3 w-40 bg-neutral-100 rounded animate-pulse" />
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-semibold text-neutral-900 truncate">
+                {ownerName}
+              </p>
+              <p className="text-[11px] text-neutral-500 truncate">
+                {shopName}
+              </p>
+              <p className="text-[11px] text-neutral-400 truncate">
+                {email}
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onEditClick}
+        className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-[#E4D9CC] bg-white active:bg-neutral-50 flex-shrink-0 ml-2"
+      >
+        <Pencil className="w-3.5 h-3.5 text-neutral-500" />
+      </button>
+    </div>
+  );
+});
+
+UserProfileCard.displayName = 'UserProfileCard';
 
 export default ProfileScreen;

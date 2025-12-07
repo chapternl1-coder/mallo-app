@@ -62,8 +62,31 @@ export default function useMalloAppState(user) {
   const [previousScreen, setPreviousScreen] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   
-  // 프로필 정보 가져오기
-  const { profile } = useProfile();
+  // 프로필 정보 가져오기 및 캐싱 (Stale-while-revalidate 패턴)
+  const { profile, loading: profileLoading, refetch: refetchProfile } = useProfile();
+  const [cachedProfile, setCachedProfile] = useState(null);
+  const [isProfileInitialized, setIsProfileInitialized] = useState(false);
+
+  // 프로필 정보 캐싱: 한 번 로드되면 캐시에 저장 (로딩 중에도 유지)
+  useEffect(() => {
+    if (profile) {
+      // 프로필 데이터가 있으면 즉시 캐시에 저장 (로딩 중이어도)
+      setCachedProfile(profile);
+      if (!profileLoading) {
+        setIsProfileInitialized(true);
+      }
+    }
+  }, [profile, profileLoading]);
+
+  // 프로필 탭 진입 시 백그라운드에서 최신 정보 갱신 (Stale-while-revalidate)
+  useEffect(() => {
+    if (currentScreen === SCREENS.PROFILE && isProfileInitialized) {
+      // 캐시된 데이터는 즉시 표시하고, 백그라운드에서 최신 정보 가져오기
+      refetchProfile().catch((e) => {
+        console.warn('[프로필] 백그라운드 갱신 실패, 캐시된 데이터 사용:', e);
+      });
+    }
+  }, [currentScreen, isProfileInitialized, refetchProfile]);
 
   // Auth 도입 후에는 내부 SCREENS.LOGIN을 더 이상 쓰지 않으므로, Login이면 자동으로 Home으로 교정
   useEffect(() => {
@@ -89,16 +112,17 @@ export default function useMalloAppState(user) {
     phone: '010-1234-5678'
   });
   
-  // 프로필의 shop_name을 userProfile.shopName에 반영
+  // 프로필의 shop_name을 userProfile.shopName에 반영 (캐시된 프로필 사용)
   useEffect(() => {
-    if (profile && profile.shop_name) {
+    const profileToUse = cachedProfile || profile;
+    if (profileToUse && profileToUse.shop_name) {
       setUserProfile((prev) => ({
         ...prev,
-        shopName: profile.shop_name,
-        name: profile.owner_name || prev.name,
+        shopName: profileToUse.shop_name,
+        name: profileToUse.owner_name || prev.name,
       }));
     }
-  }, [profile]);
+  }, [cachedProfile, profile]);
   const [recordingTime, setRecordingTime] = useState(0);
   const [transcript, setTranscript] = useState('');
   const [rawTranscript, setRawTranscript] = useState('');
@@ -2197,7 +2221,10 @@ export default function useMalloAppState(user) {
     setIsTextSummarizing,
     addReservationFromVisit,
     shouldOpenReservationForm,
-    setShouldOpenReservationForm
+    setShouldOpenReservationForm,
+    cachedProfile,
+    profileLoading,
+    refetchProfile
   };
 
   return {

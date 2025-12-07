@@ -1,5 +1,5 @@
 // 특정 고객의 정보와 방문 히스토리를 보여주는 화면
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { ArrowLeft, MoreHorizontal, Phone, Edit, Mic, ChevronUp, ChevronDown, Calendar, Repeat, Keyboard, ChevronLeft } from 'lucide-react';
 import { formatRecordDateTime, formatServiceDateTimeLabel } from '../utils/date';
 import { SCREENS } from '../constants/screens';
@@ -515,9 +515,34 @@ function CustomerDetailScreen({
     return orderMap;
   }, [uniqueSortedCustomerVisits]);
 
+  // 지연 렌더링: 방문 히스토리 리스트는 화면 전환 후 약간의 지연을 두고 렌더링
+  const [isHistoryReady, setIsHistoryReady] = useState(false);
+  
+  useEffect(() => {
+    // 화면 전환 애니메이션이 끝난 후 방문 히스토리 렌더링 시작
+    setIsHistoryReady(false); // 고객 변경 시 리셋
+    const timer = setTimeout(() => {
+      setIsHistoryReady(true);
+    }, 200); // 200ms 지연
+    
+    return () => clearTimeout(timer);
+  }, [selectedCustomerId]); // 고객이 변경될 때마다 리셋
+
   // 성능 최적화: visibleVisitCount만큼만 렌더링할 방문 기록 메모이제이션
+  // 초기 로딩: 최근 15개만 먼저 표시 (페이지네이션)
+  const initialLoadCount = 15;
+  
+  // 고객 변경 시 초기 로딩 개수로 리셋
+  useEffect(() => {
+    if (visibleVisitCount < initialLoadCount) {
+      setVisibleVisitCount(initialLoadCount);
+    }
+  }, [selectedCustomerId]); // 고객이 변경될 때만 리셋
+  
   const visibleVisits = React.useMemo(() => {
-    return uniqueSortedCustomerVisits.slice(0, visibleVisitCount);
+    // visibleVisitCount가 initialLoadCount보다 작으면 initialLoadCount 사용
+    const count = Math.max(visibleVisitCount, initialLoadCount);
+    return uniqueSortedCustomerVisits.slice(0, count);
   }, [uniqueSortedCustomerVisits, visibleVisitCount]);
 
   // 방문 기록의 날짜/시간 및 제목 계산을 useMemo로 최적화
@@ -730,14 +755,14 @@ function CustomerDetailScreen({
 
 
 
-  // 더 보기 함수
+  // 더 보기 함수 (15개씩 추가 로드)
   const handleLoadMoreVisits = () => {
-    setVisibleVisitCount((prev) => Math.min(prev + 10, uniqueSortedCustomerVisits.length));
+    setVisibleVisitCount((prev) => Math.min(prev + 15, uniqueSortedCustomerVisits.length));
   };
 
-  // 접기 함수
+  // 접기 함수 (초기 개수로 리셋)
   const handleCollapseVisits = () => {
-    setVisibleVisitCount(10);
+    setVisibleVisitCount(initialLoadCount);
   };
 
 
@@ -977,6 +1002,13 @@ function CustomerDetailScreen({
                 <VisitHistorySkeleton key={idx} />
               ))}
             </div>
+          ) : !isHistoryReady ? (
+            // 지연 렌더링: 방문 히스토리는 약간의 지연 후 표시
+            <div className="space-y-3">
+              {[...Array(3)].map((_, idx) => (
+                <VisitHistorySkeleton key={idx} />
+              ))}
+            </div>
           ) : uniqueSortedCustomerVisits.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 shadow-sm">
               <p className="font-light text-base" style={{ color: '#232323', opacity: 0.6 }}>방문 기록이 없습니다</p>
@@ -1012,17 +1044,17 @@ function CustomerDetailScreen({
           )}
           
           {/* 이전 기록 더 보기 / 접기 버튼 */}
-          {(uniqueSortedCustomerVisits.length > visibleVisitCount || visibleVisitCount > 10) && (
+          {isHistoryReady && (uniqueSortedCustomerVisits.length > visibleVisitCount || visibleVisitCount > initialLoadCount) && (
             <div className="flex justify-center mt-4 mb-20 gap-3">
               {uniqueSortedCustomerVisits.length > visibleVisitCount && (
                 <button
                   onClick={handleLoadMoreVisits}
                   className="px-4 py-2 text-sm rounded-full border border-[#C9A27A] text-[#C9A27A] bg-white/90 shadow-sm hover:bg-[#C9A27A] hover:text-white transition-colors min-w-[180px]"
                 >
-                  이전 기록 10건 더 보기
+                  이전 기록 15건 더 보기
                 </button>
               )}
-              {visibleVisitCount > 10 && (
+              {visibleVisitCount > initialLoadCount && (
                 <button
                   onClick={handleCollapseVisits}
                   className="px-4 py-2 text-sm rounded-full border border-[#C9A27A] text-[#C9A27A] bg-white/90 shadow-sm hover:bg-[#C9A27A] hover:text-white transition-colors min-w-[180px]"
