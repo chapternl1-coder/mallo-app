@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -174,7 +174,8 @@ export default function useVisitLogs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchVisitLogs = async () => {
+  // ✅ 1) 한 번만 정의해두고, 어디서든 다시 쓸 수 있는 fetch 함수
+  const fetchVisitLogs = useCallback(async () => {
     // 로그인 안 된 상태면 비워두기
     if (!user) {
       setVisitLogsByCustomer({});
@@ -245,19 +246,22 @@ export default function useVisitLogs() {
     setVisitLogsByCustomer(byCustomer);
     setAllVisitLogs(mappedVisitLogs);
     setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchVisitLogs();
   }, [user]);
 
+  // ✅ 2) 처음 마운트/유저 변경될 때 자동으로 한 번 실행
+  useEffect(() => {
+    fetchVisitLogs();
+  }, [fetchVisitLogs]);
+
+  // ✅ 3) refetchVisitLogs 를 외부에서도 쓸 수 있게 리턴
   return {
     visitLogsByCustomer,
     visitLogs: allVisitLogs,  // visitLogs 이름으로 반환
     allVisitLogs,             // 하위 호환성 유지
     loading,
     error,
-    refresh: fetchVisitLogs,  // 수동으로 새로고침하는 함수 추가
+    refresh: fetchVisitLogs,  // 하위 호환성 유지
+    refetchVisitLogs: fetchVisitLogs,  // 수동으로 새로고침하는 함수 추가
   };
 }
 

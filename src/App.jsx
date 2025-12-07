@@ -220,6 +220,8 @@ export default function MalloApp() {
 
     refresh: refreshVisitLogs,
 
+    refetchVisitLogs,        // ✅ 이 줄 추가
+
   } = useVisitLogs();
 
 
@@ -234,7 +236,13 @@ export default function MalloApp() {
 
   console.log('[MalloApp] Supabase visit_logs 길이:', allVisitLogs.length);
 
-
+  // ✅ 기록 화면 진입 시마다 최신 데이터 가져오기
+  useEffect(() => {
+    if (currentScreen === SCREENS.HISTORY) {
+      // 기록 탭 / 기록 화면으로 들어올 때마다 Supabase에서 최신 데이터 한 번 더 가져오기
+      refetchVisitLogs();
+    }
+  }, [currentScreen, refetchVisitLogs]);
 
   // 1) Auth 로딩 중 로딩 화면
 
