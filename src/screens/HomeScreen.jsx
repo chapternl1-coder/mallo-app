@@ -401,6 +401,15 @@ function HomeScreen({
           r.id === reservationId ? { ...r, memo: data.memo } : r
         )
       );
+
+      // 초안을 업데이트된 memo 값으로 동기화 (화면에 바로 반영되도록)
+      setReservationMemoDrafts((prev) => ({
+        ...prev,
+        [reservationId]: data.memo || '',
+      }));
+
+      // 저장 후 편집 모드 종료 (메모가 바로 보이도록)
+      setEditingMemoReservationId(null);
     } catch (e) {
       console.error('[HomeScreen] 예약 메모 업데이트 예외:', e);
       alert('예약 메모 저장 중 오류가 발생했습니다.');
@@ -580,7 +589,7 @@ function HomeScreen({
                     const cardBgClass = hasVisitLog ? 'bg-white' : 'bg-[#F8F5EE]';
 
                     const isEditingMemo = editingMemoReservationId === reservation.id;
-                    const hasMemo = reservation.note && reservation.note.trim().length > 0;
+                    const hasMemo = (reservation.memo || reservation.note) && (reservation.memo || reservation.note).trim().length > 0;
                     const maxMemoLength = getMaxMemoLength();
 
                     return (
@@ -710,6 +719,10 @@ function HomeScreen({
                                   if (e.key === 'Enter') {
                                     e.preventDefault();
                                     handleReservationMemoSave(reservation);
+                                    // Enter 키 후 input blur하여 편집 모드 종료
+                                    if (memoInputRef.current) {
+                                      memoInputRef.current.blur();
+                                    }
                                   } else if (e.key === 'Escape') {
                                     // Escape 키로 취소 (변경사항 무시)
                                     e.stopPropagation();
@@ -732,13 +745,13 @@ function HomeScreen({
                                 style={{ fontSize: '16px' }} // 모바일 줌 방지 (16px 이상)
                               />
                               {/* X 버튼 (Clear) */}
-                              {tempMemoValue.length > 0 && (
+                              {(reservationMemoDrafts[reservation.id] ?? reservation.memo ?? '').length > 0 && (
                                 <button
                                   type="button"
                                   onMouseDown={(e) => {
                                     e.preventDefault(); // onBlur 방지
                                     e.stopPropagation();
-                                    setTempMemoValue('');
+                                    handleReservationMemoChange(reservation.id, '');
                                     // 포커스 유지
                                     setTimeout(() => {
                                       if (memoInputRef.current) {
@@ -758,7 +771,7 @@ function HomeScreen({
                           // 메모 표시 모드
                           <div className="mt-2 pt-2 border-t border-gray-200">
                             <p className="text-sm text-gray-600 truncate">
-                              {reservation.note}
+                              {reservation.memo || reservation.note}
                             </p>
                           </div>
                         ) : null}

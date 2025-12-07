@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import useProfile from '../hooks/useProfile';
 import { SCREENS } from '../constants/screens';
 
-function ProfileScreen({ setCurrentScreen }) {
+function ProfileScreen({ setCurrentScreen, isAutoTaggingEnabled, setIsAutoTaggingEnabled }) {
   const { user, signOut } = useAuth();
   const { profile, loading } = useProfile();
 
@@ -75,7 +75,11 @@ function ProfileScreen({ setCurrentScreen }) {
             onClick={() => setCurrentScreen && setCurrentScreen(SCREENS.TAG_SETTINGS)}
           />
           <ToggleRow label="알림 설정" />
-          <ToggleRow label="AI 태그 자동 추천" />
+          <ToggleRow 
+            label="AI 태그 자동 추천" 
+            enabled={isAutoTaggingEnabled}
+            onToggle={setIsAutoTaggingEnabled}
+          />
           <SettingRow label="테마 설정" description="현재: 웜톤" />
           <SettingRow
             label="고객 데이터 관리"
@@ -155,14 +159,29 @@ function SettingRow({ label, description, onClick }) {
   );
 }
 
-function ToggleRow({ label }) {
+function ToggleRow({ label, enabled = false, onToggle }) {
+  const handleToggle = () => {
+    if (onToggle) {
+      onToggle(!enabled);
+    }
+  };
+
   return (
     <div className="rounded-2xl bg-white border border-[#E4D9CC] px-5 py-4 flex items-center justify-between">
       <p className="text-sm text-neutral-800">{label}</p>
-      {/* 토글은 아직 더미 UI (나중에 진짜 설정이랑 연결) */}
-      <div className="w-10 h-5 rounded-full bg-neutral-200 flex items-center px-0.5">
-        <div className="w-4 h-4 rounded-full bg-white shadow-sm translate-x-0" />
-      </div>
+      <button
+        type="button"
+        onClick={handleToggle}
+        className={`w-10 h-5 rounded-full flex items-center px-0.5 transition-colors ${
+          enabled ? 'bg-[#C9A27A]' : 'bg-neutral-200'
+        }`}
+      >
+        <div
+          className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${
+            enabled ? 'translate-x-5' : 'translate-x-0'
+          }`}
+        />
+      </button>
     </div>
   );
 }
