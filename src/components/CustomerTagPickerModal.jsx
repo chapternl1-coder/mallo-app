@@ -2,19 +2,18 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 
 export default function CustomerTagPickerModal({ allCustomerTags, selectedTagIds, onClose, onChangeSelected }) {
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [activeCategory, setActiveCategory] = useState('feature');
   const [search, setSearch] = useState('');
 
   const categoryLabels = {
-    'all': '전체',
+    'feature': '특징',
     'trait': '성향',
-    'payment': '결제·예약',
     'pattern': '방문패턴',
     'caution': '주의'
   };
 
   const filteredTags = allCustomerTags.filter((tag) => {
-    if (activeCategory !== 'all' && tag.category !== activeCategory) return false;
+    if (tag.category !== activeCategory) return false;
     if (!search) return true;
     return tag.label.toLowerCase().includes(search.toLowerCase());
   });
@@ -50,7 +49,7 @@ export default function CustomerTagPickerModal({ allCustomerTags, selectedTagIds
 
         {/* 카테고리 탭 */}
         <div className="flex gap-2 px-6 py-4 border-b border-gray-200 overflow-x-auto">
-          {['all', 'trait', 'payment', 'pattern', 'caution'].map((cat) => (
+          {['feature', 'trait', 'pattern', 'caution'].map((cat) => (
             <button
               key={cat}
               type="button"

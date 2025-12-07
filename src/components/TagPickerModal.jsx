@@ -2,18 +2,18 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 
 export default function TagPickerModal({ allVisitTags, selectedTagIds, onClose, onChangeSelected }) {
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [activeCategory, setActiveCategory] = useState('procedure');
   const [search, setSearch] = useState('');
 
   const categoryLabels = {
-    'all': '전체',
     'procedure': '시술',
     'design': '디자인',
-    'care': '케어'
+    'care': '케어',
+    'payment': '결제·예약'
   };
 
   const filteredTags = allVisitTags.filter((tag) => {
-    if (activeCategory !== 'all' && tag.category !== activeCategory) return false;
+    if (tag.category !== activeCategory) return false;
     if (!search) return true;
     return tag.label.toLowerCase().includes(search.toLowerCase());
   });
@@ -49,7 +49,7 @@ export default function TagPickerModal({ allVisitTags, selectedTagIds, onClose, 
 
         {/* 카테고리 탭 */}
         <div className="flex gap-2 px-6 py-4 border-b border-gray-200 overflow-x-auto">
-          {['all', 'procedure', 'design', 'care'].map((cat) => (
+          {['procedure', 'design', 'care', 'payment'].map((cat) => (
             <button
               key={cat}
               type="button"
