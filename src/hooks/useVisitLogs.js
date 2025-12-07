@@ -2,54 +2,167 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
-// 고객 자동 생성/연결 helper 함수
-export async function ensureCustomerForVisit({ supabaseClient, ownerId, name, phone }) {
-  // 이름/번호 둘 다 없으면 그냥 null 리턴
-  if (!name && !phone) return null;
+const normalizePhone = (phone) => {
+  if (!phone) return '';
+  return String(phone).replace(/[^0-9]/g, '');
+};
 
-  // 공백 제거
-  const cleanName = name ? String(name).trim() : null;
-  const cleanPhone = phone ? String(phone).trim() : null;
+/**
+ * 방문 기록을 저장하기 전에, Supabase customers에서
+ * "이 방문이 어떤 고객 프로필에 붙을지"를 결정해주는 함수.
+ *
+ * 규칙:
+ *  1) 전화번호가 있으면, **전화번호로 먼저** 찾는다.
+ *  2) 같은 전화번호가 없으면, 같은 이름의 고객들을 조회한다.
+ *     2-1) 같은 이름 + 전화번호가 비어 있는 고객이 있으면 → 그 고객의 전화번호를 채우고 사용.
+ *     2-2) 같은 이름 + 이미 다른 전화번호가 있는 고객만 있으면 → 동명이인으로 보고 **새 고객 생성**.
+ *  3) 이름이 완전 처음이면 → 새 고객 생성.
+ */
+export async function ensureCustomerForVisit({
+  supabaseClient,
+  ownerId,
+  name,
+  phone,
+}) {
+  if (!supabaseClient || !ownerId || !name) {
+    console.warn('[ensureCustomerForVisit] ownerId 또는 name이 없어 고객을 만들지 않습니다.', {
+      ownerId,
+      name,
+      phone,
+    });
+    return null;
+  }
+
+  const trimmedName = name.trim();
+  const normalizedPhone = normalizePhone(phone);
 
   try {
-    // 1) 전화번호로 기존 고객 찾기 (같은 점주/원장(owner) 안에서만)
-    if (cleanPhone) {
-      const { data: existByPhone, error: findError } = await supabaseClient
-        .from('customers')
-        .select('id, name, phone')
-        .eq('owner_id', ownerId)
-        .eq('phone', cleanPhone)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    // ─────────────────────────────────────────────
+    // 1단계: 전화번호가 있으면 "전화번호"로 먼저 찾기
+    // ─────────────────────────────────────────────
+    if (normalizedPhone) {
+      const { data: allCustomersByOwner, error: byOwnerError } =
+        await supabaseClient
+          .from('customers')
+          .select('id, name, phone')
+          .eq('owner_id', ownerId);
 
-      if (!findError && existByPhone) {
-        return existByPhone.id;
+      if (byOwnerError) {
+        console.error('[ensureCustomerForVisit] 전화번호 검색용 customers 조회 에러', byOwnerError);
+      } else if (allCustomersByOwner && allCustomersByOwner.length > 0) {
+        const phoneMatch = allCustomersByOwner.find((c) => {
+          return normalizePhone(c.phone) === normalizedPhone;
+        });
+
+        if (phoneMatch) {
+          console.log('[ensureCustomerForVisit] 전화번호로 기존 고객 매칭 성공:', phoneMatch);
+          return phoneMatch.id;
+        }
       }
     }
 
-    // 2) 전화번호는 없고 이름만 있는 경우, 이름으로만 찾는 건 위험해서 "새 고객"으로 취급
-    //    (원장님이 말한 것처럼 이름만으로 매칭하면 시술 횟수가 꼬이는 문제가 있음)
+    // ─────────────────────────────────────────────
+    // 2단계: 같은 이름 고객들 조회
+    // ─────────────────────────────────────────────
+    const { data: sameNameCustomers, error: sameNameError } =
+      await supabaseClient
+        .from('customers')
+        .select('id, name, phone')
+        .eq('owner_id', ownerId)
+        .ilike('name', trimmedName);
 
-    // 3) 새 고객 생성
+    if (sameNameError) {
+      console.error('[ensureCustomerForVisit] 이름 기준 customers 조회 에러', sameNameError);
+    }
+
+    if (sameNameCustomers && sameNameCustomers.length > 0) {
+      // 2-1) 같은 이름 중에서 "전화번호가 비어 있는" 고객이 있으면 → 그 고객에 전화번호 채우고 사용
+      const emptyPhoneCustomer = sameNameCustomers.find((c) => !normalizePhone(c.phone));
+
+      if (emptyPhoneCustomer && normalizedPhone) {
+        console.log(
+          '[ensureCustomerForVisit] 같은 이름 + 전화번호 비어있는 고객 발견 → 이 고객의 번호를 업데이트해서 사용:',
+          emptyPhoneCustomer,
+        );
+
+        const { error: updateError } = await supabaseClient
+          .from('customers')
+          .update({ phone })
+          .eq('id', emptyPhoneCustomer.id);
+
+        if (updateError) {
+          console.error('[ensureCustomerForVisit] 고객 전화번호 업데이트 에러', updateError);
+        }
+
+        return emptyPhoneCustomer.id;
+      }
+
+      // 2-2) 같은 이름인데, 모두 전화번호가 "다른 번호"를 가지고 있으면 → 동명이인으로 판단해서 새 고객 생성
+      if (normalizedPhone) {
+        const hasDifferentPhone = sameNameCustomers.some((c) => {
+          const existing = normalizePhone(c.phone);
+          return existing && existing !== normalizedPhone;
+        });
+
+        if (hasDifferentPhone) {
+          console.log(
+            '[ensureCustomerForVisit] 같은 이름 + 다른 전화번호 고객이 이미 있어 동명이인으로 간주, 새 고객 생성 예정. name:',
+            trimmedName,
+            'phone:',
+            phone,
+          );
+          // 아래 새 고객 생성 로직으로 진행
+        } else {
+          // 이 경우는 이론상 거의 없지만, 안전망: 이름만 같은 고객이 있고 모두 전화번호 없음
+          // 첫 번째 고객을 재사용하도록 처리 (위 emptyPhoneCustomer 에서 이미 잡혔을 가능성이 큼)
+          const fallback = sameNameCustomers[0];
+          console.log(
+            '[ensureCustomerForVisit] 같은 이름 고객만 존재하고 번호 정보가 특별히 구분되지 않아 첫 고객 재사용:',
+            fallback,
+          );
+          return fallback.id;
+        }
+      } else {
+        // 전화번호가 아예 없는 케이스 → 같은 이름 고객 중 첫 번째를 재사용
+        const fallback = sameNameCustomers[0];
+        console.log(
+          '[ensureCustomerForVisit] 전화번호 없이 이름만 있는 케이스 → 같은 이름 고객 중 첫 번째 사용:',
+          fallback,
+        );
+        return fallback.id;
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    // 3단계: 여기까지 왔다 = 완전 신규 고객이므로 새로 생성
+    // ─────────────────────────────────────────────
+    console.log(
+      '[ensureCustomerForVisit] 기존 고객 없음 → 새 고객 생성:',
+      { ownerId, name: trimmedName, phone },
+    );
+
+    const insertPayload = {
+      owner_id: ownerId,
+      name: trimmedName,
+      phone: phone || null,
+      created_at: new Date().toISOString(),
+    };
+
     const { data: inserted, error: insertError } = await supabaseClient
       .from('customers')
-      .insert({
-        owner_id: ownerId,
-        name: cleanName || '이름 미입력',
-        phone: cleanPhone || null,
-      })
+      .insert(insertPayload)
       .select('id')
       .single();
 
     if (insertError) {
-      console.error('[ensureCustomerForVisit] 고객 생성 중 오류:', insertError);
+      console.error('[ensureCustomerForVisit] 새 고객 생성 실패', insertError);
       return null;
     }
 
+    console.log('[ensureCustomerForVisit] 새 고객 생성 성공, id:', inserted.id);
     return inserted.id;
   } catch (e) {
-    console.error('[ensureCustomerForVisit] 예외 발생:', e);
+    console.error('[ensureCustomerForVisit] 예외 발생', e);
     return null;
   }
 }
