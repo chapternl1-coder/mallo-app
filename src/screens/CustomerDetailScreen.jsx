@@ -706,7 +706,9 @@ function CustomerDetailScreen({
 
   setSelectedReservation,
 
-  reservations = [] // 예약 정보 (예약과 연결된 방문 기록의 날짜/시간 확인용)
+  reservations = [], // 예약 정보 (예약과 연결된 방문 기록의 날짜/시간 확인용)
+
+  isVisitLogsLoading = false // Supabase visit_logs 로딩 상태
 
 }) {
 
@@ -1604,29 +1606,6 @@ function CustomerDetailScreen({
 
 
 
-  // 지연 렌더링: 방문 히스토리 리스트는 화면 전환 후 약간의 지연을 두고 렌더링
-
-  const [isHistoryReady, setIsHistoryReady] = useState(false);
-
-  
-
-  useEffect(() => {
-
-    // 화면 전환 애니메이션이 끝난 후 방문 히스토리 렌더링 시작
-
-    setIsHistoryReady(false); // 고객 변경 시 리셋
-
-    const timer = setTimeout(() => {
-
-      setIsHistoryReady(true);
-
-    }, 200); // 200ms 지연
-
-    
-
-    return () => clearTimeout(timer);
-
-  }, [selectedCustomerId]); // 고객이 변경될 때마다 리셋
 
 
 
@@ -2118,6 +2097,23 @@ function CustomerDetailScreen({
 
   }, [visitLogs, selectedCustomerId]);
 
+  // 🔹 방문 히스토리 스켈레톤이 "처음 로딩 1번만" 뜨도록 하는 상태
+  const [hasShownInitialCustomerVisitsLoading, setHasShownInitialCustomerVisitsLoading] = useState(false);
+
+  // 🔹 방문 히스토리가 한 번이라도 로딩되면 플래그를 true로 고정
+  useEffect(() => {
+    if (!hasShownInitialCustomerVisitsLoading
+        && Array.isArray(customerVisits)
+        && customerVisits.length > 0) {
+      setHasShownInitialCustomerVisitsLoading(true);
+    }
+  }, [hasShownInitialCustomerVisitsLoading, customerVisits]);
+
+  // 🔹 스켈레톤을 보여줄지 여부 (처음 1회만 true가 될 수 있게)
+  const shouldShowCustomerVisitsLoading =
+    isVisitLogsLoading &&                      // 원래 쓰던 로딩 플래그
+    !hasShownInitialCustomerVisitsLoading &&   // 아직 처음 로딩 전이고
+    (!customerVisits || customerVisits.length === 0); // 데이터도 없는 경우에만
 
 
 
@@ -2604,23 +2600,9 @@ function CustomerDetailScreen({
 
           <h3 className="text-base font-bold" style={{ color: '#232323' }}>방문 히스토리</h3>
 
-          {isLoading ? (
+          {shouldShowCustomerVisitsLoading ? (
 
             // 스켈레톤 UI: 로딩 중
-
-            <div className="space-y-3">
-
-              {[...Array(3)].map((_, idx) => (
-
-                <VisitHistorySkeleton key={idx} />
-
-              ))}
-
-            </div>
-
-          ) : !isHistoryReady ? (
-
-            // 지연 렌더링: 방문 히스토리는 약간의 지연 후 표시
 
             <div className="space-y-3">
 
@@ -2702,7 +2684,7 @@ function CustomerDetailScreen({
 
           {/* 이전 기록 더 보기 / 접기 버튼 */}
 
-          {isHistoryReady && (uniqueSortedCustomerVisits.length > visibleVisitCount || visibleVisitCount > initialLoadCount) && (
+          {(uniqueSortedCustomerVisits.length > visibleVisitCount || visibleVisitCount > initialLoadCount) && (
 
             <div className="flex justify-center mt-4 mb-20 gap-3">
 

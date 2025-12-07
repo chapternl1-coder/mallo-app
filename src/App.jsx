@@ -236,17 +236,28 @@ export default function MalloApp() {
 
   console.log('[MalloApp] Supabase visit_logs 길이:', allVisitLogs.length);
 
-  // ✅ 기록 화면 진입 시마다 최신 데이터 가져오기
+  // ✅ 전체 앱 로딩 상태: 처음 한 번만 표시
+  const [hasShownInitialAppLoading, setHasShownInitialAppLoading] = useState(false);
+
   useEffect(() => {
-    if (currentScreen === SCREENS.HISTORY) {
-      // 기록 탭 / 기록 화면으로 들어올 때마다 Supabase에서 최신 데이터 한 번 더 가져오기
-      refetchVisitLogs();
+    // 처음으로 모든 로딩이 끝난 시점을 기억
+    if (
+      !hasShownInitialAppLoading &&
+      !reservationsLoading &&
+      !visitLogsLoading
+    ) {
+      setHasShownInitialAppLoading(true);
     }
-  }, [currentScreen, refetchVisitLogs]);
+  }, [hasShownInitialAppLoading, reservationsLoading, visitLogsLoading]);
 
-  // 1) Auth 로딩 중 로딩 화면
+  const shouldShowAppLoading =
+    !hasShownInitialAppLoading &&
+    (reservationsLoading || visitLogsLoading);
 
-  if (loading) {
+
+  // 1) Auth 로딩 중 또는 앱 첫 로딩 중 로딩 화면
+
+  if (loading || shouldShowAppLoading) {
 
     return (
 
@@ -329,6 +340,8 @@ export default function MalloApp() {
           visitLogs={visitLogs}
 
           allRecords={allVisitLogs}
+
+          isVisitLogsLoading={visitLogsLoading}
 
           addReservation={addReservation}
 

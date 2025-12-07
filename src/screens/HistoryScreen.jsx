@@ -1,5 +1,5 @@
 // src/screens/HistoryScreen.jsx
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo, useState } from 'react';
 import { ArrowLeft, Calendar, ChevronDown, ChevronUp, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatRecordDateTime } from '../utils/date';
 import { SCREENS } from '../constants/screens';
@@ -81,8 +81,35 @@ function HistoryScreen({
   expandedHistoryIds,
   setExpandedHistoryIds,
   reservations,
-  visits  // 기존 로컬 visits (하위 호환성)
+  visits,  // 기존 로컬 visits (하위 호환성)
+  isVisitLogsLoading = false,  // Supabase visit_logs 로딩 상태
+  isCustomersLoading = false  // Supabase customers 로딩 상태
 }) {
+  const [hasShownInitialVisitLogsLoading, setHasShownInitialVisitLogsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!hasShownInitialVisitLogsLoading && Array.isArray(visitLogs) && visitLogs.length > 0) {
+      setHasShownInitialVisitLogsLoading(true);
+    }
+  }, [hasShownInitialVisitLogsLoading, visitLogs]);
+
+  const shouldShowVisitLogsLoading =
+    isVisitLogsLoading &&
+    !hasShownInitialVisitLogsLoading &&
+    (!visitLogs || visitLogs.length === 0);
+
+  const [hasShownInitialCustomersLoading, setHasShownInitialCustomersLoading] = useState(false);
+
+  useEffect(() => {
+    if (!hasShownInitialCustomersLoading && Array.isArray(customers) && customers.length > 0) {
+      setHasShownInitialCustomersLoading(true);
+    }
+  }, [hasShownInitialCustomersLoading, customers]);
+
+  const shouldShowCustomersLoading =
+    isCustomersLoading &&
+    !hasShownInitialCustomersLoading &&
+    (!customers || customers.length === 0);
   // "미기재"와 "null"을 실제 고객 정보로 치환하는 helper 함수
   const overrideCustomerInfoLine = (line, customerInfo) => {
     if (!line) return line;
@@ -325,6 +352,24 @@ function HistoryScreen({
       });
   }, [visitLogs, visits, selectedDateKey, customers, reservations, extractServiceDateTimeLabel]);
 
+  // 🔹 깜빡임 방지용: 마지막으로 성공적으로 표시된 기록을 캐시
+  const [lastNonEmptyRecords, setLastNonEmptyRecords] = useState([]);
+
+  useEffect(() => {
+    if (recordsForSelectedDate && recordsForSelectedDate.length > 0) {
+      setLastNonEmptyRecords(recordsForSelectedDate);
+    }
+  }, [recordsForSelectedDate, selectedDateKey]);
+
+  // 실제 화면에 사용할 리스트
+  // - recordsForSelectedDate가 비어 있고
+  // - Supabase 로딩 중(isVisitLogsLoading)이라면
+  //   → 이전에 캐시해둔 lastNonEmptyRecords를 대신 사용
+  const displayRecords =
+    recordsForSelectedDate && recordsForSelectedDate.length > 0
+      ? recordsForSelectedDate
+      : (isVisitLogsLoading ? lastNonEmptyRecords : recordsForSelectedDate);
+
   // 날짜 필터링 (예약과 연결된 경우 예약 날짜 우선, 그 다음 텍스트/녹음에서 추출한 날짜, 없으면 저장된 날짜 사용)
   const filteredRecords = recordsForSelectedDate;
 
@@ -491,7 +536,7 @@ function HistoryScreen({
               <span>{selectedDate ? formatDate(selectedDate) + ' 기록' : '전체 시술 기록'}</span>
             </h3>
             
-            {recordsForSelectedDate.length === 0 ? (
+            {displayRecords.length === 0 ? (
               <div className="text-center py-16 bg-white rounded-xl border border-[#E8DFD3] shadow-sm">
                 <p className="font-light text-base" style={{ color: textColor, opacity: 0.6 }}>
                   {selectedDate ? '해당 날짜의 시술 기록이 없습니다' : '시술 기록이 없습니다'}
@@ -499,7 +544,7 @@ function HistoryScreen({
               </div>
             ) : (
               <>
-                {recordsForSelectedDate.map((record) => {
+                {displayRecords.map((record) => {
                   // 고객 정보 찾기
                   const recordCustomerId = record.customerId ?? record.customer_id;
                   let customer = customers.find(c => {

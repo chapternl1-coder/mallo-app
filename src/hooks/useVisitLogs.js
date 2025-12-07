@@ -173,6 +173,8 @@ export default function useVisitLogs() {
   const [allVisitLogs, setAllVisitLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // ✅ 처음 한 번만 로딩 표시용 상태
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   // ✅ 1) 한 번만 정의해두고, 어디서든 다시 쓸 수 있는 fetch 함수
   const fetchVisitLogs = useCallback(async () => {
@@ -184,69 +186,88 @@ export default function useVisitLogs() {
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    // 🔹 Stale-while-revalidate: 데이터가 이미 있으면 로딩 상태를 유지하지 않음
+    const hasExistingData = allVisitLogs.length > 0 || Object.keys(visitLogsByCustomer).length > 0;
+    // ✅ 처음 한 번 fetch할 때만 로딩 true로 (데이터가 없을 때만)
+    const shouldShowLoading = !hasLoadedOnce && !hasExistingData;
 
-    const { data, error } = await supabase
-      .from('visit_logs')
-      .select(`
-        id,
-        owner_id,
-        customer_id,
-        reservation_id,
-        recorded_at,
-        service_date,
-        service_time,
-        title,
-        summary_json,
-        raw_text,
-        tags
-      `)
-      .eq('owner_id', user.id)
-      .order('recorded_at', { ascending: false });
+    try {
+      if (shouldShowLoading) {
+        setLoading(true);
+      }
+      setError(null);
 
-    if (error) {
-      console.error('visit_logs 불러오기 오류', error);
-      setError(error);
-      setVisitLogsByCustomer({});
-      setAllVisitLogs([]);
-      setLoading(false);
-      return;
+      const { data, error } = await supabase
+        .from('visit_logs')
+        .select(`
+          id,
+          owner_id,
+          customer_id,
+          reservation_id,
+          recorded_at,
+          service_date,
+          service_time,
+          title,
+          summary_json,
+          raw_text,
+          tags
+        `)
+        .eq('owner_id', user.id)
+        .order('recorded_at', { ascending: false });
+
+      if (error) {
+        console.error('visit_logs 불러오기 오류', error);
+        setError(error);
+        setVisitLogsByCustomer({});
+        setAllVisitLogs([]);
+        if (shouldShowLoading) {
+          setLoading(false);
+        }
+        return;
+      }
+
+      const mappedVisitLogs = (data || []).map((row) => ({
+        id: row.id,
+        customerId: row.customer_id,           // uuid
+        reservationId: row.reservation_id,     // uuid 또는 null
+        serviceDate: row.service_date,         // 'YYYY-MM-DD' (date 컬럼)
+        serviceTime: row.service_time || '',   // 'HH:MM' (text 컬럼)
+        title: row.title || '',
+        summaryJson: row.summary_json || null,
+        rawText: row.raw_text || '',
+        tags: row.tags || [],                  // text[]
+        // 고객 이름/전화는 join 안 되어 있으면 나중에 customers랑 매칭해서 씀
+        // 하위 호환성을 위한 필드들
+        ownerId: row.owner_id,
+        recordedAt: row.recorded_at,
+        detail: row.summary_json || { sections: [] },
+      }));
+
+      // 고객별로 그룹핑 (CustomerDetailScreen, HomeScreen용)
+      const byCustomer = mappedVisitLogs.reduce((acc, visit) => {
+        const key =
+          visit.customerId !== null && visit.customerId !== undefined
+            ? String(visit.customerId)
+            : 'no_customer';
+
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(visit);
+        return acc;
+      }, {});
+
+      setVisitLogsByCustomer(byCustomer);
+      setAllVisitLogs(mappedVisitLogs);
+
+      // ✅ 한 번이라도 성공적으로 데이터를 받았으면 플래그 세우기
+      if (!hasLoadedOnce) {
+        setHasLoadedOnce(true);
+      }
+    } finally {
+      if (shouldShowLoading) {
+        setLoading(false);
+      }
     }
-
-    const mappedVisitLogs = (data || []).map((row) => ({
-      id: row.id,
-      customerId: row.customer_id,           // uuid
-      reservationId: row.reservation_id,     // uuid 또는 null
-      serviceDate: row.service_date,         // 'YYYY-MM-DD' (date 컬럼)
-      serviceTime: row.service_time || '',   // 'HH:MM' (text 컬럼)
-      title: row.title || '',
-      summaryJson: row.summary_json || null,
-      rawText: row.raw_text || '',
-      tags: row.tags || [],                  // text[]
-      // 고객 이름/전화는 join 안 되어 있으면 나중에 customers랑 매칭해서 씀
-      // 하위 호환성을 위한 필드들
-      ownerId: row.owner_id,
-      recordedAt: row.recorded_at,
-      detail: row.summary_json || { sections: [] },
-    }));
-
-    // 고객별로 그룹핑 (CustomerDetailScreen, HomeScreen용)
-    const byCustomer = mappedVisitLogs.reduce((acc, visit) => {
-      const key =
-        visit.customerId !== null && visit.customerId !== undefined
-          ? String(visit.customerId)
-          : 'no_customer';
-
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(visit);
-      return acc;
-    }, {});
-
-    setVisitLogsByCustomer(byCustomer);
-    setAllVisitLogs(mappedVisitLogs);
-    setLoading(false);
-  }, [user]);
+  }, [user, hasLoadedOnce]);
 
   // ✅ 2) 처음 마운트/유저 변경될 때 자동으로 한 번 실행
   useEffect(() => {

@@ -53,6 +53,7 @@ export default function useSupabaseReservations() {
   const [loading, setLoading] = useState(true);   // ✅ 처음엔 무조건 true
   const [error, setError] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -66,7 +67,13 @@ export default function useSupabaseReservations() {
     let cancelled = false;
 
     async function fetchData() {
-      setLoading(true);   // ✅ 새로 불러올 땐 true
+      // 🔹 Stale-while-revalidate: 데이터가 이미 있으면 로딩 상태를 유지하지 않음
+      const hasExistingData = customers.length > 0 || reservations.length > 0;
+      const shouldShowLoading = !hasLoadedOnce && !hasExistingData;
+      
+      if (shouldShowLoading) {
+        setLoading(true);   // ✅ 데이터가 없을 때만 로딩 true
+      }
       setError(null);
 
       try {
