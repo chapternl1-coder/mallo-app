@@ -12,7 +12,6 @@ import {
 } from '../utils/recordUtils';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
-import { ensureCustomerForVisit } from '../hooks/useVisitLogs';
 
 // UUID 검증 헬퍼 함수
 const isValidUuid = (value) => {
@@ -1020,477 +1019,391 @@ function RecordScreen({
           {/* 저장하기 버튼 */}
           <button 
             onClick={async () => {
-              // ========================================
-              // 1단계: customerId / 이름 / 전화번호 확보
-              // ========================================
-              let finalCustomerId = null;
-              let customerName = tempName;
-              let customerPhone = tempPhone;
-
-              if (selectedCustomerForRecord) {
-                customerName = selectedCustomerForRecord.name || tempName || '';
-                customerPhone = selectedCustomerForRecord.phone || tempPhone || '';
-              }
-
-              // normalizePhone 헬퍼
-              const normalizePhone = (phone) => {
-                if (!phone) return '';
-                return phone.replace(/[^0-9]/g, '');
-              };
-
-              console.log('[저장 시작] selectedCustomerForRecord:', selectedCustomerForRecord);
-              console.log('[저장 시작] tempName:', tempName, 'tempPhone:', tempPhone);
-              console.log('[저장 시작] 초기 customerName:', customerName, 'customerPhone:', customerPhone);
-
-              // 날짜 검증 (모든 경우에 필수)
-              if (!tempServiceDate || !tempServiceDate.trim()) {
-                alert('시술 날짜 및 시간을 입력해주세요!');
-                if (serviceDateInputRef.current) {
-                  serviceDateInputRef.current.focus();
+              // ✅ 여기가 통째로 교체되는 부분입니다.
+              try {
+                // 0. 공통 유효성 (시술 날짜/시간)
+                if (!tempServiceDate || !tempServiceDate.trim()) {
+                  alert('시술 날짜 및 시간을 입력해주세요!');
+                  if (serviceDateInputRef.current) {
+                    serviceDateInputRef.current.focus();
+                  }
+                  return;
                 }
-                return;
-              }
 
-              // 이름/전화번호 필수 체크 (기존 고객이든 신규든)
-              if (!customerName || !customerName.trim()) {
-                alert('고객님의 이름을 입력해주세요!');
-                if (nameInputRef.current) {
-                  nameInputRef.current.focus();
-                }
-                return;
-              }
-              
-              if (!customerPhone || !customerPhone.trim()) {
-                alert('고객님의 전화번호를 입력해주세요!');
-                if (phoneInputRef.current) {
-                  phoneInputRef.current.focus();
-                }
-                return;
-              }
+                // 전화번호에서 숫자만 남기는 헬퍼
+                const normalizePhone = (phone) => {
+                  if (!phone) return '';
+                  return phone.replace(/[^0-9]/g, '');
+                };
 
-              console.log('[저장 시작] 초기 customerName:', customerName, 'customerPhone:', customerPhone);
-              
-              // ========================================
-              // 2단계: 날짜/시간 계산
-              // ========================================
-              const { dateStr, timeStr, recordedAt } = createDateTimeStrings();
-              
-              // 예약 정보에서 날짜/시간 가져오기 (우선순위 1)
-              let reservationDate = null;
-              let reservationTime = null;
-              
-              if (selectedCustomerForRecord?.reservationId && reservations) {
-                const matchedReservation = reservations.find(
-                  r => r.id === selectedCustomerForRecord.reservationId
-                );
-                if (matchedReservation) {
-                  reservationDate = matchedReservation.date;
-                  reservationTime = matchedReservation.time;
-                }
-              }
-              
-              // selectedCustomerForRecord에서 직접 가져오기 (우선순위 2)
-              if (!reservationDate && selectedCustomerForRecord?.date) {
-                reservationDate = selectedCustomerForRecord.date;
-              }
-              if (!reservationTime && selectedCustomerForRecord?.time) {
-                reservationTime = selectedCustomerForRecord.time;
-              }
-              
-              // 입력된 날짜/시간을 YYYY-MM-DD 형식으로 변환
-              let serviceDate = dateStr; // 기본값
-              
-              // 예약 날짜가 있으면 우선 사용
-              if (reservationDate) {
-                if (typeof reservationDate === 'string' && reservationDate.includes('-')) {
-                  // YYYY-MM-DD 형식이면 그대로 사용
-                  serviceDate = reservationDate;
+                // 기본 날짜/시간 (지금 시점 기준)
+                const { dateStr, timeStr, recordedAt } = createDateTimeStrings();
+
+                let finalCustomerId = null;
+                let customerName = '';
+                let customerPhone = '';
+                let reservationId = null;
+                let serviceDate = dateStr;
+                let serviceTime = timeStr;
+
+                // ----------------------------
+                // 1) 예약에서 들어온 경우
+                // ----------------------------
+                if (selectedCustomerForRecord) {
+                  reservationId = selectedCustomerForRecord.reservationId || null;
+
+                  // 예약 찾기
+                  let targetReservation = null;
+                  if (reservationId && reservations && reservations.length > 0) {
+                    targetReservation =
+                      reservations.find((r) => r.id === reservationId) || null;
+                  }
+
+                  // 고객 ID: 예약의 customerId 우선, 없으면 selectedCustomerForRecord.id 사용
+                  if (targetReservation?.customerId) {
+                    finalCustomerId = targetReservation.customerId;
+                  } else if (
+                    selectedCustomerForRecord.id &&
+                    isValidUuid(String(selectedCustomerForRecord.id))
+                  ) {
+                    finalCustomerId = String(selectedCustomerForRecord.id);
+                  }
+
+                  // 고객 이름/전화번호: customers 배열에서 최신 정보 우선
+                  const matchedCustomer =
+                    finalCustomerId && customers
+                      ? customers.find((c) => {
+                          const cId = String(c.id);
+                          const tId = String(finalCustomerId);
+                          return (
+                            cId === tId || cId.toLowerCase() === tId.toLowerCase()
+                          );
+                        })
+                      : null;
+
+                  customerName =
+                    matchedCustomer?.name ||
+                    selectedCustomerForRecord.name ||
+                    tempName ||
+                    '';
+                  customerPhone =
+                    matchedCustomer?.phone ||
+                    selectedCustomerForRecord.phone ||
+                    tempPhone ||
+                    '';
+
+                  // 서비스 날짜: 예약 날짜 > 입력 값 > 요약에서 추출 > 기본값
+                  if (targetReservation?.date) {
+                    serviceDate = targetReservation.date;
+                  } else if (tempServiceDate) {
+                    const d = new Date(tempServiceDate);
+                    if (!isNaN(d.getTime())) {
+                      const y = d.getFullYear();
+                      const m = String(d.getMonth() + 1).padStart(2, '0');
+                      const da = String(d.getDate()).padStart(2, '0');
+                      serviceDate = `${y}-${m}-${da}`;
+                    }
+                  } else {
+                    const parsed = extractServiceDateFromSummary(resultData);
+                    if (parsed) serviceDate = parsed;
+                  }
+
+                  // 서비스 시간: 예약 시간 > 입력 값에서 추출 > 기본값
+                  if (targetReservation?.time) {
+                    serviceTime = String(targetReservation.time).trim();
+                  } else if (tempServiceDate) {
+                    const d = new Date(tempServiceDate);
+                    if (!isNaN(d.getTime())) {
+                      const hh = String(d.getHours()).padStart(2, '0');
+                      const mm = String(d.getMinutes()).padStart(2, '0');
+                      serviceTime = `${hh}:${mm}`;
+                    }
+                  }
+
+                // ----------------------------
+                // 2) 예약 없이 바로 녹음한 신규 고객
+                // ----------------------------
                 } else {
-                  // 다른 형식이면 변환 시도
-                  const dateObj = new Date(reservationDate);
-                  if (!isNaN(dateObj.getTime())) {
-                    const year = dateObj.getFullYear();
-                    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                    const day = String(dateObj.getDate()).padStart(2, '0');
-                    serviceDate = `${year}-${month}-${day}`;
+                  // 이름/전화번호 필수 입력
+                  if (!tempName || !tempName.trim()) {
+                    alert('고객님의 이름을 입력해주세요!');
+                    if (nameInputRef.current) {
+                      nameInputRef.current.focus();
+                    }
+                    return;
+                  }
+                  if (!tempPhone || !tempPhone.trim()) {
+                    alert('고객님의 전화번호를 입력해주세요!');
+                    if (phoneInputRef.current) {
+                      phoneInputRef.current.focus();
+                    }
+                    return;
+                  }
+
+                  customerName = tempName.trim();
+                  customerPhone = tempPhone.trim();
+
+                  // 서비스 날짜/시간: 입력 값 우선
+                  if (tempServiceDate) {
+                    const d = new Date(tempServiceDate);
+                    if (!isNaN(d.getTime())) {
+                      const y = d.getFullYear();
+                      const m = String(d.getMonth() + 1).padStart(2, '0');
+                      const da = String(d.getDate()).padStart(2, '0');
+                      serviceDate = `${y}-${m}-${da}`;
+
+                      const hh = String(d.getHours()).padStart(2, '0');
+                      const mm = String(d.getMinutes()).padStart(2, '0');
+                      serviceTime = `${hh}:${mm}`;
+                    }
+                  } else {
+                    const parsed = extractServiceDateFromSummary(resultData);
+                    if (parsed) serviceDate = parsed;
+                  }
+
+                  // Supabase에서 전화번호(숫자만) 기준으로 고객 찾기 → 없으면 새로 생성
+                  if (user) {
+                    const normalizedTarget = normalizePhone(customerPhone);
+                    let existingCustomer = null;
+
+                    const { data: customerRows, error: customerQueryError } =
+                      await supabase
+                        .from('customers')
+                        .select('id, name, phone')
+                        .eq('owner_id', user.id);
+
+                    if (!customerQueryError && customerRows) {
+                      existingCustomer =
+                        customerRows.find(
+                          (row) => normalizePhone(row.phone) === normalizedTarget
+                        ) || null;
+                    }
+
+                    if (existingCustomer) {
+                      finalCustomerId = existingCustomer.id;
+                      if (!customerName) customerName = existingCustomer.name || '';
+                      if (!customerPhone)
+                        customerPhone = existingCustomer.phone || customerPhone;
+                    } else {
+                      const { data: insertedCustomer, error: insertCustomerError } =
+                        await supabase
+                          .from('customers')
+                          .insert({
+                            owner_id: user.id,
+                            name: customerName,
+                            phone: customerPhone,
+                            memo: '',
+                          })
+                          .select()
+                          .single();
+
+                      if (insertCustomerError) {
+                        console.error(
+                          '[RecordScreen] 신규 고객 생성 에러:',
+                          insertCustomerError
+                        );
+                        alert('고객 정보를 저장하는 중 오류가 발생했습니다.');
+                        return;
+                      }
+
+                      finalCustomerId = insertedCustomer.id;
+                      // 로컬 customers 상태에도 추가
+                      setCustomers((prev) => [...prev, insertedCustomer]);
+                    }
                   }
                 }
-              } else if (tempServiceDate) {
-                // 예약 날짜가 없으면 입력된 날짜 사용
-                const dateObj = new Date(tempServiceDate);
-                if (!isNaN(dateObj.getTime())) {
-                  const year = dateObj.getFullYear();
-                  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                  const day = String(dateObj.getDate()).padStart(2, '0');
-                  serviceDate = `${year}-${month}-${day}`;
-                }
-              } else {
-                // tempServiceDate가 없으면 기존 로직 사용
-                const parsedServiceDate = extractServiceDateFromSummary(resultData);
-                serviceDate = parsedServiceDate || dateStr;
-              }
-              
-              const cleanedTitle = cleanTitle(resultData.title, customerName);
-              
-              const newVisit = createVisitRecord({
-                customerId: finalCustomerId,
-                customerName: customerName,
-                dateStr,
-                timeStr,
-                recordedAt,
-                serviceDate,
-                title: cleanedTitle,
-                summary: resultData.sections[0]?.content[0] || cleanedTitle,
-                rawTranscript: rawTranscript || transcript,
-                sections: resultData.sections,
-                selectedTagIds,
-                allVisitTags,
-                serviceTags
-              });
-              
-              console.log('[방문 기록 생성] customerId:', finalCustomerId);
-              console.log('[방문 기록 생성] newVisit:', newVisit);
-              console.log('[방문 기록 생성] 예약 날짜:', reservationDate, '예약 시간:', reservationTime);
-              
-              // ========================================
-              // 3단계: 서비스 시간 계산
-              // ========================================
-              const ownerId = user?.id || null;
-              
-              // 서비스 시간 추출 (HH:MM 형식)
-              let serviceTime = null;
-              
-              // 예약 시간이 있으면 우선 사용
-              if (reservationTime) {
-                // 시간 형식 정규화 (HH:MM)
-                const timeStrRaw = String(reservationTime).trim();
-                if (/^\d{1,2}:\d{2}/.test(timeStrRaw)) {
-                  const [hour, minute] = timeStrRaw.split(':');
-                  serviceTime = `${String(parseInt(hour, 10)).padStart(2, '0')}:${String(parseInt(minute, 10)).padStart(2, '0')}`;
-                } else {
-                  serviceTime = timeStrRaw;
-                }
-              } else if (tempServiceDate) {
-                // 예약 시간이 없으면 입력된 날짜/시간에서 시간 추출
-                const dateObj = new Date(tempServiceDate);
-                if (!isNaN(dateObj.getTime())) {
-                  const hours = String(dateObj.getHours()).padStart(2, '0');
-                  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-                  serviceTime = `${hours}:${minutes}`;
-                }
-              } else if (timeStr) {
-                serviceTime = timeStr;
-              }
-              
-              console.log('[방문 기록 생성] 최종 serviceDate:', serviceDate, 'serviceTime:', serviceTime);
-              
-              // 태그 배열 추출 (selectedTagIds를 문자열 배열로 변환)
-              const tagLabels = selectedTagIds
-                .map(tagId => {
-                  const tag = allVisitTags.find(t => t.id === tagId);
-                  return tag ? (typeof tag === 'object' && tag.label ? tag.label : String(tag)) : null;
-                })
-                .filter(Boolean);
-              
-              // ========================================
-              // 3.5단계: summary_json / raw_text 준비
-              // ========================================
-              const serviceDateKey = serviceDate; // 'YYYY-MM-DD' 형식
-              const serviceTimeLabel = serviceTime; // 'HH:MM' 형식 또는 null
-              const finalTitle = cleanedTitle;
-              
-              // summary_json에 고객 정보 명시적으로 추가 (HistoryScreen에서 사용)
-              const finalSummaryJson = resultData ? {
-                ...resultData,
-                customerInfo: {
-                  name: customerName || null,
-                  phone: customerPhone || null,
-                  ...(resultData.customerInfo ? Object.fromEntries(
-                    Object.entries(resultData.customerInfo).filter(([key]) => key !== 'name' && key !== 'phone')
-                  ) : {})
-                }
-              } : {
-                customerInfo: {
-                  name: customerName || null,
-                  phone: customerPhone || null
-                },
-                sections: []
-              };
-              
-              console.log('[RecordScreen] finalSummaryJson.customerInfo:', finalSummaryJson.customerInfo);
-              console.log('[RecordScreen] 예약 고객 정보 - 이름:', customerName, '전화번호:', customerPhone);
-              
-              const finalRawText = rawTranscript || transcript || '';
-              const finalTagNames = tagLabels;
-              
-              // ========================================
-              // 3.6단계: Supabase customers에서 고객 ID 확보 및 통일
-              // ========================================
-              // ensureCustomerForVisit는 이름+전화번호 기준으로 동명이인을 올바르게 처리합니다
-              // - 전화번호가 같으면 같은 고객
-              // - 이름 같고 전화번호 다르면 새 고객 생성
-              // - 기존 고객의 전화번호가 비어 있을 때만 업데이트하여 재사용
-              const ensuredCustomerId = await ensureCustomerForVisit({
-                supabaseClient: supabase,
-                ownerId: user.id,
-                name: customerName,
-                phone: customerPhone,
-              });
 
-              // ensuredCustomerId를 항상 우선시하여 finalCustomerId로 설정
-              if (ensuredCustomerId && isValidUuid(String(ensuredCustomerId))) {
-                finalCustomerId = String(ensuredCustomerId);
-                console.log('[RecordScreen] ensureCustomerForVisit로 고객 ID 확보:', finalCustomerId);
-                console.log('[RecordScreen] 이름:', customerName, '전화번호:', customerPhone);
-              } else {
-                // ensureCustomerForVisit가 실패한 경우에만 null
-                finalCustomerId = null;
-                console.warn('[RecordScreen] 고객 ID를 확보하지 못함. ensureCustomerForVisit 결과:', ensuredCustomerId);
-              }
+                // ----------------------------
+                // 3) 방문 기록 공통 생성
+                // ----------------------------
+                const cleanedTitle = cleanTitle(resultData.title, customerName);
 
-              // reservation_id UUID 검증 (유효한 UUID가 아니면 null)
-              let safeReservationId = null;
-              const candidateReservationId = selectedCustomerForRecord?.reservationId;
-              if (candidateReservationId && isValidUuid(String(candidateReservationId))) {
-                safeReservationId = String(candidateReservationId);
-              }
+                const newVisit = createVisitRecord({
+                  customerId: finalCustomerId || null,
+                  customerName,
+                  dateStr,
+                  timeStr,
+                  recordedAt,
+                  serviceDate,
+                  title: cleanedTitle,
+                  summary:
+                    resultData.sections[0]?.content?.[0] || cleanedTitle,
+                  rawTranscript: rawTranscript || transcript,
+                  sections: resultData.sections,
+                  selectedTagIds,
+                  allVisitTags,
+                  serviceTags,
+                });
 
-              const visitPayload = {
-                owner_id: user.id,                              // 로그인한 유저
-                customer_id: finalCustomerId || null,          // Supabase customers.id와 동일한 값
+                // 태그 라벨 배열
+                const tagLabels = selectedTagIds
+                  .map((tagId) => {
+                    const tag = allVisitTags.find((t) => t.id === tagId);
+                    if (!tag) return null;
+                    if (typeof tag === 'object' && tag !== null) {
+                      return typeof tag.label === 'string'
+                        ? tag.label
+                        : String(tag.label || '');
+                    }
+                    return String(tag);
+                  })
+                  .filter(Boolean);
 
-                reservation_id: safeReservationId,              // UUID 검증된 reservation_id 또는 null
+                // summary_json에 명시적으로 고객 정보 넣기
+                const finalSummaryJson = resultData
+                  ? {
+                      ...resultData,
+                      customerInfo: {
+                        name: customerName || null,
+                        phone: customerPhone || null,
+                        ...(resultData.customerInfo
+                          ? Object.fromEntries(
+                              Object.entries(resultData.customerInfo).filter(
+                                ([key]) => key !== 'name' && key !== 'phone'
+                              )
+                            )
+                          : {}),
+                      },
+                    }
+                  : {
+                      customerInfo: {
+                        name: customerName || null,
+                        phone: customerPhone || null,
+                      },
+                      sections: [],
+                    };
 
-                recorded_at: new Date().toISOString(),
-                service_date: serviceDateKey,
-                service_time: serviceTimeLabel,
-                title: finalTitle || '',
-                summary_json: finalSummaryJson,
-                raw_text: finalRawText || '',
-                tags:
-                  Array.isArray(finalTagNames) && finalTagNames.length > 0
-                    ? finalTagNames
-                    : null,
-              };
+                const finalRawText = rawTranscript || transcript || '';
 
-              console.log('[RecordScreen] visit_logs INSERT payload:', visitPayload);
+                // ----------------------------
+                // 4) Supabase visit_logs 저장
+                // ----------------------------
+                let supabaseVisitId = null;
+                if (user) {
+                  const visitPayload = {
+                    owner_id: user.id,
+                    customer_id: finalCustomerId || null,
+                    reservation_id: reservationId,
+                    recorded_at: new Date().toISOString(),
+                    service_date: serviceDate,
+                    service_time: serviceTime,
+                    title: cleanedTitle || '',
+                    summary_json: finalSummaryJson,
+                    raw_text: finalRawText,
+                    tags: tagLabels.length ? tagLabels : null,
+                  };
 
-              const { data: insertedVisit, error: insertVisitError } = await supabase
-                .from('visit_logs')
-                .insert(visitPayload)
-                .select()
-                .single();
-
-              let supabaseVisitId = null;
-              if (insertVisitError) {
-                console.error('[RecordScreen] visit_logs INSERT 에러:', insertVisitError);
-                alert('Supabase 저장 중 오류가 발생했습니다. 로컬에는 저장되었습니다.');
-              } else {
-                supabaseVisitId = insertedVisit.id;
-                console.log('[RecordScreen] visit_logs INSERT 성공, id:', supabaseVisitId);
-                
-                // 저장 성공 후 visit_logs 데이터 새로고침
-                if (refreshVisitLogs) {
-                  refreshVisitLogs();
-                }
-              }
-              
-              // ========================================
-              // 4단계: visits 상태에 방문 기록 추가
-              // ========================================
-              const finalVisit = {
-                ...newVisit,
-                id: supabaseVisitId || newVisit.id,
-                customerId: finalCustomerId || null,
-              };
-              
-              const visitKey = finalCustomerId || 'unlinked';
-              setVisits(prev => ({
-                ...prev,
-                [visitKey]: [finalVisit, ...(prev[visitKey] || [])]
-              }));
-              
-              // ========================================
-              // 4.5단계: 고객 정보 업데이트 (visitCount, lastVisit, customerTags)
-              // ========================================
-              if (finalCustomerId) {
-                setCustomers(prev => {
-                  const finalIdStr = String(finalCustomerId).toLowerCase();
-                  const existing = prev.find(
-                    c => String(c.id).toLowerCase() === finalIdStr
+                  console.log(
+                    '[RecordScreen] visit_logs INSERT payload:',
+                    visitPayload
                   );
 
-                  if (existing) {
-                    const currentVisitCount = existing.visitCount || 0;
-                    const nextVisitCount = currentVisitCount + 1;
+                  const {
+                    data: insertedVisit,
+                    error: insertVisitError,
+                  } = await supabase
+                    .from('visit_logs')
+                    .insert(visitPayload)
+                    .select()
+                    .single();
 
-                    const updatedCustomerTags = updateCustomerTags({
-                      existingCustomerTags: existing.customerTags || {
+                  if (insertVisitError) {
+                    console.error(
+                      '[RecordScreen] visit_logs INSERT 에러:',
+                      insertVisitError
+                    );
+                    alert('시술 기록을 저장하는 중 오류가 발생했습니다.');
+                  } else if (insertedVisit) {
+                    supabaseVisitId = insertedVisit.id;
+                    if (refreshVisitLogs) {
+                      refreshVisitLogs();
+                    }
+                  }
+                }
+
+                // ----------------------------
+                // 5) 로컬 visits 상태 업데이트
+                // ----------------------------
+                const finalVisit = {
+                  ...newVisit,
+                  id: supabaseVisitId || newVisit.id,
+                  customerId: finalCustomerId || null,
+                };
+
+                const visitKey = finalCustomerId || 'unlinked';
+                setVisits((prev) => ({
+                  ...prev,
+                  [visitKey]: [finalVisit, ...(prev[visitKey] || [])],
+                }));
+
+                // ----------------------------
+                // 6) 고객 visitCount, lastVisit, customerTags 업데이트
+                // ----------------------------
+                if (finalCustomerId && customers && customers.length > 0) {
+                  const targetCustomer = customers.find(
+                    (c) => c.id === finalCustomerId
+                  );
+                  const currentVisitCount = targetCustomer?.visitCount || 0;
+                  const nextVisitCount = currentVisitCount + 1;
+
+                  const updatedCustomerTags = updateCustomerTags({
+                    existingCustomerTags:
+                      targetCustomer?.customerTags || {
                         caution: [],
                         trait: [],
                         payment: [],
-                        pattern: []
+                        pattern: [],
                       },
-                      selectedCustomerTagIds,
-                      allCustomerTags,
-                      visitCount: nextVisitCount,
-                      resultTitle: resultData.title,
-                      resultSections: resultData.sections
-                    });
-
-                    console.log('[고객 정보 업데이트] visitCount:', nextVisitCount);
-                    console.log('[고객 정보 업데이트] customerTags:', updatedCustomerTags);
-
-                    return prev.map(c => {
-                      if (String(c.id).toLowerCase() === finalIdStr) {
-                        return {
-                          ...c,
-                          visitCount: nextVisitCount,
-                          lastVisit: dateStr,
-                          customerTags: updatedCustomerTags,
-                        };
-                      }
-                      return c;
-                    });
-                  }
-
-                  // 기존 고객이 없다면 새 고객 추가
-                  const baseTags = {
-                    caution: [],
-                    trait: [],
-                    payment: [],
-                    pattern: [],
-                  };
-
-                  const initialCustomerTags = updateCustomerTags({
-                    existingCustomerTags: baseTags,
                     selectedCustomerTagIds,
                     allCustomerTags,
-                    visitCount: 1,
+                    visitCount: nextVisitCount,
                     resultTitle: resultData.title,
                     resultSections: resultData.sections,
                   });
 
-                  console.log('[고객 정보 업데이트] 새 고객 추가, visitCount: 1, customerId:', finalCustomerId);
-
-                  return [
-                    ...prev,
-                    {
-                      id: finalCustomerId,
-                      name: customerName,
-                      phone: customerPhone,
-                      visitCount: 1,
-                      lastVisit: dateStr,
-                      customerTags: initialCustomerTags,
-                    },
-                  ];
-                });
-              } else {
-                console.log('[고객 정보 업데이트] customerId가 null이어서 고객 정보 업데이트 생략');
-              }
-              
-              // ========================================
-              // 5단계: 예약에 customerId 연결 (로컬 상태 + Supabase)
-              // ========================================
-              if (finalCustomerId) {
-                // 예약 ID로 직접 찾기
-                if (selectedCustomerForRecord?.reservationId) {
-                  const reservationId = selectedCustomerForRecord.reservationId;
-                  console.log('[예약 업데이트] reservationId:', reservationId, 'customerId:', finalCustomerId);
-                  
-                  // Supabase에 업데이트
-                  if (isValidUuid(String(reservationId))) {
-                    const { error: updateError } = await supabase
-                      .from('reservations')
-                      .update({ customer_id: finalCustomerId })
-                      .eq('id', reservationId);
-                    
-                    if (updateError) {
-                      console.warn('[예약 업데이트] Supabase 업데이트 실패:', updateError);
-                    } else {
-                      console.log('[예약 업데이트] Supabase 업데이트 성공');
-                    }
-                  }
-                  
-                  // 로컬 상태 업데이트
-                  if (setReservations) {
-                    setReservations(prev => prev.map(r => {
-                      if (r.id === reservationId) {
-                        return {
-                          ...r,
-                          customerId: finalCustomerId,
-                          customer_id: finalCustomerId
-                        };
-                      }
-                      return r;
-                    }));
-                  }
-                } else if (selectedCustomerForRecord && setReservations) {
-                  // reservationId가 없으면 이름/전화번호로 매칭
-                  const recordedName = customerName.trim();
-                  const recordedPhone = customerPhone.trim();
-                  
-                  console.log('[예약 업데이트] 이름/전화번호로 예약 찾기:', recordedName, recordedPhone);
-                  
-                  // 로컬 상태에서 매칭된 예약 찾기
-                  const matchedReservations = reservations?.filter(r => {
-                    const nameMatch = r.name?.trim() === recordedName;
-                    const phoneMatch = r.phone?.trim() === recordedPhone || 
-                                       r.phone?.replace(/\D/g, '') === recordedPhone.replace(/\D/g, '');
-                    return nameMatch && phoneMatch && !r.customerId;
-                  }) || [];
-                  
-                  // Supabase에 업데이트
-                  for (const reservation of matchedReservations) {
-                    if (reservation.id && isValidUuid(String(reservation.id))) {
-                      const { error: updateError } = await supabase
-                        .from('reservations')
-                        .update({ customer_id: finalCustomerId })
-                        .eq('id', reservation.id);
-                      
-                      if (updateError) {
-                        console.warn('[예약 업데이트] Supabase 업데이트 실패:', updateError);
-                      } else {
-                        console.log('[예약 업데이트] Supabase 업데이트 성공, reservationId:', reservation.id);
-                      }
-                    }
-                  }
-                  
-                  // 로컬 상태 업데이트
-                  setReservations(prev => prev.map(r => {
-                    const nameMatch = r.name?.trim() === recordedName;
-                    const phoneMatch = r.phone?.trim() === recordedPhone || 
-                                       r.phone?.replace(/\D/g, '') === recordedPhone.replace(/\D/g, '');
-                    
-                    if (nameMatch && phoneMatch && !r.customerId) {
-                      console.log('[예약 업데이트] 매칭된 예약:', r.id);
-                      return {
-                        ...r,
-                        customerId: finalCustomerId,
-                        customer_id: finalCustomerId
-                      };
-                    }
-                    return r;
-                  }));
+                  setCustomers((prev) =>
+                    prev.map((c) =>
+                      c.id === finalCustomerId
+                        ? {
+                            ...c,
+                            visitCount: nextVisitCount,
+                            lastVisit: serviceDate,
+                            customerTags: updatedCustomerTags,
+                          }
+                        : c
+                    )
+                  );
                 }
-              }
-              
-              // ========================================
-              // 6단계: 화면 전환
-              // ========================================
-              const targetCustomerId = finalCustomerId || null;
-              
-              if (targetCustomerId && isValidUuid(String(targetCustomerId))) {
-                setSelectedCustomerId(targetCustomerId);
-                setTimeout(() => {
-                  console.log('[화면 전환] CUSTOMER_DETAIL로 이동, customerId:', targetCustomerId);
-                  setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
-                }, 100);
-              } else {
-                setTimeout(() => {
-                  console.log('[화면 전환] HISTORY로 이동 (고객 프로필 없음 또는 customerId 유효하지 않음)');
-                  setCurrentScreen(SCREENS.HISTORY);
-                }, 100);
+
+                // ----------------------------
+                // 7) 예약과 고객 연결 (예약에서 온 경우)
+                // ----------------------------
+                if (reservationId && finalCustomerId && setReservations) {
+                  setReservations((prev) =>
+                    prev.map((r) =>
+                      r.id === reservationId && !r.customerId
+                        ? { ...r, customerId: finalCustomerId }
+                        : r
+                    )
+                  );
+                }
+
+                // ----------------------------
+                // 8) 화면 전환
+                // ----------------------------
+                if (finalCustomerId && isValidUuid(String(finalCustomerId))) {
+                  setSelectedCustomerId(finalCustomerId);
+                  setTimeout(() => {
+                    setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+                  }, 100);
+                } else {
+                  setTimeout(() => {
+                    setCurrentScreen(SCREENS.HISTORY);
+                  }, 100);
+                }
+              } catch (e) {
+                console.error('[RecordScreen] 저장 중 예외:', e);
+                alert('시술 기록을 저장하는 중 알 수 없는 오류가 발생했습니다.');
               }
             }}
             className="flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-medium text-white shadow-md hover:shadow-lg hover:opacity-90 transition-all"
