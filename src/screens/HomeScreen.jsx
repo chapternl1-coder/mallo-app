@@ -409,15 +409,11 @@ function HomeScreen({
       // tempMemoValue도 초기화
       setTempMemoValue('');
       
-      // 초안 삭제 (저장된 메모가 바로 표시되도록)
-      setReservationMemoDrafts((prev) => {
-        const copy = { ...prev };
-        delete copy[reservationId];
-        return copy;
-      });
-      
-      // refreshReservations 호출 제거 - 로컬 상태 업데이트만으로 충분하며 화면 깜빡임 방지
-      // 다른 화면과의 동기화는 필요할 때만 수동으로 새로고침하면 됨
+      // 초안을 저장된 값으로 업데이트 (화면에 바로 반영되도록)
+      setReservationMemoDrafts((prev) => ({
+        ...prev,
+        [reservationId]: data.memo || '',
+      }));
     } catch (e) {
       console.error('[HomeScreen] 예약 메모 업데이트 예외:', e);
       alert('예약 메모 저장 중 오류가 발생했습니다.');
@@ -597,7 +593,9 @@ function HomeScreen({
                     const cardBgClass = hasVisitLog ? 'bg-white' : 'bg-[#F8F5EE]';
 
                     const isEditingMemo = editingMemoReservationId === reservation.id;
-                    const hasMemo = (reservation.memo || reservation.note) && (reservation.memo || reservation.note).trim().length > 0;
+                    // 메모 표시: 초안 > 저장된 메모
+                    const displayMemo = reservationMemoDrafts[reservation.id] ?? reservation.memo ?? reservation.note ?? '';
+                    const hasMemo = displayMemo && displayMemo.trim().length > 0;
                     const maxMemoLength = getMaxMemoLength();
 
                     return (
@@ -674,12 +672,12 @@ function HomeScreen({
 
                         {/* 메모 영역 */}
                         {isEditingMemo ? (
-                          // 편집 모드 (자동 저장)
+                          // 편집 모드 (자동 저장) - 표시 모드와 동일한 크기 유지
                           <div 
-                            className="mt-3 pt-3 border-t border-gray-200 relative z-50"
+                            className="mt-2 pt-2 border-t border-gray-200 relative z-50"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <div className="relative">
+                            <div className="relative flex items-center">
                               <input
                                 ref={memoInputRef}
                                 type="text"
@@ -747,10 +745,15 @@ function HomeScreen({
                                   e.stopPropagation();
                                 }}
                                 placeholder="예약 메모를 입력하세요..."
-                                className="w-full px-3 pr-10 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C9A27A] focus:border-transparent touch-manipulation"
+                                className="flex-1 px-0 pr-6 text-sm border-0 bg-transparent focus:outline-none focus:ring-0 touch-manipulation text-gray-600 m-0 p-0"
                                 maxLength={maxMemoLength}
                                 autoFocus
-                                style={{ fontSize: '16px' }} // 모바일 줌 방지 (16px 이상)
+                                style={{ 
+                                  fontSize: '14px', 
+                                  lineHeight: '1.25rem', 
+                                  height: '1.25rem',
+                                  verticalAlign: 'baseline'
+                                }} // 표시 모드와 동일한 크기 유지
                               />
                               {/* X 버튼 (Clear) */}
                               {(reservationMemoDrafts[reservation.id] ?? reservation.memo ?? '').length > 0 && (
@@ -767,10 +770,10 @@ function HomeScreen({
                                       }
                                     }, 0);
                                   }}
-                                  className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors z-50"
+                                  className="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors z-50 ml-1"
                                   aria-label="전체 삭제"
                                 >
-                                  <X size={14} className="text-gray-500" />
+                                  <X size={12} className="text-gray-500" />
                                 </button>
                               )}
                             </div>
@@ -778,8 +781,8 @@ function HomeScreen({
                         ) : hasMemo ? (
                           // 메모 표시 모드
                           <div className="mt-2 pt-2 border-t border-gray-200">
-                            <p className="text-sm text-gray-600 truncate">
-                              {reservation.memo || reservation.note}
+                            <p className="text-sm text-gray-600 truncate m-0 p-0" style={{ lineHeight: '1.25rem', height: '1.25rem' }}>
+                              {displayMemo}
                             </p>
                           </div>
                         ) : null}
