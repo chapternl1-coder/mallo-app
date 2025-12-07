@@ -142,6 +142,51 @@ function HistoryScreen({
     return null;
   };
 
+  // 시간 추출 헬퍼 함수 (예약과 연결된 경우 예약 시간 우선, 그 다음 텍스트/녹음에서 추출한 시간)
+  const extractTimeFromRecord = (record) => {
+    // 1순위: 예약과 연결된 경우 예약 시간 사용
+    const connectedReservation = findConnectedReservation(record);
+    if (connectedReservation && connectedReservation.time) {
+      const timeStr = String(connectedReservation.time).trim();
+      if (/^\d{1,2}:\d{2}/.test(timeStr)) {
+        const [hour, minute] = timeStr.split(':');
+        return `${String(parseInt(hour, 10)).padStart(2, '0')}:${String(parseInt(minute, 10)).padStart(2, '0')}`;
+      }
+    }
+    
+    // 2순위: 텍스트/녹음에서 추출한 시간
+    const serviceDateTimeLabel = extractServiceDateTimeLabel(record);
+    if (serviceDateTimeLabel) {
+      // "2025-12-27 17:30 방문/예약" -> "17:30" 추출
+      const timeMatch = serviceDateTimeLabel.match(/(\d{2}):(\d{2})/);
+      if (timeMatch) {
+        const [, hh, mm] = timeMatch;
+        return `${hh}:${mm}`;
+      }
+    }
+    
+    // 3순위: record.time 직접 사용 (저장된 시간)
+    if (record.time) {
+      const timeStr = String(record.time).trim();
+      if (/^\d{1,2}:\d{2}/.test(timeStr)) {
+        const [hour, minute] = timeStr.split(':');
+        return `${String(parseInt(hour, 10)).padStart(2, '0')}:${String(parseInt(minute, 10)).padStart(2, '0')}`;
+      }
+    }
+    
+    // 4순위: record.timeLabel 사용
+    if (record.timeLabel) {
+      const timeMatch = record.timeLabel.match(/(\d{1,2}):(\d{2})/);
+      if (timeMatch) {
+        const [, hh, mm] = timeMatch;
+        return `${String(parseInt(hh, 10)).padStart(2, '0')}:${String(parseInt(mm, 10)).padStart(2, '0')}`;
+      }
+    }
+    
+    // fallback: 빈 문자열
+    return '';
+  };
+
   // 선택된 날짜의 방문 기록 가져오기 (Supabase visit_logs 기준)
   const selectedDateKey = selectedDate || getTodayDateString();
   
@@ -208,50 +253,22 @@ function HistoryScreen({
         };
       })
       .sort((a, b) => {
-        const ta = a.timeLabel || '';
-        const tb = b.timeLabel || '';
-        return ta.localeCompare(tb);
+        // 실제 표시되는 시간을 기준으로 정렬 (내림차순: 늦은 시간이 위로)
+        const timeA = extractTimeFromRecord(a) || '';
+        const timeB = extractTimeFromRecord(b) || '';
+        
+        // 시간이 없는 것은 맨 아래로
+        if (!timeA && !timeB) return 0;
+        if (!timeA) return 1;
+        if (!timeB) return -1;
+        
+        // 시간 문자열 비교 (내림차순)
+        return timeB.localeCompare(timeA);
       });
-  }, [visitLogs, visits, selectedDateKey, customers]);
+  }, [visitLogs, visits, selectedDateKey, customers, reservations, extractServiceDateTimeLabel]);
 
   // 날짜 필터링 (예약과 연결된 경우 예약 날짜 우선, 그 다음 텍스트/녹음에서 추출한 날짜, 없으면 저장된 날짜 사용)
   const filteredRecords = recordsForSelectedDate;
-
-  // 시간 추출 헬퍼 함수 (예약과 연결된 경우 예약 시간 우선, 그 다음 텍스트/녹음에서 추출한 시간)
-  const extractTimeFromRecord = (record) => {
-    // 1순위: 예약과 연결된 경우 예약 시간 사용
-    const connectedReservation = findConnectedReservation(record);
-    if (connectedReservation && connectedReservation.time) {
-      const timeStr = String(connectedReservation.time).trim();
-      if (/^\d{1,2}:\d{2}/.test(timeStr)) {
-        const [hour, minute] = timeStr.split(':');
-        return `${String(parseInt(hour, 10)).padStart(2, '0')}:${String(parseInt(minute, 10)).padStart(2, '0')}`;
-      }
-    }
-    
-    // 2순위: 텍스트/녹음에서 추출한 시간
-    const serviceDateTimeLabel = extractServiceDateTimeLabel(record);
-    if (serviceDateTimeLabel) {
-      // "2025-12-27 17:30 방문/예약" -> "17:30" 추출
-      const timeMatch = serviceDateTimeLabel.match(/(\d{2}):(\d{2})/);
-      if (timeMatch) {
-        const [, hh, mm] = timeMatch;
-        return `${hh}:${mm}`;
-      }
-    }
-    
-    // 3순위: record.time 직접 사용 (저장된 시간)
-    if (record.time) {
-      const timeStr = String(record.time).trim();
-      if (/^\d{1,2}:\d{2}/.test(timeStr)) {
-        const [hour, minute] = timeStr.split(':');
-        return `${String(parseInt(hour, 10)).padStart(2, '0')}:${String(parseInt(minute, 10)).padStart(2, '0')}`;
-      }
-    }
-    
-    // fallback: 빈 문자열
-    return '';
-  };
 
   // 디버깅: 정렬 전 모든 기록의 시간 추출 확인
   if (filteredRecords.length > 0 && selectedDate) {

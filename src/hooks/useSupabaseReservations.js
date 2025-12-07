@@ -172,6 +172,7 @@ export default function useSupabaseReservations() {
             phone: customer?.phone || '',
             memo: row.memo || '',
             status: row.status || 'scheduled',
+            reserved_at: row.reserved_at, // 예약 생성 시간 (정렬용)
             // ✅ 이 값이 홈에서 '신규' 뱃지에 쓰이는 값
             isNew,
           };

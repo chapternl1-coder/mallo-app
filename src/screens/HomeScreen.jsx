@@ -166,13 +166,58 @@ function HomeScreen({
     return `${month}월 ${day}일 (${dayName})`;
   }, [selectedDate]);
 
-  // 검색어에 따른 고객 필터링 (최소 2글자)
+  // 검색어에 따른 고객 필터링 (최소 2글자) + 최근 예약 기준 정렬
   const filteredCustomers = useMemo(() => {
     const trimmedSearch = searchText?.trim() || '';
     // 최소 2글자 제한
     if (trimmedSearch.length < 2) return [];
-    return filterCustomersBySearch(customers, trimmedSearch);
-  }, [customers, searchText]);
+    
+    const filtered = filterCustomersBySearch(customers, trimmedSearch);
+    
+    // 최근 예약이 위로 오도록 정렬
+    // 고객별 최근 예약 시간(reserved_at)을 기준으로 내림차순 정렬
+    const sorted = [...filtered].sort((a, b) => {
+      // 고객별 최근 예약 찾기
+      const aReservations = (reservations || []).filter(r => 
+        r.customerId === a.id || r.customer_id === a.id
+      );
+      const bReservations = (reservations || []).filter(r => 
+        r.customerId === b.id || r.customer_id === b.id
+      );
+      
+      // 최근 예약 시간 비교
+      const aLatestReservation = aReservations.length > 0 
+        ? aReservations.reduce((latest, r) => {
+            const rTime = r.reserved_at ? new Date(r.reserved_at).getTime() : 0;
+            const latestTime = latest.reserved_at ? new Date(latest.reserved_at).getTime() : 0;
+            return rTime > latestTime ? r : latest;
+          })
+        : null;
+      const bLatestReservation = bReservations.length > 0
+        ? bReservations.reduce((latest, r) => {
+            const rTime = r.reserved_at ? new Date(r.reserved_at).getTime() : 0;
+            const latestTime = latest.reserved_at ? new Date(latest.reserved_at).getTime() : 0;
+            return rTime > latestTime ? r : latest;
+          })
+        : null;
+      
+      // 예약이 있는 고객이 위로
+      if (aLatestReservation && !bLatestReservation) return -1;
+      if (!aLatestReservation && bLatestReservation) return 1;
+      
+      // 둘 다 예약이 있으면 최근 예약 시간 기준 내림차순
+      if (aLatestReservation && bLatestReservation) {
+        const aTime = aLatestReservation.reserved_at ? new Date(aLatestReservation.reserved_at).getTime() : 0;
+        const bTime = bLatestReservation.reserved_at ? new Date(bLatestReservation.reserved_at).getTime() : 0;
+        return bTime - aTime; // 내림차순
+      }
+      
+      // 둘 다 예약이 없으면 원본 순서 유지
+      return 0;
+    });
+    
+    return sorted;
+  }, [customers, searchText, reservations]);
 
 
   // 검색창 포커스 핸들러

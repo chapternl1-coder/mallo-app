@@ -64,17 +64,17 @@ function ReservationScreen({
     return `${year}-${month}-${day}`;
   }, [getTodayDateString]);
 
-  // 선택된 날짜의 예약만 필터링하고 시간순으로 정렬 (취소된 예약도 포함)
+  // 선택된 날짜의 예약만 필터링하고 시간순 오름차순 정렬
   const filteredReservations = useMemo(() => {
     const filtered = (reservations || []).filter(
       (res) => res && res.date === selectedDateStr
     );
     
-    // 시간순으로 정렬 (시간이 없는 것은 맨 아래)
+    // 시간순 오름차순 정렬 (시간이 없는 것은 맨 아래)
     return filtered.sort((a, b) => {
       const timeA = a.time || '99:99';
       const timeB = b.time || '99:99';
-      return timeA.localeCompare(timeB);
+      return timeA.localeCompare(timeB); // 오름차순
     });
   }, [reservations, selectedDateStr]);
 

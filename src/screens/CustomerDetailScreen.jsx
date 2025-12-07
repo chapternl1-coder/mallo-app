@@ -351,7 +351,7 @@ function CustomerDetailScreen({
     return chips;
   }, [customer]);
   
-  // ✅ 선택된 고객의 방문 기록만 필터링해서 customerVisits로 사용
+  // ✅ 선택된 고객의 방문 기록만 필터링해서 customerVisits로 사용 (내림차순 정렬)
   const customerVisits = React.useMemo(() => {
     if (!visitLogs || !selectedCustomerId) return [];
 
@@ -366,9 +366,19 @@ function CustomerDetailScreen({
         return String(cid) === String(selectedCustomerId);
       })
       .sort((a, b) => {
-        const timeA = (a.service_time || a.time || '').toString();
-        const timeB = (b.service_time || b.time || '').toString();
-        return timeA.localeCompare(timeB);
+        // 날짜 비교 (serviceDate -> date 순으로 사용)
+        const dateA = (a.service_date || a.serviceDate || a.date || '').toString();
+        const dateB = (b.service_date || b.serviceDate || b.date || '').toString();
+        
+        // 날짜가 다르면 날짜 기준으로 내림차순 정렬
+        if (dateA !== dateB) {
+          return dateB.localeCompare(dateA); // 내림차순
+        }
+        
+        // 날짜가 같으면 시간 기준으로 내림차순 정렬
+        const timeA = (a.service_time || a.serviceTime || a.time || '').toString();
+        const timeB = (b.service_time || b.serviceTime || b.time || '').toString();
+        return timeB.localeCompare(timeA); // 내림차순
       });
   }, [visitLogs, selectedCustomerId]);
 
