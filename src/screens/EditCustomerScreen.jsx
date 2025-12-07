@@ -197,7 +197,7 @@ function EditCustomerScreen({
           }),
         );
       }
-      localStorage.setItem('visits', JSON.stringify(updated));
+      localStorage.setItem('mallo_visits', JSON.stringify(updated));
       return updated;
     });
 
@@ -516,7 +516,7 @@ function EditCustomerScreen({
                     }
                   }
                   
-                  localStorage.setItem('visits', JSON.stringify(updated));
+                  localStorage.setItem('mallo_visits', JSON.stringify(updated));
                   return updated;
                 });
                 

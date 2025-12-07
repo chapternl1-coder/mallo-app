@@ -314,7 +314,9 @@ export default function MalloApp() {
 
           reservations={reservations}
 
-          visits={visitLogsByCustomer}
+          // visits는 screenRouterProps에서 가져온 것 사용 (로컬 저장된 태그 포함)
+          // visitLogs는 Supabase 데이터 (태그 없을 수 있음)
+          visits={screenRouterProps.visits || visitLogsByCustomer}
 
           visitLogs={visitLogs}
 

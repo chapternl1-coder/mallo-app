@@ -145,22 +145,55 @@ const VisitHistoryItem = React.memo(({
         </div>
 
         {/* 태그 리스트 */}
-        {visit.tags && visit.tags.length > 0 && (
-          <div className="mb-2 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
-            {visit.tags.map((tag, idx) => (
-              <span 
-                key={idx}
-                className="text-[11px] px-2 py-1 rounded-md"
-                style={{ 
-                  backgroundColor: '#F2F0E6',
-                  color: '#8C6D46'
-                }}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
+        {(() => {
+          // 방문 한 건(visit) 안에서 태그를 최대한 많이 찾아오는 정규화 로직
+          const serviceTags =
+            // 1) EditScreen이 직접 넣는 최우선 태그 배열
+            (Array.isArray(visit.tags) && visit.tags.length > 0 && visit.tags) ||
+            // 2) detail 안에 저장된 태그
+            (Array.isArray(visit.detail?.tags) && visit.detail.tags.length > 0 && visit.detail.tags) ||
+            // 3) summaryJson / summary_json 안에 들어 있는 태그
+            (Array.isArray(visit.summaryJson?.tags) && visit.summaryJson.tags.length > 0 && visit.summaryJson.tags) ||
+            (Array.isArray(visit.summary_json?.tags) && visit.summary_json.tags.length > 0 && visit.summary_json.tags) ||
+            // 4) 혹시 예전 필드명이 남아 있을 경우 대비
+            (Array.isArray(visit.serviceTags) && visit.serviceTags.length > 0 && visit.serviceTags) ||
+            (Array.isArray(visit.summaryTags) && visit.summaryTags.length > 0 && visit.summaryTags) ||
+            (Array.isArray(visit.tagLabels) && visit.tagLabels.length > 0 && visit.tagLabels) ||
+            (Array.isArray(visit.autoTags) && visit.autoTags.length > 0 && visit.autoTags) ||
+            // 5) visitTags가 라벨 배열인 경우
+            (Array.isArray(visit.visitTags) && visit.visitTags.length > 0 && visit.visitTags) ||
+            // 6) 그래도 없으면 빈 배열
+            [];
+          
+          // 디버깅: 태그가 없을 때 로그 출력
+          if (serviceTags.length === 0) {
+            console.log('[CustomerDetail] 태그 없음:', {
+              visitId: visit.id,
+              tags: visit.tags,
+              detailTags: visit.detail?.tags,
+              summaryJsonTags: visit.summaryJson?.tags,
+              visitTags: visit.visitTags,
+              visitTagIds: visit.visitTagIds
+            });
+          }
+          
+          return serviceTags.length > 0 ? (
+            <div className="mb-2 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
+              {serviceTags.map((tag, idx) => (
+                <span 
+                  key={idx}
+                  className="text-[11px] px-2 py-1 rounded-md"
+                  style={{ 
+                    backgroundColor: '#F2F0E6',
+                    color: '#8C6D46'
+                  }}
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : null;
+        })()}
 
         {/* 아랫줄: 시술 내용 */}
         <div 
@@ -446,18 +479,211 @@ function CustomerDetailScreen({
   });
 
   // 2) 기존 로컬 visits (localStorage 기반)에서 선택된 고객의 방문 기록만 가져오기
+  // 여러 키를 확인: selectedCustomerId (Supabase UUID), 그리고 다른 가능한 형식들
   let localCustomerVisits = [];
+  
+  // visits prop이 업데이트되었는지 확인
+  console.log('[CustomerDetail] visits prop 확인:', {
+    selectedCustomerId,
+    visitsType: typeof visits,
+    visitsIsObject: visits && typeof visits === 'object',
+    visitsKeys: visits && typeof visits === 'object' ? Object.keys(visits).slice(0, 5) : [],
+    hasDirectKey: visits && typeof visits === 'object' ? !!visits[selectedCustomerId] : false,
+    directKeyCount: visits && typeof visits === 'object' && visits[selectedCustomerId] ? visits[selectedCustomerId].length : 0
+  });
+  
   if (visits && typeof visits === 'object') {
-    const raw = visits[selectedCustomerId] || [];
+    // 1순위: Supabase UUID로 직접 찾기
+    let raw = visits[selectedCustomerId];
+    
+    // 2순위: UUID가 없으면 모든 키를 순회하면서 visit의 customerId와 매칭
+    if (!raw || !Array.isArray(raw) || raw.length === 0) {
+      const allVisits = Object.values(visits).flat();
+      raw = allVisits.filter((visit) => {
+        const visitCustomerId = visit.customerId || visit.customer_id;
+        return visitCustomerId && String(visitCustomerId) === String(selectedCustomerId);
+      });
+    }
+    
     if (Array.isArray(raw)) {
       localCustomerVisits = raw;
     }
   }
+  
+  // localStorage에서 직접 확인 (디버깅용) - mallo_visits 키 사용
+  try {
+    const localStorageVisits = localStorage.getItem('mallo_visits');
+    if (localStorageVisits) {
+      const parsed = JSON.parse(localStorageVisits);
+      const directVisit = parsed[selectedCustomerId];
+      console.log('[CustomerDetail] localStorage 직접 확인 (mallo_visits):', {
+        selectedCustomerId,
+        hasDirectKey: !!directVisit,
+        directVisitCount: directVisit?.length || 0,
+        directVisitFirst: directVisit?.[0] ? {
+          id: directVisit[0].id,
+          customerId: directVisit[0].customerId || directVisit[0].customer_id,
+          tags: directVisit[0].tags,
+          visitTags: directVisit[0].visitTags,
+          allKeys: Object.keys(directVisit[0] || {})
+        } : null,
+        allKeysInVisits: Object.keys(parsed || {}).slice(0, 10)
+      });
+    } else {
+      console.warn('[CustomerDetail] mallo_visits가 localStorage에 없음');
+    }
+  } catch (e) {
+    console.warn('[CustomerDetail] localStorage 확인 실패:', e);
+  }
+  
+  console.log('[CustomerDetail] 로컬 visits 찾기:', {
+    selectedCustomerId,
+    visitsKeys: visits ? Object.keys(visits).slice(0, 5) : [],
+    localCustomerVisitsCount: localCustomerVisits.length,
+    localVisitIds: localCustomerVisits.map(v => ({ 
+      id: v.id, 
+      customerId: v.customerId || v.customer_id, 
+      tags: v.tags,
+      visitTags: v.visitTags,
+      detailTags: v.detail?.tags,
+      summaryJsonTags: v.summaryJson?.tags,
+      summary_jsonTags: v.summary_json?.tags,
+      serviceTags: v.serviceTags,
+      summaryTags: v.summaryTags,
+      tagLabels: v.tagLabels,
+      autoTags: v.autoTags
+    }))
+  });
+
+  console.log('[CustomerDetail] 데이터 소스 확인:', {
+    selectedCustomerId,
+    supabaseVisitsCount: supabaseCustomerVisits.length,
+    localVisitsCount: localCustomerVisits.length,
+    supabaseVisitIds: supabaseCustomerVisits.map(v => ({ id: v.id, tags: v.tags })),
+    localVisitIds: localCustomerVisits.map(v => ({ id: v.id, tags: v.tags, visitTags: v.visitTags }))
+  });
 
   // 3) Supabase + 로컬 방문 기록 합치기 및 정렬 (성능 최적화: useMemo로 메모이제이션)
   const uniqueSortedCustomerVisits = React.useMemo(() => {
-    // Supabase + 로컬 방문 기록 합치기
-    const mergedVisits = [...supabaseCustomerVisits, ...localCustomerVisits];
+    // 로컬 visits를 Map으로 변환하여 빠른 조회 가능하도록 함
+    const localVisitsMap = new Map();
+    localCustomerVisits.forEach((visit) => {
+      if (visit && visit.id) {
+        localVisitsMap.set(visit.id, visit);
+      }
+    });
+
+    console.log('[CustomerDetail] 병합 전:', {
+      supabaseVisitsCount: supabaseCustomerVisits.length,
+      localVisitsCount: localCustomerVisits.length,
+      localVisitsMapSize: localVisitsMap.size,
+      localVisitIds: Array.from(localVisitsMap.keys()).slice(0, 5),
+      supabaseVisitIds: supabaseCustomerVisits.map(v => v.id).slice(0, 5)
+    });
+
+    // Supabase 방문 기록에 로컬 태그 정보 병합
+    // ID로 직접 매칭이 안 될 경우를 대비해 날짜/시간/제목으로도 매칭 시도
+    const mergedSupabaseVisits = supabaseCustomerVisits.map((supabaseVisit) => {
+      // 1순위: ID로 직접 매칭
+      let localVisit = localVisitsMap.get(supabaseVisit.id);
+      
+      // 2순위: ID 매칭 실패 시 날짜/시간/제목으로 매칭
+      if (!localVisit) {
+        const supabaseDate = supabaseVisit.serviceDate || supabaseVisit.date;
+        const supabaseTime = supabaseVisit.serviceTime || supabaseVisit.time;
+        const supabaseTitle = supabaseVisit.title || '';
+        
+        localVisit = localCustomerVisits.find((lv) => {
+          const localDate = lv.serviceDate || lv.date;
+          const localTime = lv.serviceTime || lv.time;
+          const localTitle = lv.title || '';
+          
+          return (
+            localDate === supabaseDate &&
+            localTime === supabaseTime &&
+            localTitle === supabaseTitle
+          );
+        });
+      }
+      
+      if (!localVisit) {
+        // 로컬에 없으면 Supabase 데이터 그대로 사용
+        return supabaseVisit;
+      }
+
+      // 로컬 visit에서 태그 찾기 (모든 가능한 위치 확인)
+      // 디버깅: 모든 태그 필드 확인
+      console.log('[CustomerDetail] 로컬 visit 전체 구조:', {
+        visitId: supabaseVisit.id,
+        localVisitId: localVisit.id,
+        localVisitKeys: Object.keys(localVisit),
+        tags: localVisit.tags,
+        visitTags: localVisit.visitTags,
+        detailTags: localVisit.detail?.tags,
+        summaryJsonTags: localVisit.summaryJson?.tags,
+        summary_jsonTags: localVisit.summary_json?.tags,
+        serviceTags: localVisit.serviceTags,
+        summaryTags: localVisit.summaryTags,
+        tagLabels: localVisit.tagLabels,
+        autoTags: localVisit.autoTags,
+        detail: localVisit.detail,
+        summaryJson: localVisit.summaryJson,
+        summary_json: localVisit.summary_json
+      });
+      
+      const localTags = 
+        (Array.isArray(localVisit.tags) && localVisit.tags.length > 0 && localVisit.tags) ||
+        (Array.isArray(localVisit.visitTags) && localVisit.visitTags.length > 0 && localVisit.visitTags) ||
+        (Array.isArray(localVisit.detail?.tags) && localVisit.detail.tags.length > 0 && localVisit.detail.tags) ||
+        (Array.isArray(localVisit.summaryJson?.tags) && localVisit.summaryJson.tags.length > 0 && localVisit.summaryJson.tags) ||
+        (Array.isArray(localVisit.summary_json?.tags) && localVisit.summary_json.tags.length > 0 && localVisit.summary_json.tags) ||
+        (Array.isArray(localVisit.serviceTags) && localVisit.serviceTags.length > 0 && localVisit.serviceTags) ||
+        (Array.isArray(localVisit.summaryTags) && localVisit.summaryTags.length > 0 && localVisit.summaryTags) ||
+        (Array.isArray(localVisit.tagLabels) && localVisit.tagLabels.length > 0 && localVisit.tagLabels) ||
+        (Array.isArray(localVisit.autoTags) && localVisit.autoTags.length > 0 && localVisit.autoTags) ||
+        null;
+
+      if (localTags) {
+        console.log('[CustomerDetail] 태그 병합 성공:', {
+          visitId: supabaseVisit.id,
+          localVisitId: localVisit.id,
+          localTags,
+          matchType: supabaseVisit.id === localVisit.id ? 'ID' : '날짜/시간/제목'
+        });
+        
+        return {
+          ...supabaseVisit,
+          tags: localTags,
+          visitTags: localTags,
+          detail: {
+            ...supabaseVisit.detail,
+            tags: localTags,
+          },
+          summaryJson: {
+            ...supabaseVisit.summaryJson,
+            tags: localTags,
+          },
+          summary_json: {
+            ...supabaseVisit.summary_json,
+            tags: localTags,
+          },
+        };
+      } else {
+        console.log('[CustomerDetail] 로컬 visit에 태그 없음:', {
+          visitId: supabaseVisit.id,
+          localVisitId: localVisit.id,
+          localVisitTags: localVisit.tags,
+          localVisitVisitTags: localVisit.visitTags,
+          localVisitDetailTags: localVisit.detail?.tags,
+          localVisitSummaryJsonTags: localVisit.summaryJson?.tags
+        });
+      }
+
+      return supabaseVisit;
+    });
+
+    // Supabase + 로컬 방문 기록 합치기 (로컬에만 있는 것들도 포함)
+    const mergedVisits = [...mergedSupabaseVisits, ...localCustomerVisits];
 
     // 날짜와 시간 기준 내림차순 정렬 (최신 것이 위에 오도록)
     const sorted = [...mergedVisits].sort((a, b) => {

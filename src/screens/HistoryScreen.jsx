@@ -193,10 +193,57 @@ function HistoryScreen({
   const recordsForSelectedDate = useMemo(() => {
     const dateKey = selectedDateKey; // 'YYYY-MM-DD'
 
-    // Supabase 데이터가 있으면 그걸 우선 사용, 없으면 예전 로컬 visits 사용
-    const source = (visitLogs && visitLogs.length > 0)
-      ? visitLogs
-      : (visits ? Object.values(visits).flat() : []);  // 기존 로컬 상태가 있다면 유지
+    // 로컬 visits를 Map으로 변환하여 빠른 조회 가능하도록 함
+    const localVisitsArray = visits ? Object.values(visits).flat() : [];
+    const localVisitsMap = new Map();
+    localVisitsArray.forEach((visit) => {
+      if (visit && visit.id) {
+        localVisitsMap.set(visit.id, visit);
+      }
+    });
+
+    // Supabase 데이터가 있으면 그걸 우선 사용하고 로컬 태그 정보 병합
+    let source = [];
+    if (visitLogs && visitLogs.length > 0) {
+      // Supabase visit_logs에 로컬 visits의 태그 정보 병합
+      source = visitLogs.map((supabaseVisit) => {
+        const localVisit = localVisitsMap.get(supabaseVisit.id);
+        if (!localVisit) return supabaseVisit;
+
+        // 로컬 visit에 태그가 있으면 Supabase visit에 병합
+        const localTags = 
+          (Array.isArray(localVisit.tags) && localVisit.tags.length > 0 && localVisit.tags) ||
+          (Array.isArray(localVisit.visitTags) && localVisit.visitTags.length > 0 && localVisit.visitTags) ||
+          (Array.isArray(localVisit.detail?.tags) && localVisit.detail.tags.length > 0 && localVisit.detail.tags) ||
+          (Array.isArray(localVisit.summaryJson?.tags) && localVisit.summaryJson.tags.length > 0 && localVisit.summaryJson.tags) ||
+          null;
+
+        if (localTags) {
+          return {
+            ...supabaseVisit,
+            tags: localTags,
+            visitTags: localTags,
+            detail: {
+              ...supabaseVisit.detail,
+              tags: localTags,
+            },
+            summaryJson: {
+              ...supabaseVisit.summaryJson,
+              tags: localTags,
+            },
+            summary_json: {
+              ...supabaseVisit.summary_json,
+              tags: localTags,
+            },
+          };
+        }
+
+        return supabaseVisit;
+      });
+    } else {
+      // Supabase 데이터가 없으면 로컬 visits 사용
+      source = localVisitsArray;
+    }
 
     return source
       .filter(v => {
@@ -597,22 +644,43 @@ function HistoryScreen({
                         </div>
 
                         {/* 태그 리스트: 이름/번호 아래, 시술 내용 위 */}
-                        {record.tags && record.tags.length > 0 && (
-                          <div className="mt-1.5 mb-1.5 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
-                            {record.tags.map((tag, idx) => (
-                              <span 
-                                key={idx}
-                                className="text-[11px] px-2 py-1 rounded-md"
-                                style={{ 
-                                  backgroundColor: '#F2F0E6',
-                                  color: '#8C6D46'
-                                }}
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+                        {(() => {
+                          // 방문 한 건(record) 안에서 태그를 최대한 많이 찾아오는 정규화 로직
+                          const serviceTags =
+                            // 1) EditScreen이 직접 넣는 최우선 태그 배열
+                            (Array.isArray(record.tags) && record.tags.length > 0 && record.tags) ||
+                            // 2) detail 안에 저장된 태그
+                            (Array.isArray(record.detail?.tags) && record.detail.tags.length > 0 && record.detail.tags) ||
+                            // 3) summaryJson / summary_json 안에 들어 있는 태그
+                            (Array.isArray(record.summaryJson?.tags) && record.summaryJson.tags.length > 0 && record.summaryJson.tags) ||
+                            (Array.isArray(record.summary_json?.tags) && record.summary_json.tags.length > 0 && record.summary_json.tags) ||
+                            // 4) 혹시 예전 필드명이 남아 있을 경우 대비
+                            (Array.isArray(record.serviceTags) && record.serviceTags.length > 0 && record.serviceTags) ||
+                            (Array.isArray(record.summaryTags) && record.summaryTags.length > 0 && record.summaryTags) ||
+                            (Array.isArray(record.tagLabels) && record.tagLabels.length > 0 && record.tagLabels) ||
+                            (Array.isArray(record.autoTags) && record.autoTags.length > 0 && record.autoTags) ||
+                            // 5) visitTags가 라벨 배열인 경우
+                            (Array.isArray(record.visitTags) && record.visitTags.length > 0 && record.visitTags) ||
+                            // 6) 그래도 없으면 빈 배열
+                            [];
+                          
+                          return serviceTags.length > 0 ? (
+                            <div className="mt-1.5 mb-1.5 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
+                              {serviceTags.map((tag, idx) => (
+                                <span 
+                                  key={idx}
+                                  className="text-[11px] px-2 py-1 rounded-md"
+                                  style={{ 
+                                    backgroundColor: '#F2F0E6',
+                                    color: '#8C6D46'
+                                  }}
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null;
+                        })()}
 
                         {/* 아랫줄: 시술 내용 */}
                         <div 
