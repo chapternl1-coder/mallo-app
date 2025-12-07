@@ -86,7 +86,7 @@ export default function ScreenRouter(props) {
     case SCREENS.TAG_SETTINGS:
       return <TagSettingsScreen {...props} />;
     case SCREENS.RESERVATION:
-      return <ReservationScreen {...props} autoOpenForm={props.shouldOpenReservationForm || false} />;
+      return <ReservationScreen {...props} autoOpenForm={props.shouldOpenReservationForm || false} visitLogs={props.visitLogs} />;
     case SCREENS.CONTACT_IMPORT:
       return <ContactImportScreen {...props} />;
     case SCREENS.TEXT_RECORD:

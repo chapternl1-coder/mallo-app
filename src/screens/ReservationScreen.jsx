@@ -18,6 +18,7 @@ function ReservationScreen({
   getTodayDateString,
   autoOpenForm = false, // 홈에서 + 버튼으로 진입 시 자동으로 폼 열기
   setShouldOpenReservationForm, // 플래그 리셋용
+  visitLogs = [],   // ✅ 추가
 }) {
   const [showForm, setShowForm] = useState(true); // 항상 예약 추가창 열어놓기
   const [timeInput, setTimeInput] = useState('');
@@ -474,7 +475,7 @@ function ReservationScreen({
                   return (
                     <div
                       key={reservation.id}
-                      className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 shadow-sm border border-[#E8DFD3]"
+                      className="flex items-center justify-between rounded-2xl px-4 py-4 shadow-sm border border-[#E8DFD3] bg-white"
                     >
                       <div className="flex flex-1 items-center gap-3">
                         <span className="text-[11px] text-[#B18352]">
