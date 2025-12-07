@@ -83,14 +83,61 @@ function EditScreen({
       const updated = JSON.parse(JSON.stringify(prev));
 
       if (isCustomerInfoSection) {
-        // 고객 기본 정보 섹션: 표시 인덱스 2 이상부터 원본 content에서 삭제
+        // 고객 기본 정보 섹션: 이름(인덱스 0)과 전화번호(인덱스 1)는 삭제 불가
+        // 인덱스 2 이상만 삭제 가능 (구분 등)
         if (displayContentIndex >= 2) {
-          const originalIndex = displayContentIndex - 2;
-          if (
-            originalIndex >= 0 &&
-            originalIndex < updated.sections[sectionIndex].content.length
-          ) {
-            updated.sections[sectionIndex].content.splice(originalIndex, 1);
+          const section = updated.sections[sectionIndex];
+          const sectionContent = section.content || [];
+          
+          // displayContent 재구성하여 삭제할 항목의 실제 내용 찾기
+          // (이름/전화번호를 제외한 항목들만 필터링)
+          const nonNamePhoneItems = sectionContent.filter(item => {
+            const itemStr = typeof item === 'string' ? item : String(item || '');
+            return (
+              itemStr &&
+              !itemStr.includes('이름:') &&
+              !itemStr.includes('전화번호:') &&
+              !itemStr.includes('name:') &&
+              !itemStr.includes('phone:') &&
+              !itemStr.match(/이름.*전화번호|전화번호.*이름/) &&
+              !itemStr.match(/name.*phone|phone.*name/i)
+            );
+          });
+          
+          // displayContentIndex 2부터는 nonNamePhoneItems의 (displayContentIndex - 2)번째 항목
+          const targetIndexInFiltered = displayContentIndex - 2;
+          if (targetIndexInFiltered >= 0 && targetIndexInFiltered < nonNamePhoneItems.length) {
+            const itemToDelete = nonNamePhoneItems[targetIndexInFiltered];
+            const itemToDeleteStr = typeof itemToDelete === 'string' ? itemToDelete : String(itemToDelete || '');
+            
+            // 원본 content 배열에서 해당 항목의 실제 인덱스 찾기
+            let foundIndex = -1;
+            for (let i = 0; i < sectionContent.length; i++) {
+              const itemStr = typeof sectionContent[i] === 'string' 
+                ? sectionContent[i] 
+                : String(sectionContent[i] || '');
+              
+              // 이름/전화번호 항목이 아닌 경우에만 비교
+              if (
+                itemStr &&
+                !itemStr.includes('이름:') &&
+                !itemStr.includes('전화번호:') &&
+                !itemStr.includes('name:') &&
+                !itemStr.includes('phone:') &&
+                !itemStr.match(/이름.*전화번호|전화번호.*이름/) &&
+                !itemStr.match(/name.*phone|phone.*name/i)
+              ) {
+                if (itemStr === itemToDeleteStr) {
+                  foundIndex = i;
+                  break;
+                }
+              }
+            }
+            
+            // 찾은 인덱스에서 삭제
+            if (foundIndex >= 0 && foundIndex < sectionContent.length) {
+              updated.sections[sectionIndex].content.splice(foundIndex, 1);
+            }
           }
         }
       } else {
@@ -284,18 +331,24 @@ function EditScreen({
     }
 
     // 5) 편집 상태 초기화 + 화면 이동
+    // editingVisit 값을 먼저 저장 (상태 초기화 전)
+    const wasEditingVisit = editingVisit;
+    
     setTempResultData(null);
     setEditingVisit(null);
     setEditingCustomer(null);
     setEditingVisitTagIds([]);
 
-    if (editingVisit) {
-      // 기존 방문 편집 → 고객상세로 복귀
-      setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
-    } else {
-      // 녹음 직후 편집 → RECORD 결과 화면으로 복귀
-      setCurrentScreen(SCREENS.RECORD);
-    }
+    // 상태 초기화 후 화면 전환 (녹음 중 페이지가 보이지 않도록)
+    setTimeout(() => {
+      if (wasEditingVisit) {
+        // 기존 방문 편집 → 고객상세로 복귀
+        setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+      } else {
+        // 녹음 직후 편집 → RECORD 결과 화면으로 복귀
+        setCurrentScreen(SCREENS.RECORD);
+      }
+    }, 0);
   };
 
   return (
@@ -306,15 +359,23 @@ function EditScreen({
         <button
           type="button"
           onClick={() => {
+            // editingVisit 값을 먼저 저장 (상태 초기화 전)
+            const wasEditingVisit = editingVisit;
+            
+            // 상태 초기화
             setTempResultData(null);
             setEditingVisit(null);
             setEditingCustomer(null);
             setEditingVisitTagIds([]);
-            if (editingVisit) {
-              setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
-            } else {
-              setCurrentScreen(SCREENS.RECORD);
-            }
+            
+            // 상태 초기화 후 화면 전환 (녹음 중 페이지가 보이지 않도록)
+            setTimeout(() => {
+              if (wasEditingVisit) {
+                setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+              } else {
+                setCurrentScreen(SCREENS.RECORD);
+              }
+            }, 0);
           }}
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
           style={{ color: '#232323' }}
@@ -460,15 +521,26 @@ function EditScreen({
           // 고객 기본 정보 UI용 content 구성
           let displayContent = section.content || [];
           if (isCustomerInfoSection) {
-            // editingCustomer가 있으면 우선 사용, 없으면 section.content에서 추출
+            // 우선순위: tempResultData.customerInfo > editingCustomer > section.content에서 추출
             let customerName = '';
             let customerPhone = '';
             
-            if (editingCustomer) {
+            // 1순위: tempResultData.customerInfo (수정된 값)
+            if (tempResultData.customerInfo) {
+              customerName = tempResultData.customerInfo.name || '';
+              customerPhone = tempResultData.customerInfo.phone || '';
+            }
+            
+            // 2순위: editingCustomer
+            if (!customerName && editingCustomer) {
               customerName = editingCustomer.name || '';
+            }
+            if (!customerPhone && editingCustomer) {
               customerPhone = editingCustomer.phone || '';
-            } else {
-              // section.content에서 이름/전화번호 추출
+            }
+            
+            // 3순위: section.content에서 추출
+            if (!customerName && !customerPhone) {
               (section.content || []).forEach(item => {
                 const itemStr = typeof item === 'string' ? item : String(item || '');
                 // 슬래시로 연결된 형식 처리
@@ -567,9 +639,9 @@ function EditScreen({
                     showDeleteButton = displayContent.length > 1;
                   }
 
-                  const isReadOnly =
-                    isCustomerBasicInfo &&
-                    (contentIndex === 0 || contentIndex === 1);
+                  // 이름과 번호는 삭제 불가하지만 수정은 가능
+                  const isNameOrPhone = isCustomerBasicInfo && (contentIndex === 0 || contentIndex === 1);
+                  const isReadOnly = false; // 모든 항목 수정 가능
 
                   return (
                     <div key={contentIndex} className="flex gap-2 relative">
@@ -582,10 +654,37 @@ function EditScreen({
                             : String(item || '')
                         }
                         onChange={e => {
-                          if (isReadOnly) return;
-
                           if (isCustomerInfoSection) {
-                            if (contentIndex >= 2) {
+                            // 이름(인덱스 0) 수정
+                            if (contentIndex === 0) {
+                              const newValue = e.target.value;
+                              // "이름: " 접두사 제거
+                              const nameValue = newValue.replace(/^이름:\s*/, '').trim();
+                              setTempResultData(prev => {
+                                const updated = JSON.parse(JSON.stringify(prev));
+                                if (!updated.customerInfo) {
+                                  updated.customerInfo = {};
+                                }
+                                updated.customerInfo.name = nameValue;
+                                return updated;
+                              });
+                            }
+                            // 전화번호(인덱스 1) 수정
+                            else if (contentIndex === 1) {
+                              const newValue = e.target.value;
+                              // "전화번호: " 접두사 제거
+                              const phoneValue = newValue.replace(/^전화번호:\s*/, '').trim();
+                              setTempResultData(prev => {
+                                const updated = JSON.parse(JSON.stringify(prev));
+                                if (!updated.customerInfo) {
+                                  updated.customerInfo = {};
+                                }
+                                updated.customerInfo.phone = phoneValue;
+                                return updated;
+                              });
+                            }
+                            // 구분 등 다른 항목(인덱스 2 이상) 수정
+                            else if (contentIndex >= 2) {
                               const originalIndex = contentIndex - 2;
                               if (originalIndex < section.content.length) {
                                 updateSectionContent(
@@ -695,6 +794,13 @@ function EditScreen({
                   const customerId = editingCustomer.id;
                   const visitId = editingVisit.id;
 
+                  // 상태 초기화 먼저 수행
+                  setTempResultData(null);
+                  setEditingVisit(null);
+                  setEditingCustomer(null);
+                  setEditingVisitTagIds([]);
+                  
+                  // visits 업데이트
                   setVisits(prev => {
                     const updated = {};
                     Object.keys(prev || {}).forEach(key => {
@@ -708,12 +814,11 @@ function EditScreen({
                     return updated;
                   });
 
-                  setTempResultData(null);
-                  setEditingVisit(null);
-                  setEditingCustomer(null);
-                  setEditingVisitTagIds([]);
-                  setSelectedCustomerId(customerId);
-                  setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+                  // 상태 초기화 후 화면 전환 (녹음 중 페이지가 보이지 않도록)
+                  setTimeout(() => {
+                    setSelectedCustomerId(customerId);
+                    setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+                  }, 0);
                 }
               }}
               className="px-6 py-2.5 rounded-xl text-sm font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all"
