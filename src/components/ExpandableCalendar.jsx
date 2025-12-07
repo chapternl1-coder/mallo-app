@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import {
   startOfWeek,
   endOfWeek,
@@ -174,27 +174,30 @@ function ExpandableCalendar({ selectedDate, onDateSelect, reservations = [] }) {
       {/* 헤더: 월/년 표시 + 네비게이션 */}
       <div className="px-4 py-3 bg-[#F9F5EF]">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center">
+            <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center border border-[#E3D7C7] mr-1">
+              <Calendar size={16} className="text-[#7A6A58]" />
+            </div>
             <button
               onClick={isExpanded ? goToPrevMonth : goToPrevWeek}
-              className="p-0.5 hover:bg-[#F2EDE4] rounded-lg transition-colors"
+              className="p-1 hover:bg-[#F2EDE4] rounded-lg transition-colors flex items-center justify-center -mr-2"
             >
-              <ChevronLeft size={16} className="text-[#7A6A58]" />
+              <ChevronLeft size={18} className="text-[#7A6A58]" />
             </button>
-            <h3 className="text-base font-semibold text-[#3F352B] min-w-[180px] text-center">
+            <h3 className="text-sm font-semibold text-[#3F352B] min-w-[160px] text-center">
               {format(viewDate, 'yyyy년 M월 d일', { locale: ko })}
             </h3>
             <button
               onClick={isExpanded ? goToNextMonth : goToNextWeek}
-              className="p-0.5 hover:bg-[#F2EDE4] rounded-lg transition-colors"
+              className="p-1 hover:bg-[#F2EDE4] rounded-lg transition-colors flex items-center justify-center -ml-2"
             >
-              <ChevronRight size={16} className="text-[#7A6A58]" />
+              <ChevronRight size={18} className="text-[#7A6A58]" />
             </button>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={goToToday}
-              className="px-3 py-1 text-xs font-medium text-[#7A6A58] hover:bg-[#F2EDE4] rounded-lg transition-colors border border-[#E3D7C7]"
+              className="px-3 py-1 text-[10px] font-medium text-[#7A6A58] hover:bg-[#F2EDE4] rounded-lg transition-colors border border-[#E3D7C7]"
             >
               오늘
             </button>
