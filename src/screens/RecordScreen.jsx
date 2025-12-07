@@ -207,13 +207,14 @@ function RecordScreen({
 
   // 녹음 화면 진입 시 스크롤을 맨 위로
   useEffect(() => {
-    if (recordState === 'recording' || recordState === 'idle') {
+    if (recordState === 'recording' || (recordState === 'idle' && recordingTime > 0)) {
       window.scrollTo(0, 0);
     }
-  }, [recordState]);
+  }, [recordState, recordingTime]);
 
   // recordState에 따라 다른 화면 렌더링
-  if (recordState === 'recording' || recordState === 'idle') {
+  // 녹음 화면 깜빡임 방지: 실제로 녹음 중이거나 녹음 시간이 있을 때만 녹음 화면 표시
+  if (recordState === 'recording' || (recordState === 'idle' && recordingTime > 0)) {
     return (
       <div
         className="flex flex-col min-h-screen"

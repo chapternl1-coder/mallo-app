@@ -1166,7 +1166,16 @@ export default function useMalloAppState(user) {
         : SCREENS.RECORD;
       
       console.log('[요약 처리] 현재 화면:', currentScreen, 'fromCustomerDetail:', fromCustomerDetail, '→ 이동할 화면:', targetScreen);
-      setCurrentScreen(targetScreen);
+      
+      // 녹음 화면 깜빡임 방지: 화면 이동 전에 녹음 상태 먼저 초기화
+      setRecordState('idle');
+      setIsProcessing(false);
+      setIsPaused(false);
+      
+      // 상태 초기화 후 화면 전환 (녹음 화면이 보이지 않도록)
+      setTimeout(() => {
+        setCurrentScreen(targetScreen);
+      }, 0);
     } else {
       console.log('[요약 처리] 고객 상세에서 온 경우, 화면 이동은 호출한 쪽에서 처리');
     }
@@ -1242,10 +1251,17 @@ export default function useMalloAppState(user) {
       // 최소 체크만 수행 (1초 이내도 허용)
       if (audioBlob.size < 100) {
         console.log('[녹음 경고] 오디오 파일이 너무 작습니다.');
-        alert('녹음 데이터가 충분하지 않습니다. 다시 시도해주세요.');
+        
+        // 녹음 화면 깜빡임 방지: 상태 먼저 초기화 후 화면 전환
         setIsProcessing(false);
         setRecordState('idle');
-        setCurrentScreen(SCREENS.HOME);
+        setIsPaused(false);
+        setRecordingTime(0);
+        
+        setTimeout(() => {
+          alert('녹음 데이터가 충분하지 않습니다. 다시 시도해주세요.');
+          setCurrentScreen(SCREENS.HOME);
+        }, 0);
         return;
       }
 
@@ -1294,10 +1310,17 @@ export default function useMalloAppState(user) {
       // 텍스트가 비어있으면 홈으로 (시간 제한 제거)
       if (!transcript.trim()) {
         console.log('[녹음 경고] 변환된 텍스트가 비어있습니다.');
-        alert('음성이 인식되지 않았습니다. 다시 시도해주세요.');
+        
+        // 녹음 화면 깜빡임 방지: 상태 먼저 초기화 후 화면 전환
         setIsProcessing(false);
         setRecordState('idle');
-        setCurrentScreen(SCREENS.HOME);
+        setIsPaused(false);
+        setRecordingTime(0);
+        
+        setTimeout(() => {
+          alert('음성이 인식되지 않았습니다. 다시 시도해주세요.');
+          setCurrentScreen(SCREENS.HOME);
+        }, 0);
         return;
       }
 
@@ -1380,9 +1403,17 @@ export default function useMalloAppState(user) {
     } catch (error) {
       console.error('[녹음 처리 오류]', error);
       const errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
-      alert(`오류가 발생했습니다\n\n${errorMessage}\n\n콘솔을 확인해주세요.`);
-      setCurrentScreen(SCREENS.HOME);
+      
+      // 녹음 화면 깜빡임 방지: 상태 먼저 초기화 후 화면 전환
       setRecordState('idle');
+      setIsProcessing(false);
+      setIsPaused(false);
+      setRecordingTime(0);
+      
+      setTimeout(() => {
+        alert(`오류가 발생했습니다\n\n${errorMessage}\n\n콘솔을 확인해주세요.`);
+        setCurrentScreen(SCREENS.HOME);
+      }, 0);
     } finally {
       setIsProcessing(false);
     }
@@ -1605,12 +1636,14 @@ export default function useMalloAppState(user) {
         }
       }
     } else {
-      // 다른 화면으로 이동할 때만 recordState 초기화
+      // 다른 화면으로 이동할 때 즉시 녹음 상태 초기화 (녹음 화면 깜빡임 방지)
       // CUSTOMER_RECORD는 제외 (요약 결과를 보여줘야 하므로)
       if (currentScreen !== SCREENS.CUSTOMER_RECORD) {
+        // 즉시 초기화하여 녹음 화면이 보이지 않도록 함
         setRecordState('idle');
         setIsProcessing(false);
         setIsPaused(false);
+        setRecordingTime(0);
       }
     }
   }, [currentScreen, recordingTime, resultData, isProcessing, isPaused]);
