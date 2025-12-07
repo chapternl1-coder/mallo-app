@@ -1,5 +1,5 @@
 // 특정 고객의 정보와 방문 히스토리를 보여주는 화면
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { ArrowLeft, MoreHorizontal, Phone, Edit, Mic, ChevronUp, ChevronDown, Calendar, Repeat, Keyboard, ChevronLeft } from 'lucide-react';
 import { formatRecordDateTime, formatServiceDateTimeLabel } from '../utils/date';
 import { SCREENS } from '../constants/screens';
@@ -135,8 +135,8 @@ function CustomerDetailScreen({
   // TODO: null customerId로 저장된 예전 방문 기록들을,
   //       전화번호/이름 기반으로 실제 고객에게 재할당하는 마이그레이션 도구가 필요하면 추후 추가.
   
-  // 예약과 연결된 방문 기록인지 확인하는 헬퍼 함수 (필터 함수보다 먼저 정의 필요)
-  const findConnectedReservation = (visit) => {
+  // 예약과 연결된 방문 기록인지 확인하는 헬퍼 함수 (성능 최적화: useCallback으로 메모이제이션)
+  const findConnectedReservation = useCallback((visit) => {
     if (!reservations || reservations.length === 0) return null;
 
     const visitCustomerId = visit.customerId ?? visit.customer_id;
@@ -175,7 +175,7 @@ function CustomerDetailScreen({
     }
 
     return null;
-  };
+  }, [reservations, customer]);
   
   // 🔍 customerVisits 계산: customer_id 우선, 그다음 전화번호로 매칭
   // 이름은 매칭 기준에서 완전히 제외
@@ -209,37 +209,44 @@ function CustomerDetailScreen({
     }
   }
 
-  // 3) Supabase + 로컬 방문 기록 합치기
-  const mergedVisits = [...supabaseCustomerVisits, ...localCustomerVisits];
-
-  // 4) 시간 기준 정렬 (serviceTime -> time 순으로 사용)
-  const sortedCustomerVisits = mergedVisits.sort((a, b) => {
-    const tA = (a.serviceTime || a.time || '').toString();
-    const tB = (b.serviceTime || b.time || '').toString();
-    return tA.localeCompare(tB);
-  });
-
-  console.log(
-    '[CustomerDetailScreen] 최종 방문 기록 개수:',
-    sortedCustomerVisits.length
-  );
-
-  // ✅ 중복 제거: 같은 visit.id가 여러 번 들어와도 처음 것만 유지
+  // 3) Supabase + 로컬 방문 기록 합치기 및 정렬 (성능 최적화: useMemo로 메모이제이션)
   const uniqueSortedCustomerVisits = React.useMemo(() => {
-    if (!sortedCustomerVisits) return [];
+    // Supabase + 로컬 방문 기록 합치기
+    const mergedVisits = [...supabaseCustomerVisits, ...localCustomerVisits];
 
+    // 날짜와 시간 기준 내림차순 정렬 (최신 것이 위에 오도록)
+    const sorted = [...mergedVisits].sort((a, b) => {
+      // 날짜 비교 (serviceDate -> date 순으로 사용)
+      const dateA = (a.serviceDate || a.date || '').toString();
+      const dateB = (b.serviceDate || b.date || '').toString();
+      
+      // 날짜가 다르면 날짜 기준으로 내림차순 정렬
+      if (dateA !== dateB) {
+        return dateB.localeCompare(dateA); // 내림차순
+      }
+      
+      // 날짜가 같으면 시간 기준으로 내림차순 정렬
+      const tA = (a.serviceTime || a.time || '').toString();
+      const tB = (b.serviceTime || b.time || '').toString();
+      return tB.localeCompare(tA); // 내림차순
+    });
+
+    // 중복 제거: 같은 visit.id가 여러 번 들어와도 처음 것만 유지
     const map = new Map();
-
-    sortedCustomerVisits.forEach((visit) => {
+    sorted.forEach((visit) => {
       if (!visit || !visit.id) return;
-      // 같은 id가 여러 번 들어와도 처음 것만 유지
       if (!map.has(visit.id)) {
         map.set(visit.id, visit);
       }
     });
 
     return Array.from(map.values());
-  }, [sortedCustomerVisits]);
+  }, [supabaseCustomerVisits, localCustomerVisits]);
+
+  // 성능 최적화: visibleVisitCount만큼만 렌더링할 방문 기록 메모이제이션
+  const visibleVisits = React.useMemo(() => {
+    return uniqueSortedCustomerVisits.slice(0, visibleVisitCount);
+  }, [uniqueSortedCustomerVisits, visibleVisitCount]);
 
   console.log(
     '[CustomerDetailScreen] uniqueSortedCustomerVisits.length:',
@@ -367,7 +374,6 @@ function CustomerDetailScreen({
 
   console.log('[CustomerDetailScreen] 필터링된 방문 기록 개수:', customerVisits.length);
   console.log('[CustomerDetailScreen] customer:', customer);
-  console.log('[CustomerDetailScreen] sortedCustomerVisits.length:', sortedCustomerVisits.length);
   console.log('[CustomerDetailScreen] uniqueSortedCustomerVisits.length:', uniqueSortedCustomerVisits.length);
 
 
@@ -622,7 +628,7 @@ function CustomerDetailScreen({
               <p className="font-light text-base" style={{ color: '#232323', opacity: 0.6 }}>방문 기록이 없습니다</p>
             </div>
           ) : (
-            uniqueSortedCustomerVisits.slice(0, visibleVisitCount).map((visit) => {
+            visibleVisits.map((visit) => {
               // 날짜/시간 정보 준비 (예약과 연결된 경우 예약 날짜/시간 우선, 그 다음 텍스트/녹음에서 추출한 날짜/시간)
               let dateTimeDisplay = '';
               

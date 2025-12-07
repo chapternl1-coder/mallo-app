@@ -362,19 +362,20 @@ function EditScreen({
             // editingVisit 값을 먼저 저장 (상태 초기화 전)
             const wasEditingVisit = editingVisit;
             
-            // 상태 초기화
-            setTempResultData(null);
-            setEditingVisit(null);
-            setEditingCustomer(null);
-            setEditingVisitTagIds([]);
+            // 성능 최적화: 화면 전환을 즉시 실행 (비동기 작업은 백그라운드에서 처리)
+            // 상태 초기화와 화면 전환을 동시에 실행하여 반응성 최우선
+            if (wasEditingVisit) {
+              setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+            } else {
+              setCurrentScreen(SCREENS.RECORD);
+            }
             
-            // 상태 초기화 후 화면 전환 (녹음 중 페이지가 보이지 않도록)
+            // 상태 초기화는 화면 전환 후 다음 틱에서 처리 (녹음 중 페이지가 보이지 않도록)
             setTimeout(() => {
-              if (wasEditingVisit) {
-                setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
-              } else {
-                setCurrentScreen(SCREENS.RECORD);
-              }
+              setTempResultData(null);
+              setEditingVisit(null);
+              setEditingCustomer(null);
+              setEditingVisitTagIds([]);
             }, 0);
           }}
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
