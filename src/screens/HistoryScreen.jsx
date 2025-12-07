@@ -592,15 +592,52 @@ function HistoryScreen({
                                 ? JSON.stringify(section.title, null, 2) 
                                 : String(section.title || ''));
                             
+                            // [고객 기본 정보] 섹션인지 확인
+                            const isCustomerInfoSection = safeSectionTitle.includes('고객 기본 정보') || 
+                                                         safeSectionTitle.includes('고객 정보') ||
+                                                         safeSectionTitle.toLowerCase().includes('customer');
+                            
+                            // 고객 기본 정보 섹션인 경우 content를 특정 형식으로 변환
+                            let formattedContent = section.content;
+                            if (isCustomerInfoSection) {
+                              const customerName = record.summaryJson?.customerInfo?.name || 
+                                                  record.detail?.customerInfo?.name ||
+                                                  customerInfoForOverride?.name || 
+                                                  displayName || '';
+                              const customerPhone = record.summaryJson?.customerInfo?.phone || 
+                                                   record.detail?.customerInfo?.phone ||
+                                                   customerInfoForOverride?.phone || 
+                                                   displayPhone || '';
+                              
+                              formattedContent = [];
+                              if (customerName && customerName !== '이름 미입력') {
+                                formattedContent.push(`이름: ${customerName}`);
+                              }
+                              if (customerPhone && customerPhone !== '전화번호 미기재') {
+                                formattedContent.push(`전화번호: ${customerPhone}`);
+                              }
+                              // 기존 content가 있으면 추가 (이름/전화번호가 아닌 다른 정보)
+                              section.content.forEach(item => {
+                                const itemStr = typeof item === 'string' ? item : String(item || '');
+                                if (itemStr && 
+                                    !itemStr.includes('이름:') && 
+                                    !itemStr.includes('전화번호:') &&
+                                    !itemStr.includes('name:') &&
+                                    !itemStr.includes('phone:')) {
+                                  formattedContent.push(itemStr);
+                                }
+                              });
+                            }
+                            
                             return (
                               <div key={idx}>
                                 <h5 className="text-base font-bold mb-3" style={{ color: textColor }}>
                                   {safeSectionTitle}
                                 </h5>
                                 <ul className="space-y-2">
-                                  {section.content.map((item, i) => (
+                                  {formattedContent.map((item, i) => (
                                     <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: textColor, borderLeft: '2px solid #E5E7EB' }}>
-                                      {overrideCustomerInfoLine(item, customerInfoForOverride)}
+                                      {isCustomerInfoSection ? item : overrideCustomerInfoLine(item, customerInfoForOverride)}
                                     </li>
                                   ))}
                                 </ul>

@@ -70,27 +70,13 @@ export default function useSupabaseReservations() {
       setError(null);
 
       try {
-        // customer_tags, visit_count, last_visit 컬럼이 없을 수 있으므로 기본 필드만 먼저 조회
-        let customersRes = await supabase
+        // customer_tags, visit_count, last_visit 컬럼이 없을 수 있으므로 기본 필드만 조회
+        // 추가 필드가 필요하면 나중에 Supabase 스키마에 추가한 후 사용
+        const customersRes = await supabase
           .from('customers')
           .select('id, name, phone, created_at, memo')
           .eq('owner_id', user.id)
           .order('created_at', { ascending: true });
-
-        // 기본 필드 조회가 성공하면 추가 필드 시도
-        if (!customersRes.error) {
-          // 추가 필드가 있는지 확인하기 위해 다시 조회 시도
-          const extendedRes = await supabase
-            .from('customers')
-            .select('id, name, phone, created_at, customer_tags, visit_count, last_visit, memo')
-            .eq('owner_id', user.id)
-            .order('created_at', { ascending: true });
-          
-          // 추가 필드 조회가 성공하면 그것을 사용
-          if (!extendedRes.error) {
-            customersRes = extendedRes;
-          }
-        }
 
         // reservations는 별도로 가져오기
         const reservationsRes = await supabase

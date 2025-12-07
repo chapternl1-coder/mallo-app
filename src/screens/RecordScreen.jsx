@@ -727,13 +727,44 @@ function RecordScreen({
                   ? JSON.stringify(section.title, null, 2) 
                   : String(section.title || ''));
               
+              // [고객 기본 정보] 섹션인지 확인
+              const isCustomerInfoSection = safeSectionTitle.includes('고객 기본 정보') || 
+                                           safeSectionTitle.includes('고객 정보') ||
+                                           safeSectionTitle.toLowerCase().includes('customer');
+              
+              // 고객 기본 정보 섹션인 경우 content를 특정 형식으로 변환
+              let formattedContent = section.content;
+              if (isCustomerInfoSection && resultData.customerInfo) {
+                const customerName = resultData.customerInfo.name || selectedCustomerForRecord?.name || tempName || '';
+                const customerPhone = resultData.customerInfo.phone || selectedCustomerForRecord?.phone || tempPhone || '';
+                
+                formattedContent = [];
+                if (customerName) {
+                  formattedContent.push(`이름: ${customerName}`);
+                }
+                if (customerPhone) {
+                  formattedContent.push(`전화번호: ${customerPhone}`);
+                }
+                // 기존 content가 있으면 추가 (이름/전화번호가 아닌 다른 정보)
+                section.content.forEach(item => {
+                  const itemStr = typeof item === 'string' ? item : String(item || '');
+                  if (itemStr && 
+                      !itemStr.includes('이름:') && 
+                      !itemStr.includes('전화번호:') &&
+                      !itemStr.includes('name:') &&
+                      !itemStr.includes('phone:')) {
+                    formattedContent.push(itemStr);
+                  }
+                });
+              }
+              
               return (
                 <div key={idx} className="animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 100}ms` }}>
                   <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
                     {safeSectionTitle}
                   </h4>
                   <ul className="space-y-3">
-                    {section.content.map((item, i) => {
+                    {formattedContent.map((item, i) => {
                       // null 값을 확인하는 헬퍼 함수
                       const isNullValue = (value) => {
                         if (value === null || value === undefined) return true;
