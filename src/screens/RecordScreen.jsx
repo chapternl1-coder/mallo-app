@@ -1388,19 +1388,28 @@ function RecordScreen({
                   );
                 }
 
-                // ----------------------------
-                // 8) 화면 전환
-                // ----------------------------
-                if (finalCustomerId && isValidUuid(String(finalCustomerId))) {
-                  setSelectedCustomerId(finalCustomerId);
-                  setTimeout(() => {
-                    setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
-                  }, 100);
-                } else {
-                  setTimeout(() => {
-                    setCurrentScreen(SCREENS.HISTORY);
-                  }, 100);
+                // ========================================
+                // 5단계: 화면 전환
+                // ========================================
+
+                // safeCustomerId(ensureCustomerForVisit 결과) > finalCustomerId > selectedCustomerForRecord.id
+                const targetCustomerId =
+                  (typeof safeCustomerId !== 'undefined' && safeCustomerId) ||
+                  finalCustomerId ||
+                  selectedCustomerForRecord?.id ||
+                  null;
+
+                // 선택된 고객 ID는 상태에만 저장해 놓고
+                // 실제 화면은 항상 "기록"으로 이동
+                if (targetCustomerId) {
+                  setSelectedCustomerId(targetCustomerId);
+                  console.log('[화면 전환] 선택된 customerId 저장:', targetCustomerId);
                 }
+
+                setTimeout(() => {
+                  console.log('[화면 전환] HISTORY로 이동 (요약 저장 후 기본 화면)');
+                  setCurrentScreen(SCREENS.HISTORY);
+                }, 100);
               } catch (e) {
                 console.error('[RecordScreen] 저장 중 예외:', e);
                 alert('시술 기록을 저장하는 중 알 수 없는 오류가 발생했습니다.');
