@@ -39,10 +39,12 @@ function EditScreen({
     : null;
 
   // 섹션 내용 업데이트 함수
-  const updateSectionContent = (sectionIndex, contentIndex, newValue) => {
+  const updateSectionContent = (sectionIndex, contentIndex, newValue, originalContentIndex) => {
     setTempResultData(prev => {
       const updated = JSON.parse(JSON.stringify(prev));
-      updated.sections[sectionIndex].content[contentIndex] = newValue;
+      // 고객 기본 정보 섹션인 경우 원본 인덱스 사용
+      const actualIndex = originalContentIndex !== undefined ? originalContentIndex : contentIndex;
+      updated.sections[sectionIndex].content[actualIndex] = newValue;
       return updated;
     });
   };
@@ -311,9 +313,9 @@ function EditScreen({
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-8 space-y-5">
+      <main className="flex-1 overflow-y-auto px-5 pt-5 space-y-4 pb-40">
         {/* 제목 편집 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 relative" style={{ padding: '12px 16px' }}>
           <label className="block text-sm font-bold mb-3" style={{ color: '#232323' }}>시술 요약</label>
           <textarea
             value={cleanTitle(tempResultData.title || '')}
@@ -327,7 +329,7 @@ function EditScreen({
 
         {/* 시술 태그 편집 섹션 */}
         {editingVisit && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 relative" style={{ padding: '12px 16px' }}>
             <div className="mb-4">
               <h4 className="text-base font-bold mb-2" style={{ color: '#232323' }}>
                 시술 태그
@@ -387,13 +389,44 @@ function EditScreen({
               ? JSON.stringify(section.title, null, 2) 
               : String(section.title || ''));
           
+          // [고객 기본 정보] 섹션인지 확인
+          const isCustomerInfoSection = safeSectionTitle.includes('고객 기본 정보') || 
+                                       safeSectionTitle.includes('고객 정보') ||
+                                       safeSectionTitle.toLowerCase().includes('customer');
+          
+          // 고객 기본 정보 섹션인 경우 content를 특정 형식으로 변환
+          let displayContent = section.content;
+          if (isCustomerInfoSection && editingCustomer) {
+            const customerName = editingCustomer.name || '';
+            const customerPhone = editingCustomer.phone || '';
+            
+            displayContent = [];
+            if (customerName && customerName !== '이름 미입력') {
+              displayContent.push(`이름: ${customerName}`);
+            }
+            if (customerPhone && customerPhone !== '전화번호 미기재') {
+              displayContent.push(`전화번호: ${customerPhone}`);
+            }
+            // 기존 content가 있으면 추가 (이름/전화번호가 아닌 다른 정보)
+            section.content.forEach(item => {
+              const itemStr = typeof item === 'string' ? item : String(item || '');
+              if (itemStr && 
+                  !itemStr.includes('이름:') && 
+                  !itemStr.includes('전화번호:') &&
+                  !itemStr.includes('name:') &&
+                  !itemStr.includes('phone:')) {
+                displayContent.push(itemStr);
+              }
+            });
+          }
+          
           return (
-            <div key={sectionIndex} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div key={sectionIndex} className="bg-white rounded-xl shadow-sm border border-gray-200 relative" style={{ padding: '12px 16px' }}>
               <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
                 {safeSectionTitle}
               </h4>
             <div className="space-y-3">
-              {section.content.map((item, contentIndex) => {
+              {displayContent.map((item, contentIndex) => {
                 const sectionTitleStr = typeof section.title === 'string' ? section.title : String(section.title || '');
                 const isCustomerBasicInfo = sectionTitleStr && sectionTitleStr.includes('고객 기본 정보');
                 const isVisitInfo = sectionTitleStr && (
@@ -406,26 +439,44 @@ function EditScreen({
                 let showDeleteButton = false;
                 if (isProtectedSection) {
                   if (isCustomerBasicInfo) {
-                    // 고객 기본 정보: 처음 3개 항목은 삭제 불가, 4번째부터 삭제 가능
-                    showDeleteButton = contentIndex >= 3;
+                    // 고객 기본 정보: 이름과 전화번호(처음 2개)는 삭제 불가, 3번째부터 삭제 가능
+                    showDeleteButton = contentIndex >= 2;
                   } else if (isVisitInfo) {
                     // 방문·예약 정보: 처음 1개 항목은 삭제 불가, 2번째부터 삭제 가능
                     showDeleteButton = contentIndex >= 1;
                   }
                 } else {
                   // 보호되지 않은 섹션: 항목이 2개 이상이면 삭제 버튼 표시
-                  showDeleteButton = section.content.length > 1;
+                  showDeleteButton = displayContent.length > 1;
                 }
 
+                // 고객 기본 정보 섹션의 이름/전화번호는 읽기 전용
+                const isReadOnly = isCustomerBasicInfo && (contentIndex === 0 || contentIndex === 1);
+                
                 return (
                   <div key={contentIndex} className="flex gap-2 relative">
                     <textarea
                       value={typeof item === 'string' ? item : (typeof item === 'object' && item !== null ? JSON.stringify(item, null, 2) : String(item || ''))}
-                      onChange={(e) => updateSectionContent(sectionIndex, contentIndex, e.target.value)}
-                      className="flex-1 px-4 py-3 rounded-2xl border-none resize-none focus:bg-gray-50 outline-none transition-colors"
+                      onChange={(e) => {
+                        if (!isReadOnly) {
+                          // 고객 기본 정보 섹션이 아닌 경우에만 업데이트
+                          // 고객 기본 정보 섹션의 경우 원본 content에서 해당하는 인덱스 찾기
+                          if (isCustomerInfoSection) {
+                            // displayContent의 인덱스를 원본 content 인덱스로 매핑
+                            const originalIndex = contentIndex >= 2 ? contentIndex - 2 + section.content.length : contentIndex;
+                            updateSectionContent(sectionIndex, originalIndex, e.target.value);
+                          } else {
+                            updateSectionContent(sectionIndex, contentIndex, e.target.value);
+                          }
+                        }
+                      }}
+                      readOnly={isReadOnly}
+                      className={`flex-1 px-4 py-3 rounded-xl border-none resize-none outline-none transition-colors ${
+                        isReadOnly ? 'bg-gray-50 cursor-not-allowed' : 'focus:bg-gray-50'
+                      }`}
                       style={{ color: '#232323', minHeight: '60px', paddingRight: showDeleteButton ? '50px' : '16px' }}
                       rows={Math.max(2, Math.ceil(String(item || '').length / 40))}
-                      placeholder="내용을 입력하세요..."
+                      placeholder={isReadOnly ? '' : '내용을 입력하세요...'}
                     />
                     {showDeleteButton && (
                       <button
@@ -440,13 +491,15 @@ function EditScreen({
                 );
               })}
             </div>
-            <button
-              onClick={() => addSectionItem(sectionIndex)}
-              className="w-full py-3 rounded-2xl text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors"
-              style={{ color: '#232323' }}
-            >
-              + 항목 추가
-            </button>
+            {!isCustomerInfoSection && (
+              <button
+                onClick={() => addSectionItem(sectionIndex)}
+                className="w-full py-3 rounded-xl text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors"
+                style={{ color: '#232323' }}
+              >
+                + 항목 추가
+              </button>
+            )}
           </div>
           );
         })}

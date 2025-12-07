@@ -758,104 +758,88 @@ function CustomerDetailScreen({
               return (
                 <div key={visit.id} className="bg-white rounded-xl shadow-sm overflow-hidden relative" style={{ padding: '12px 16px' }}>
                   <div className="record-card-main flex flex-col relative">
-                    {/* 맨 위줄: 날짜/시간 */}
-                    {dateTimeDisplay && (
-                      <div 
-                        className="mb-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
-                        }}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <span className="text-xs font-bold text-[#C9A27A]">
-                          {dateTimeDisplay}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {/* 두 번째 줄: 이름, 번호 */}
-                    <div 
-                      className="flex flex-row items-center justify-start"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
-                      }}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      {/* 이름 */}
-                      {safeName && safeName !== '미기재' && (
-                        <>
-                          <span className="text-base font-bold text-[#232323]">{safeName}</span>
-                          {/* 번호 */}
-                          {safePhone && safePhone !== '미기재' && (
-                            <span className="ml-2 text-xs text-gray-400">
-                              / {safePhone}
-                            </span>
-                          )}
-                        </>
+                    {/* 맨 위줄: 날짜/시간과 아이콘들 */}
+                    <div className="flex items-center justify-between mb-2">
+                      {dateTimeDisplay && (
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
+                          }}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <span className="text-xs font-bold text-[#C9A27A]">
+                            {dateTimeDisplay}
+                          </span>
+                        </div>
                       )}
-                      {/* 편집 버튼 */}
-                      <button
-                        type="button"
-                        className="absolute right-8 top-0 visit-summary-edit-button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // 편집 화면으로 이동 (visit과 customer 함께 전달)
-                          // "고객 기본 정보" 섹션의 첫 번째 줄을 보정된 값으로 업데이트
-                          const sections = normalizedVisit.detail?.sections || [];
-                          const basicInfoSectionIndex = sections.findIndex(
-                            section => section.title && section.title.includes('고객 기본 정보')
-                          );
-                          
-                          if (basicInfoSectionIndex !== -1 && sections[basicInfoSectionIndex].content.length > 0) {
-                            const firstLine = `이름: ${safeName} / 전화번호: ${safePhone}`;
-                            sections[basicInfoSectionIndex] = {
-                              ...sections[basicInfoSectionIndex],
-                              content: [
-                                firstLine,
-                                ...sections[basicInfoSectionIndex].content.slice(1)
-                              ]
+                      
+                      {/* 편집 버튼과 화살표 아이콘 (우측 상단) */}
+                      <div className="flex items-center gap-2">
+                        {/* 편집 버튼 */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // 편집 화면으로 이동 (visit과 customer 함께 전달)
+                            // "고객 기본 정보" 섹션의 첫 번째 줄을 보정된 값으로 업데이트
+                            const sections = normalizedVisit.detail?.sections || [];
+                            const basicInfoSectionIndex = sections.findIndex(
+                              section => section.title && section.title.includes('고객 기본 정보')
+                            );
+                            
+                            if (basicInfoSectionIndex !== -1 && sections[basicInfoSectionIndex].content.length > 0) {
+                              const firstLine = `이름: ${safeName} / 전화번호: ${safePhone}`;
+                              sections[basicInfoSectionIndex] = {
+                                ...sections[basicInfoSectionIndex],
+                                content: [
+                                  firstLine,
+                                  ...sections[basicInfoSectionIndex].content.slice(1)
+                                ]
+                              };
+                            }
+                            
+                            const editData = {
+                              title: normalizedVisit.title,
+                              sections: sections
                             };
-                          }
-                          
-                          const editData = {
-                            title: normalizedVisit.title,
-                            sections: sections
-                          };
-                          setTempResultData(editData);
-                          setEditingVisit(normalizedVisit);
-                          setEditingCustomer(customer);
-                          
-                          // 편집 중인 방문의 태그를 ID 배열로 변환
-                          const visitTagIds = convertVisitTagsToIds(normalizedVisit.tags || [], allVisitTags);
-                          setEditingVisitTagIds(visitTagIds);
-                          
-                          setCurrentScreen(SCREENS.EDIT);
-                        }}
-                      >
-                        <Edit size={18} />
-                      </button>
-                      {/* 화살표 아이콘 (우측 끝) */}
-                      <button 
-                        className="absolute right-0 top-0" 
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
-                        }}
-                      >
-                        {expandedVisitId === visit.id ? (
-                          <ChevronUp size={20} style={{ color: '#C9A27A' }} />
-                        ) : (
-                          <ChevronDown size={20} style={{ color: '#C9A27A' }} />
-                        )}
-                      </button>
+                            setTempResultData(editData);
+                            setEditingVisit(normalizedVisit);
+                            setEditingCustomer(customer);
+                            
+                            // 편집 중인 방문의 태그를 ID 배열로 변환
+                            const visitTagIds = convertVisitTagsToIds(normalizedVisit.tags || [], allVisitTags);
+                            setEditingVisitTagIds(visitTagIds);
+                            
+                            setCurrentScreen(SCREENS.EDIT);
+                          }}
+                          className="p-1 hover:bg-gray-100 rounded transition-colors"
+                          style={{ color: '#C9A27A' }}
+                        >
+                          <Edit size={18} />
+                        </button>
+                        {/* 화살표 아이콘 */}
+                        <button 
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
+                          }}
+                          className="p-1 hover:bg-gray-100 rounded transition-colors"
+                          style={{ color: '#C9A27A' }}
+                        >
+                          {expandedVisitId === visit.id ? (
+                            <ChevronUp size={20} />
+                          ) : (
+                            <ChevronDown size={20} />
+                          )}
+                        </button>
+                      </div>
                     </div>
 
-                    {/* 태그 리스트: 이름/번호 아래, 시술 내용 위 */}
+                    {/* 태그 리스트 */}
                     {visit.tags && visit.tags.length > 0 && (
-                      <div className="mt-1.5 mb-1.5 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
+                      <div className="mb-2 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
                         {visit.tags.map((tag, idx) => (
                           <span 
                             key={idx}
