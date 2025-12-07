@@ -130,12 +130,11 @@ function EditScreen({
     return cleaned;
   };
 
-  // 제목 업데이트
+  // 제목 업데이트 (입력 중에는 원본 값 유지, 저장 시에만 정리)
   const updateTitle = newTitle => {
-    const cleaned = cleanTitle(newTitle);
     setTempResultData(prev => ({
       ...prev,
-      title: cleaned
+      title: newTitle
     }));
   };
 
@@ -350,7 +349,7 @@ function EditScreen({
             시술 요약
           </label>
           <textarea
-            value={cleanTitle(tempResultData.title || '')}
+            value={tempResultData.title || ''}
             onChange={e => {
               updateTitle(e.target.value);
               e.target.style.height = 'auto';
@@ -460,9 +459,49 @@ function EditScreen({
 
           // 고객 기본 정보 UI용 content 구성
           let displayContent = section.content || [];
-          if (isCustomerInfoSection && editingCustomer) {
-            const customerName = editingCustomer.name || '';
-            const customerPhone = editingCustomer.phone || '';
+          if (isCustomerInfoSection) {
+            // editingCustomer가 있으면 우선 사용, 없으면 section.content에서 추출
+            let customerName = '';
+            let customerPhone = '';
+            
+            if (editingCustomer) {
+              customerName = editingCustomer.name || '';
+              customerPhone = editingCustomer.phone || '';
+            } else {
+              // section.content에서 이름/전화번호 추출
+              (section.content || []).forEach(item => {
+                const itemStr = typeof item === 'string' ? item : String(item || '');
+                // 슬래시로 연결된 형식 처리
+                if (itemStr.includes('/') && (itemStr.includes('이름') || itemStr.includes('전화번호'))) {
+                  const parts = itemStr.split('/').map(p => p.trim());
+                  parts.forEach(part => {
+                    if (part.includes('이름:')) {
+                      const nameMatch = part.match(/이름:\s*(.+)/);
+                      if (nameMatch && nameMatch[1]) {
+                        customerName = nameMatch[1].trim();
+                      }
+                    } else if (part.includes('전화번호:')) {
+                      const phoneMatch = part.match(/전화번호:\s*(.+)/);
+                      if (phoneMatch && phoneMatch[1]) {
+                        customerPhone = phoneMatch[1].trim();
+                      }
+                    }
+                  });
+                } else if (itemStr.includes('이름:')) {
+                  const nameMatch = itemStr.match(/이름:\s*(.+)/);
+                  if (nameMatch && nameMatch[1]) {
+                    customerName = nameMatch[1].trim();
+                  }
+                } else if (itemStr.includes('전화번호:')) {
+                  const phoneMatch = itemStr.match(/전화번호:\s*(.+)/);
+                  if (phoneMatch && phoneMatch[1]) {
+                    customerPhone = phoneMatch[1].trim();
+                  }
+                }
+              });
+            }
+            
+            // 이름과 전화번호를 각각 별도 줄로 표시
             displayContent = [];
             if (customerName && customerName !== '이름 미입력') {
               displayContent.push(`이름: ${customerName}`);
@@ -470,15 +509,19 @@ function EditScreen({
             if (customerPhone && customerPhone !== '전화번호 미기재') {
               displayContent.push(`전화번호: ${customerPhone}`);
             }
+            
+            // 기존 content에서 이름/전화번호 관련 항목 제거하고 나머지만 추가
             (section.content || []).forEach(item => {
-              const itemStr =
-                typeof item === 'string' ? item : String(item || '');
+              const itemStr = typeof item === 'string' ? item : String(item || '');
+              // 이름/전화번호 관련 항목 제거 (다양한 형식 대응)
               if (
                 itemStr &&
                 !itemStr.includes('이름:') &&
                 !itemStr.includes('전화번호:') &&
                 !itemStr.includes('name:') &&
-                !itemStr.includes('phone:')
+                !itemStr.includes('phone:') &&
+                !itemStr.match(/이름.*전화번호|전화번호.*이름/) && // 슬래시로 연결된 형식 제거
+                !itemStr.match(/name.*phone|phone.*name/i)
               ) {
                 displayContent.push(itemStr);
               }

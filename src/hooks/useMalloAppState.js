@@ -219,7 +219,6 @@ export default function useMalloAppState(user) {
         feature: [],
         caution: [],
         trait: [],
-        payment: [],
         pattern: []
       }
     }));

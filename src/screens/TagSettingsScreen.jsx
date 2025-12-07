@@ -238,7 +238,7 @@ function TagSettingsScreen({
       </header>
 
       {/* 내용 영역 */}
-      <main className="flex-1 overflow-y-auto p-8 space-y-6 pb-32">
+      <main className="flex-1 overflow-y-auto px-5 pt-5 space-y-5 pb-40">
         {/* 설명 텍스트 */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
           <p className="text-sm font-light leading-relaxed" style={{ color: '#232323', opacity: 0.7 }}>

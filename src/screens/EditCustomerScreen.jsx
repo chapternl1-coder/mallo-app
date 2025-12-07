@@ -250,9 +250,9 @@ function EditCustomerScreen({
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-8 space-y-5">
+      <main className="flex-1 overflow-y-auto px-5 pt-5 space-y-5 pb-40">
         {/* 이름 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200" style={{ padding: '12px 16px' }}>
           <label className="block text-sm font-bold mb-2" style={{ color: '#232323' }}>이름 *</label>
           <input
             type="text"
@@ -278,7 +278,7 @@ function EditCustomerScreen({
         </div>
 
         {/* 고객 특징 태그 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200" style={{ padding: '12px 16px' }}>
           <div className="mb-4">
             <label className="block text-sm font-bold mb-2" style={{ color: '#232323' }}>고객 특징 태그</label>
             <p className="text-sm" style={{ color: '#232323', opacity: 0.7 }}>
@@ -337,7 +337,7 @@ function EditCustomerScreen({
         </div>
 
         {/* 메모 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200" style={{ padding: '12px 16px' }}>
           <label className="block text-sm font-bold mb-3" style={{ color: '#232323' }}>메모</label>
           <textarea
             value={editCustomerMemo}
