@@ -1,6 +1,6 @@
 // src/screens/HistoryScreen.jsx
 import React, { useEffect, useRef, useMemo } from 'react';
-import { ArrowLeft, Calendar, ChevronDown, ChevronUp, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, ChevronDown, ChevronUp, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatRecordDateTime } from '../utils/date';
 import { SCREENS } from '../constants/screens';
 
@@ -296,6 +296,34 @@ function HistoryScreen({
     setSelectedDate(e.target.value);
   };
 
+  // 이전날로 이동
+  const handlePreviousDay = () => {
+    if (!selectedDate) {
+      setSelectedDate(getTodayDateString());
+      return;
+    }
+    const currentDate = new Date(selectedDate + 'T00:00:00');
+    currentDate.setDate(currentDate.getDate() - 1);
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+    setSelectedDate(`${year}-${month}-${day}`);
+  };
+
+  // 다음날로 이동
+  const handleNextDay = () => {
+    if (!selectedDate) {
+      setSelectedDate(getTodayDateString());
+      return;
+    }
+    const currentDate = new Date(selectedDate + 'T00:00:00');
+    currentDate.setDate(currentDate.getDate() + 1);
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+    setSelectedDate(`${year}-${month}-${day}`);
+  };
+
   // 날짜 라벨 포맷팅
   const selectedDateLabel = selectedDate ? formatDate(selectedDate) : '날짜 선택';
 
@@ -342,14 +370,36 @@ function HistoryScreen({
 
               {/* 시각적인 UI: 기본은 pointer-events-none → 터치가 input 으로 통과됨 */}
               <div className="w-full flex items-center justify-between rounded-xl bg-[#F7F2EA] px-3 py-2 pointer-events-none relative z-10">
-                {/* 왼쪽: 캘린더 아이콘 + 날짜 텍스트 */}
+                {/* 왼쪽: 캘린더 아이콘 + 날짜 텍스트 양옆에 화살표 */}
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center border border-[#E2D7C7]">
                     <Calendar className="w-3.5 h-3.5 text-[#C9A27A]" strokeWidth={1.7} />
                   </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePreviousDay();
+                    }}
+                    className="p-1 hover:bg-white/50 rounded-full transition-colors pointer-events-auto"
+                    title="이전날"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-[#C9A27A]" strokeWidth={2} />
+                  </button>
                   <span className="text-[13px] font-medium text-[#3E2E20]">
                     {selectedDateLabel}
                   </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNextDay();
+                    }}
+                    className="p-1 hover:bg-white/50 rounded-full transition-colors pointer-events-auto"
+                    title="다음날"
+                  >
+                    <ChevronRight className="w-4 h-4 text-[#C9A27A]" strokeWidth={2} />
+                  </button>
                 </div>
 
                 {/* 오른쪽: 오늘 버튼 + 화살표 */}
