@@ -303,6 +303,44 @@ function CustomerDetailScreen({
   console.log('CustomerDetailScreen - 최종 찾은 고객:', customer);
   console.log('CustomerDetailScreen - customer.customerTags:', customer?.customerTags);
   
+  // ✅ 고객 태그를 화면용 칩 배열로 변환
+  const customerTagChips = useMemo(() => {
+    if (!customer) return [];
+
+    const chips = [];
+
+    // 1) customer.customerTags 구조에서 태그 꺼내기
+    if (customer.customerTags && typeof customer.customerTags === 'object') {
+      Object.entries(customer.customerTags).forEach(([category, list]) => {
+        if (!Array.isArray(list)) return;
+
+        list.forEach((tag) => {
+          // tag가 문자열이거나, { label: '...' } 형태거나 둘 다 안전하게 처리
+          const label =
+            typeof tag === 'string'
+              ? tag
+              : (tag && (tag.label || tag.name)) || String(tag || '');
+
+          if (!label || label.trim() === '') return;
+
+          // 중복 제거 (같은 라벨은 한 번만)
+          const exists = chips.some((c) => c.label === label);
+          if (!exists) {
+            chips.push({
+              category,
+              label,
+            });
+          }
+        });
+      });
+    }
+
+    console.log('[CustomerDetailScreen] customerTagChips:', chips);
+    console.log('[CustomerDetailScreen] customer.customerTags:', customer.customerTags);
+
+    return chips;
+  }, [customer]);
+  
   // ✅ 선택된 고객의 방문 기록만 필터링해서 customerVisits로 사용
   const customerVisits = React.useMemo(() => {
     if (!visitLogs || !selectedCustomerId) return [];
@@ -557,6 +595,35 @@ function CustomerDetailScreen({
                   </div>
                 );
               })()}
+              
+              {/* 고객 태그 섹션 */}
+              <section className="mt-4">
+                <h3 className="text-[13px] font-semibold mb-2 text-[#3F352B]">
+                  고객 태그
+                </h3>
+
+                {customerTagChips.length === 0 ? (
+                  <p className="text-[11px] text-[#A79A8E]">
+                    아직 등록된 고객 태그가 없어요.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2 max-h-[80px] overflow-y-auto">
+                    {customerTagChips.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="px-2.5 py-1 rounded-full text-[11px] font-medium"
+                        style={{
+                          backgroundColor: '#F2F0E6',
+                          color: '#8C6D46',
+                        }}
+                      >
+                        {tag.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </section>
+              
               {/* 메모 */}
               {customer.memo && customer.memo.trim() && (
                 <div className="mt-4 pt-4 border-t border-gray-200">

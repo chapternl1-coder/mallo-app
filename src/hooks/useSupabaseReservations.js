@@ -70,99 +70,126 @@ export default function useSupabaseReservations() {
       setError(null);
 
       try {
-        const [customersRes, reservationsRes] = await Promise.all([
-          supabase
+        // customer_tags, visit_count, last_visit 컬럼이 없을 수 있으므로 기본 필드만 먼저 조회
+        let customersRes = await supabase
+          .from('customers')
+          .select('id, name, phone, created_at, memo')
+          .eq('owner_id', user.id)
+          .order('created_at', { ascending: true });
+
+        // 기본 필드 조회가 성공하면 추가 필드 시도
+        if (!customersRes.error) {
+          // 추가 필드가 있는지 확인하기 위해 다시 조회 시도
+          const extendedRes = await supabase
             .from('customers')
-            .select('id, name, phone, created_at')
+            .select('id, name, phone, created_at, customer_tags, visit_count, last_visit, memo')
             .eq('owner_id', user.id)
-            .order('created_at', { ascending: true }),
-          supabase
-            .from('reservations')
-            .select('id, customer_id, reserved_at, memo, status')
-            .eq('owner_id', user.id)
-            .order('reserved_at', { ascending: true }),
-        ]);
+            .order('created_at', { ascending: true });
+          
+          // 추가 필드 조회가 성공하면 그것을 사용
+          if (!extendedRes.error) {
+            customersRes = extendedRes;
+          }
+        }
+
+        // reservations는 별도로 가져오기
+        const reservationsRes = await supabase
+          .from('reservations')
+          .select('id, customer_id, reserved_at, memo, status')
+          .eq('owner_id', user.id)
+          .order('reserved_at', { ascending: true });
 
         if (cancelled) return;
 
-        if (customersRes.error || reservationsRes.error) {
-          console.error(
-            '[SupabaseHook] error',
-            customersRes.error || reservationsRes.error
-          );
-          setError(customersRes.error || reservationsRes.error);
-          // 에러여도 배열은 최소한 []로
-          setCustomers(customersRes.data ?? []);
-          setReservations([]);
-        } else {
-          const customerRows = customersRes.data ?? [];
-          const reservationRows = reservationsRes.data ?? [];
+        // customers와 reservations를 각각 독립적으로 처리
+        const customerRows = customersRes.error ? [] : (customersRes.data ?? []);
+        const reservationRows = reservationsRes.error ? [] : (reservationsRes.data ?? []);
 
-          // 고객 매핑
-          const mappedCustomers = customerRows.map((row) => ({
+        // 에러가 있으면 로그만 남기고 계속 진행
+        if (customersRes.error) {
+          console.error('[SupabaseHook] customers 에러:', customersRes.error);
+        }
+        if (reservationsRes.error) {
+          console.error('[SupabaseHook] reservations 에러:', reservationsRes.error);
+        }
+        if (customersRes.error || reservationsRes.error) {
+          setError(customersRes.error || reservationsRes.error);
+        }
+
+        // 데이터 처리 (에러가 있어도 성공한 데이터는 사용)
+        // 고객 매핑
+        const mappedCustomers = customerRows.map((row) => ({
             id: row.id,
             name: row.name || '',
             phone: row.phone || '',
             createdAt: row.created_at,
+            customerTags: (row.customer_tags || {
+              caution: [],
+              trait: [],
+              payment: [],
+              pattern: [],
+            }),
+            visitCount: row.visit_count || 0,
+            lastVisit: row.last_visit || null,
+            memo: row.memo || null,
           }));
 
-          // 고객 id → 객체 맵 (예약에서 빠르게 매칭하기 위해)
-          const customerMap = new Map(
-            customerRows.map((row) => [row.id, row]),
-          );
+        // 고객 id → 객체 맵 (예약에서 빠르게 매칭하기 위해)
+        const customerMap = new Map(
+          customerRows.map((row) => [row.id, row]),
+        );
 
-          // 예약마다 isNew 계산 + Home/예약화면에서 쓰기 좋은 형태로 변환
-          const safeReservations = reservationRows ?? [];
+        // 예약마다 isNew 계산 + Home/예약화면에서 쓰기 좋은 형태로 변환
+        const safeReservations = reservationRows ?? [];
 
-          // ✅ 고객별 가장 빠른 reserved_at 계산
-          const firstReservedAtByCustomer = new Map();
-          safeReservations.forEach((row) => {
-            if (!row.customer_id) return;
-            const currentFirst = firstReservedAtByCustomer.get(row.customer_id);
-            if (!currentFirst || new Date(row.reserved_at) < new Date(currentFirst)) {
-              firstReservedAtByCustomer.set(row.customer_id, row.reserved_at);
-            }
-          });
+        // ✅ 고객별 가장 빠른 reserved_at 계산
+        const firstReservedAtByCustomer = new Map();
+        safeReservations.forEach((row) => {
+          if (!row.customer_id) return;
+          const currentFirst = firstReservedAtByCustomer.get(row.customer_id);
+          if (!currentFirst || new Date(row.reserved_at) < new Date(currentFirst)) {
+            firstReservedAtByCustomer.set(row.customer_id, row.reserved_at);
+          }
+        });
 
-          const mappedReservations = safeReservations.map((row) => {
-            const customer = customerMap.get(row.customer_id);
-            const localDate = formatLocalDate(row.reserved_at);
-            const localTime = formatLocalTime(row.reserved_at);
+        const mappedReservations = safeReservations.map((row) => {
+          const customer = customerMap.get(row.customer_id);
+          const localDate = formatLocalDate(row.reserved_at);
+          const localTime = formatLocalTime(row.reserved_at);
 
-            // ✅ isNew 계산
-            let isNew = false;
-            if (!row.customer_id) {
-              // 고객 프로필이 안 묶인 예약 → 일단 '신규' 취급
-              isNew = true;
-            } else {
-              const first = firstReservedAtByCustomer.get(row.customer_id);
-              isNew = !!first && first === row.reserved_at;
-            }
+          // ✅ isNew 계산
+          let isNew = false;
+          if (!row.customer_id) {
+            // 고객 프로필이 안 묶인 예약 → 일단 '신규' 취급
+            isNew = true;
+          } else {
+            const first = firstReservedAtByCustomer.get(row.customer_id);
+            isNew = !!first && first === row.reserved_at;
+          }
 
-            return {
-              id: row.id,
-              customerId: row.customer_id,
-              date: localDate,           // ← 여기 날짜가 KST 기준으로 고정
-              time: localTime,
-              name: customer?.name || '',
-              phone: customer?.phone || '',
-              memo: row.memo || '',
-              status: row.status || 'scheduled',
-              // ✅ 이 값이 홈에서 '신규' 뱃지에 쓰이는 값
-              isNew,
-            };
-          });
+          return {
+            id: row.id,
+            customerId: row.customer_id,
+            date: localDate,           // ← 여기 날짜가 KST 기준으로 고정
+            time: localTime,
+            name: customer?.name || '',
+            phone: customer?.phone || '',
+            memo: row.memo || '',
+            status: row.status || 'scheduled',
+            // ✅ 이 값이 홈에서 '신규' 뱃지에 쓰이는 값
+            isNew,
+          };
+        });
 
-          setCustomers(mappedCustomers);
-          setReservations(mappedReservations);
+        setCustomers(mappedCustomers);
+        setReservations(mappedReservations);
 
-          console.log(
-            '[SupabaseHook] customers:',
-            mappedCustomers.length,
-            'reservations:',
-            mappedReservations.length
-          );
-        }
+        console.log(
+          '[SupabaseHook] customers:',
+          mappedCustomers.length,
+          'reservations:',
+          mappedReservations.length
+        );
       } catch (e) {
         if (cancelled) return;
         console.error('[SupabaseHook] unexpected error', e);

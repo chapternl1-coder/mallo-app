@@ -41,7 +41,7 @@ function EditCustomerScreen({
   refreshReservations
 }) {
   const { user } = useAuth();
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (!editCustomerName.trim()) {
       alert('이름은 필수입니다.');
       return;
@@ -66,6 +66,58 @@ function EditCustomerScreen({
         }
       }
     });
+
+    // Supabase customers 테이블 업데이트 (UUID인 경우만)
+    if (selectedCustomerId && isValidUuid(String(selectedCustomerId)) && user) {
+      try {
+        // 기본 필드만 먼저 업데이트 (customer_tags가 없을 수 있음)
+        const updatePayload = {
+          name: editCustomerName.trim(),
+          phone: editCustomerPhone.trim() || null,
+          memo: editCustomerMemo.trim() || null,
+        };
+
+        // customer_tags 컬럼이 존재하는 경우에만 추가
+        // 에러가 발생하면 무시하고 기본 필드만 업데이트
+        try {
+          const { error: tagsError } = await supabase
+            .from('customers')
+            .update({ customer_tags: updatedCustomerTags })
+            .eq('id', selectedCustomerId)
+            .eq('owner_id', user.id);
+          
+          if (!tagsError) {
+            console.log('[EditCustomerScreen] customer_tags 업데이트 성공');
+          } else {
+            console.warn('[EditCustomerScreen] customer_tags 컬럼이 없거나 업데이트 실패:', tagsError.message);
+          }
+        } catch (tagsErr) {
+          console.warn('[EditCustomerScreen] customer_tags 업데이트 중 예외 (무시):', tagsErr);
+        }
+
+        // 기본 필드 업데이트
+        const { error: updateError } = await supabase
+          .from('customers')
+          .update(updatePayload)
+          .eq('id', selectedCustomerId)
+          .eq('owner_id', user.id);
+
+        if (updateError) {
+          console.error('[EditCustomerScreen] Supabase 업데이트 에러:', updateError);
+          alert('고객 정보를 저장하는 중 오류가 발생했습니다: ' + updateError.message);
+          return;
+        }
+
+        console.log('[EditCustomerScreen] Supabase 업데이트 성공:', {
+          customerId: selectedCustomerId,
+          updatePayload,
+        });
+      } catch (e) {
+        console.error('[EditCustomerScreen] Supabase 업데이트 중 예외:', e);
+        alert('고객 정보를 저장하는 중 오류가 발생했습니다.');
+        return;
+      }
+    }
 
     // 고객 정보 업데이트
     setCustomers(prev => {

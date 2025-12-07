@@ -1148,6 +1148,45 @@ function CustomerRecordScreen({
                     return c;
                   }));
                   
+                  // Supabase customers 테이블에 customerTags 업데이트
+                  if (targetCustomerId && isValidUuid(String(targetCustomerId)) && user) {
+                    // visit_count와 last_visit은 먼저 업데이트
+                    const { error: basicUpdateError } = await supabase
+                      .from('customers')
+                      .update({
+                        visit_count: nextVisitCount,
+                        last_visit: serviceDate,
+                      })
+                      .eq('id', targetCustomerId)
+                      .eq('owner_id', user.id);
+
+                    if (basicUpdateError) {
+                      console.error('[CustomerRecordScreen] customers 테이블 기본 업데이트 에러:', basicUpdateError);
+                    }
+
+                    // customer_tags는 별도로 업데이트 (컬럼이 없을 수 있음)
+                    try {
+                      const { error: tagsError } = await supabase
+                        .from('customers')
+                        .update({
+                          customer_tags: updatedCustomerTags,
+                        })
+                        .eq('id', targetCustomerId)
+                        .eq('owner_id', user.id);
+
+                      if (tagsError) {
+                        console.warn('[CustomerRecordScreen] customer_tags 컬럼이 없거나 업데이트 실패:', tagsError.message);
+                      } else {
+                        console.log('[CustomerRecordScreen] customers 테이블 업데이트 성공:', {
+                          customerId: targetCustomerId,
+                          customerTags: updatedCustomerTags,
+                        });
+                      }
+                    } catch (tagsErr) {
+                      console.warn('[CustomerRecordScreen] customer_tags 업데이트 중 예외 (무시):', tagsErr);
+                    }
+                  }
+                  
                   console.log('[고객 정보 업데이트] visitCount:', nextVisitCount);
                   console.log('[고객 정보 업데이트] customerTags:', updatedCustomerTags);
                 }
