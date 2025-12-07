@@ -39,12 +39,16 @@ function EditScreen({
     : null;
 
   // 섹션 내용 업데이트 함수
-  const updateSectionContent = (sectionIndex, contentIndex, newValue, originalContentIndex) => {
+  const updateSectionContent = (sectionIndex, contentIndex, newValue) => {
     setTempResultData(prev => {
       const updated = JSON.parse(JSON.stringify(prev));
-      // 고객 기본 정보 섹션인 경우 원본 인덱스 사용
-      const actualIndex = originalContentIndex !== undefined ? originalContentIndex : contentIndex;
-      updated.sections[sectionIndex].content[actualIndex] = newValue;
+      // content 배열이 존재하고 인덱스가 유효한지 확인
+      if (updated.sections[sectionIndex] && 
+          Array.isArray(updated.sections[sectionIndex].content) &&
+          contentIndex >= 0 && 
+          contentIndex < updated.sections[sectionIndex].content.length) {
+        updated.sections[sectionIndex].content[contentIndex] = newValue;
+      }
       return updated;
     });
   };
@@ -59,10 +63,23 @@ function EditScreen({
   };
 
   // 섹션 항목 삭제 함수
-  const removeSectionItem = (sectionIndex, contentIndex) => {
+  const removeSectionItem = (sectionIndex, displayContentIndex, isCustomerInfoSection) => {
     setTempResultData(prev => {
       const updated = JSON.parse(JSON.stringify(prev));
-      updated.sections[sectionIndex].content.splice(contentIndex, 1);
+      if (isCustomerInfoSection) {
+        // 고객 기본 정보 섹션: displayContentIndex가 2 이상이면 원본 content에서 삭제
+        if (displayContentIndex >= 2) {
+          const originalIndex = displayContentIndex - 2;
+          if (originalIndex >= 0 && originalIndex < updated.sections[sectionIndex].content.length) {
+            updated.sections[sectionIndex].content.splice(originalIndex, 1);
+          }
+        }
+      } else {
+        // 일반 섹션: 직접 인덱스 사용
+        if (displayContentIndex >= 0 && displayContentIndex < updated.sections[sectionIndex].content.length) {
+          updated.sections[sectionIndex].content.splice(displayContentIndex, 1);
+        }
+      }
       return updated;
     });
   };
@@ -313,16 +330,43 @@ function EditScreen({
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto px-5 pt-5 space-y-4 pb-40">
+      <main className="flex-1 overflow-y-auto px-5 pt-5 space-y-5 pb-40">
         {/* 제목 편집 */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 relative" style={{ padding: '12px 16px' }}>
           <label className="block text-sm font-bold mb-3" style={{ color: '#232323' }}>시술 요약</label>
           <textarea
             value={cleanTitle(tempResultData.title || '')}
-            onChange={(e) => updateTitle(e.target.value)}
-            className="w-full px-4 py-3 rounded-2xl border-none resize-none focus:bg-gray-50 outline-none transition-colors"
-            style={{ color: '#232323', minHeight: '60px' }}
-            rows={2}
+            onChange={(e) => {
+              updateTitle(e.target.value);
+              // 자동 높이 조정
+              e.target.style.height = 'auto';
+              e.target.style.height = e.target.scrollHeight + 'px';
+            }}
+            onInput={(e) => {
+              // 입력 시 자동 높이 조정
+              e.target.style.height = 'auto';
+              e.target.style.height = e.target.scrollHeight + 'px';
+            }}
+            onFocus={(e) => {
+              // 포커스 시 초기 높이 조정
+              e.target.style.height = 'auto';
+              e.target.style.height = e.target.scrollHeight + 'px';
+            }}
+            ref={(el) => {
+              // ref 콜백을 사용하여 초기 높이 설정
+              if (el) {
+                el.style.height = 'auto';
+                el.style.height = el.scrollHeight + 'px';
+              }
+            }}
+            className="w-full px-4 py-2 rounded-xl border-none resize-none focus:bg-gray-50 outline-none transition-colors overflow-hidden"
+            style={{ 
+              color: '#232323', 
+              minHeight: '40px',
+              height: 'auto',
+              lineHeight: '1.5'
+            }}
+            rows={1}
             placeholder="시술 내용만 입력하세요 (고객 이름, 신규/기존 정보는 자동으로 제거됩니다)"
           />
         </div>
@@ -425,7 +469,7 @@ function EditScreen({
               <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
                 {safeSectionTitle}
               </h4>
-            <div className="space-y-3">
+            <div className="space-y-3 mb-3">
               {displayContent.map((item, contentIndex) => {
                 const sectionTitleStr = typeof section.title === 'string' ? section.title : String(section.title || '');
                 const isCustomerBasicInfo = sectionTitleStr && sectionTitleStr.includes('고객 기본 정보');
@@ -462,25 +506,67 @@ function EditScreen({
                           // 고객 기본 정보 섹션이 아닌 경우에만 업데이트
                           // 고객 기본 정보 섹션의 경우 원본 content에서 해당하는 인덱스 찾기
                           if (isCustomerInfoSection) {
-                            // displayContent의 인덱스를 원본 content 인덱스로 매핑
-                            const originalIndex = contentIndex >= 2 ? contentIndex - 2 + section.content.length : contentIndex;
-                            updateSectionContent(sectionIndex, originalIndex, e.target.value);
+                            // displayContent: [0: 이름, 1: 전화번호, 2+: 원본 content]
+                            // contentIndex가 2 이상이면 원본 content의 (contentIndex - 2) 인덱스
+                            if (contentIndex >= 2) {
+                              const originalIndex = contentIndex - 2;
+                              // 원본 content의 길이를 확인하여 유효한 인덱스인지 체크
+                              if (originalIndex < section.content.length) {
+                                updateSectionContent(sectionIndex, originalIndex, e.target.value);
+                              } else {
+                                // 원본 content 범위를 벗어나면 새 항목으로 추가
+                                setTempResultData(prev => {
+                                  const updated = JSON.parse(JSON.stringify(prev));
+                                  updated.sections[sectionIndex].content.push(e.target.value);
+                                  return updated;
+                                });
+                              }
+                            }
+                            // contentIndex가 0 또는 1이면 읽기 전용이므로 업데이트하지 않음
                           } else {
+                            // 일반 섹션의 경우 직접 인덱스 사용
                             updateSectionContent(sectionIndex, contentIndex, e.target.value);
                           }
+                          // 자동 높이 조정
+                          e.target.style.height = 'auto';
+                          e.target.style.height = e.target.scrollHeight + 'px';
+                        }
+                      }}
+                      onInput={(e) => {
+                        // 입력 시 자동 높이 조정
+                        e.target.style.height = 'auto';
+                        e.target.style.height = e.target.scrollHeight + 'px';
+                      }}
+                      onFocus={(e) => {
+                        // 포커스 시 초기 높이 조정
+                        e.target.style.height = 'auto';
+                        e.target.style.height = e.target.scrollHeight + 'px';
+                      }}
+                      ref={(el) => {
+                        // ref 콜백을 사용하여 초기 높이 설정
+                        if (el) {
+                          el.style.height = 'auto';
+                          el.style.height = el.scrollHeight + 'px';
                         }
                       }}
                       readOnly={isReadOnly}
-                      className={`flex-1 px-4 py-3 rounded-xl border-none resize-none outline-none transition-colors ${
+                      className={`flex-1 px-4 py-2 rounded-xl border-none resize-none outline-none transition-colors ${
                         isReadOnly ? 'bg-gray-50 cursor-not-allowed' : 'focus:bg-gray-50'
                       }`}
-                      style={{ color: '#232323', minHeight: '60px', paddingRight: showDeleteButton ? '50px' : '16px' }}
-                      rows={Math.max(2, Math.ceil(String(item || '').length / 40))}
+                      style={{ 
+                        color: '#232323', 
+                        minHeight: '40px', 
+                        height: 'auto',
+                        paddingRight: showDeleteButton ? '50px' : '16px',
+                        lineHeight: '1.5',
+                        overflow: 'hidden'
+                      }}
+                      rows={1}
                       placeholder={isReadOnly ? '' : '내용을 입력하세요...'}
                     />
                     {showDeleteButton && (
                       <button
-                        onClick={() => removeSectionItem(sectionIndex, contentIndex)}
+                        onClick={() => removeSectionItem(sectionIndex, contentIndex, isCustomerInfoSection)}
                         className="absolute top-2 right-2 bg-red-100 text-red-500 p-1.5 rounded-full hover:bg-red-200 transition-colors flex items-center justify-center z-10"
                         title="삭제"
                       >
@@ -494,7 +580,7 @@ function EditScreen({
             {!isCustomerInfoSection && (
               <button
                 onClick={() => addSectionItem(sectionIndex)}
-                className="w-full py-3 rounded-xl text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors"
+                className="w-full py-3 rounded-xl text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors mt-4"
                 style={{ color: '#232323' }}
               >
                 + 항목 추가
