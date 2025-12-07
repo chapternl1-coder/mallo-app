@@ -52,6 +52,7 @@ export default function useSupabaseReservations() {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);   // ✅ 처음엔 무조건 true
   const [error, setError] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     if (!user) {
@@ -178,12 +179,18 @@ export default function useSupabaseReservations() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, refreshTrigger]);
+
+  // 수동으로 데이터를 다시 불러오는 함수
+  const refresh = () => {
+    setRefreshTrigger((prev) => prev + 1);
+  };
 
   return {
     customers,
     reservations,
     loading,
     error,
+    refresh,
   };
 }

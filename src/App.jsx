@@ -64,6 +64,8 @@ export default function MalloApp() {
 
     error: reservationsError,
 
+    refresh: refreshReservations,
+
   } = useSupabaseReservations();
 
 
@@ -285,6 +287,8 @@ export default function MalloApp() {
           deleteReservation={deleteReservation}
 
           refreshVisitLogs={refreshVisitLogs}
+
+          refreshReservations={refreshReservations}
 
         />
 

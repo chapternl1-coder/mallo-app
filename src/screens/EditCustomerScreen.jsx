@@ -37,7 +37,8 @@ function EditCustomerScreen({
   saveToLocalStorage,
   reservations,
   setReservations,
-  refreshVisitLogs
+  refreshVisitLogs,
+  refreshReservations
 }) {
   const { user } = useAuth();
   const handleComplete = () => {
@@ -385,6 +386,11 @@ function EditCustomerScreen({
                 // 3-3. visit_logs 새로고침
                 if (refreshVisitLogs) {
                   refreshVisitLogs();
+                }
+                
+                // 3-4. customers와 reservations 새로고침 (Supabase에서 최신 데이터 가져오기)
+                if (refreshReservations) {
+                  refreshReservations();
                 }
                 
                 // 4. 로컬 state에서 고객 삭제

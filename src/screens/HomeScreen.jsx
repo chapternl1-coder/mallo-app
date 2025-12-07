@@ -56,6 +56,7 @@ function HomeScreen({
   setSelectedReservation,
   userProfile,
   setShouldOpenReservationForm,
+  refreshReservations,
 }) {
   const [isSearching, setIsSearching] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -395,21 +396,28 @@ function HomeScreen({
 
       console.log('[HomeScreen] 예약 메모 업데이트 성공:', data);
 
-      // 로컬 reservations 상태도 같이 업데이트
+      // 로컬 reservations 상태도 같이 업데이트 (즉시 반영)
       setReservations((prev) =>
         prev.map((r) =>
-          r.id === reservationId ? { ...r, memo: data.memo } : r
+          r.id === reservationId ? { ...r, memo: data.memo, note: data.memo } : r
         )
       );
 
-      // 초안을 업데이트된 memo 값으로 동기화 (화면에 바로 반영되도록)
-      setReservationMemoDrafts((prev) => ({
-        ...prev,
-        [reservationId]: data.memo || '',
-      }));
-
       // 저장 후 편집 모드 종료 (메모가 바로 보이도록)
       setEditingMemoReservationId(null);
+      
+      // tempMemoValue도 초기화
+      setTempMemoValue('');
+      
+      // 초안 삭제 (저장된 메모가 바로 표시되도록)
+      setReservationMemoDrafts((prev) => {
+        const copy = { ...prev };
+        delete copy[reservationId];
+        return copy;
+      });
+      
+      // refreshReservations 호출 제거 - 로컬 상태 업데이트만으로 충분하며 화면 깜빡임 방지
+      // 다른 화면과의 동기화는 필요할 때만 수동으로 새로고침하면 됨
     } catch (e) {
       console.error('[HomeScreen] 예약 메모 업데이트 예외:', e);
       alert('예약 메모 저장 중 오류가 발생했습니다.');
