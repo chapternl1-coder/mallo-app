@@ -146,51 +146,85 @@ const VisitHistoryItem = React.memo(({
 
         {/* 태그 리스트 */}
         {(() => {
-          // 방문 한 건(visit) 안에서 태그를 최대한 많이 찾아오는 정규화 로직
-          const serviceTags =
-            // 1) EditScreen이 직접 넣는 최우선 태그 배열
-            (Array.isArray(visit.tags) && visit.tags.length > 0 && visit.tags) ||
-            // 2) detail 안에 저장된 태그
-            (Array.isArray(visit.detail?.tags) && visit.detail.tags.length > 0 && visit.detail.tags) ||
-            // 3) summaryJson / summary_json 안에 들어 있는 태그
-            (Array.isArray(visit.summaryJson?.tags) && visit.summaryJson.tags.length > 0 && visit.summaryJson.tags) ||
-            (Array.isArray(visit.summary_json?.tags) && visit.summary_json.tags.length > 0 && visit.summary_json.tags) ||
-            // 4) 혹시 예전 필드명이 남아 있을 경우 대비
-            (Array.isArray(visit.serviceTags) && visit.serviceTags.length > 0 && visit.serviceTags) ||
-            (Array.isArray(visit.summaryTags) && visit.summaryTags.length > 0 && visit.summaryTags) ||
-            (Array.isArray(visit.tagLabels) && visit.tagLabels.length > 0 && visit.tagLabels) ||
-            (Array.isArray(visit.autoTags) && visit.autoTags.length > 0 && visit.autoTags) ||
-            // 5) visitTags가 라벨 배열인 경우
-            (Array.isArray(visit.visitTags) && visit.visitTags.length > 0 && visit.visitTags) ||
-            // 6) 그래도 없으면 빈 배열
-            [];
+          // normalizedVisit 또는 visit에서 태그를 최대한 많이 찾아오는 정규화 로직
+          // normalizedVisit이 있으면 우선 사용 (태그가 보존되어 있음)
+          const sourceVisit = normalizedVisit || visit;
           
-          // 디버깅: 태그가 없을 때 로그 출력
+          // 모든 가능한 태그 소스 확인
+          const allPossibleTags = [
+            sourceVisit.tags,
+            sourceVisit.visitTags,
+            sourceVisit.detail?.tags,
+            sourceVisit.summaryJson?.tags,
+            sourceVisit.summary_json?.tags,
+            sourceVisit.serviceTags,
+            sourceVisit.summaryTags,
+            sourceVisit.tagLabels,
+            sourceVisit.autoTags,
+            visit.tags,
+            visit.visitTags,
+            visit.detail?.tags,
+            visit.summaryJson?.tags
+          ].filter(tags => Array.isArray(tags) && tags.length > 0);
+          
+          const serviceTags = allPossibleTags.length > 0 ? allPossibleTags[0] : [];
+          
+          // 디버깅: 항상 로그 출력 (모바일에서도 확인 가능)
+          console.log('[CustomerDetail] 태그 확인:', {
+            visitId: visit.id,
+            hasNormalizedVisit: !!normalizedVisit,
+            normalizedVisitTags: normalizedVisit?.tags,
+            visitTags: visit.tags,
+            sourceVisitTags: sourceVisit.tags,
+            sourceVisitVisitTags: sourceVisit.visitTags,
+            detailTags: sourceVisit.detail?.tags,
+            summaryJsonTags: sourceVisit.summaryJson?.tags,
+            allPossibleTagsCount: allPossibleTags.length,
+            finalServiceTags: serviceTags,
+            serviceTagsLength: serviceTags.length
+          });
+          
           if (serviceTags.length === 0) {
-            console.log('[CustomerDetail] 태그 없음:', {
+            console.warn('[CustomerDetail] ⚠️ 태그 없음 - 모든 필드 확인:', {
               visitId: visit.id,
-              tags: visit.tags,
-              detailTags: visit.detail?.tags,
-              summaryJsonTags: visit.summaryJson?.tags,
-              visitTags: visit.visitTags,
-              visitTagIds: visit.visitTagIds
+              visitKeys: Object.keys(visit).slice(0, 10),
+              normalizedVisitKeys: normalizedVisit ? Object.keys(normalizedVisit).slice(0, 10) : null,
+              visitTags: visit.tags,
+              visitVisitTags: visit.visitTags,
+              normalizedVisitTags: normalizedVisit?.tags,
+              normalizedVisitVisitTags: normalizedVisit?.visitTags
             });
           }
           
           return serviceTags.length > 0 ? (
-            <div className="mb-2 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
-              {serviceTags.map((tag, idx) => (
-                <span 
-                  key={idx}
-                  className="text-[11px] px-2 py-1 rounded-md"
-                  style={{ 
-                    backgroundColor: '#F2F0E6',
-                    color: '#8C6D46'
-                  }}
-                >
-                  {tag}
-                </span>
-              ))}
+            <div 
+              className="mb-2 flex flex-wrap gap-1.5" 
+              style={{ 
+                minHeight: '24px',
+                width: '100%',
+                visibility: 'visible',
+                display: 'flex'
+              }}
+            >
+              {serviceTags.map((tag, idx) => {
+                const tagText = typeof tag === 'string' ? tag : (tag.label || String(tag));
+                return (
+                  <span 
+                    key={idx}
+                    className="text-[11px] px-2 py-1 rounded-md whitespace-nowrap"
+                    style={{ 
+                      backgroundColor: '#F2F0E6',
+                      color: '#8C6D46',
+                      display: 'inline-block',
+                      visibility: 'visible',
+                      opacity: 1,
+                      flexShrink: 0
+                    }}
+                  >
+                    {tagText}
+                  </span>
+                );
+              })}
             </div>
           ) : null;
         })()}
@@ -836,8 +870,28 @@ function CustomerDetailScreen({
       // normalizedVisit 계산
       const normalizedVisit = normalizeRecordWithCustomer(visit, customer);
 
+      // visit에도 태그가 포함되도록 보장 (VisitHistoryItem에서 visit prop도 사용할 수 있음)
+      const visitWithTags = {
+        ...visit,
+        // normalizedVisit의 태그를 visit에도 포함
+        tags: normalizedVisit?.tags || visit.tags || [],
+        visitTags: normalizedVisit?.visitTags || visit.visitTags || normalizedVisit?.tags || visit.tags || [],
+        detail: {
+          ...visit.detail,
+          tags: normalizedVisit?.detail?.tags || visit.detail?.tags || normalizedVisit?.tags || visit.tags || []
+        },
+        summaryJson: {
+          ...visit.summaryJson,
+          tags: normalizedVisit?.summaryJson?.tags || visit.summaryJson?.tags || normalizedVisit?.tags || visit.tags || []
+        },
+        summary_json: {
+          ...visit.summary_json,
+          tags: normalizedVisit?.summary_json?.tags || visit.summary_json?.tags || normalizedVisit?.tags || visit.tags || []
+        }
+      };
+
       return {
-        visit,
+        visit: visitWithTags,
         connectedReservation,
         dateTimeDisplay,
         displayTitle,

@@ -646,38 +646,61 @@ function HistoryScreen({
                         {/* 태그 리스트: 이름/번호 아래, 시술 내용 위 */}
                         {(() => {
                           // 방문 한 건(record) 안에서 태그를 최대한 많이 찾아오는 정규화 로직
-                          const serviceTags =
-                            // 1) EditScreen이 직접 넣는 최우선 태그 배열
-                            (Array.isArray(record.tags) && record.tags.length > 0 && record.tags) ||
-                            // 2) detail 안에 저장된 태그
-                            (Array.isArray(record.detail?.tags) && record.detail.tags.length > 0 && record.detail.tags) ||
-                            // 3) summaryJson / summary_json 안에 들어 있는 태그
-                            (Array.isArray(record.summaryJson?.tags) && record.summaryJson.tags.length > 0 && record.summaryJson.tags) ||
-                            (Array.isArray(record.summary_json?.tags) && record.summary_json.tags.length > 0 && record.summary_json.tags) ||
-                            // 4) 혹시 예전 필드명이 남아 있을 경우 대비
-                            (Array.isArray(record.serviceTags) && record.serviceTags.length > 0 && record.serviceTags) ||
-                            (Array.isArray(record.summaryTags) && record.summaryTags.length > 0 && record.summaryTags) ||
-                            (Array.isArray(record.tagLabels) && record.tagLabels.length > 0 && record.tagLabels) ||
-                            (Array.isArray(record.autoTags) && record.autoTags.length > 0 && record.autoTags) ||
-                            // 5) visitTags가 라벨 배열인 경우
-                            (Array.isArray(record.visitTags) && record.visitTags.length > 0 && record.visitTags) ||
-                            // 6) 그래도 없으면 빈 배열
-                            [];
+                          const allPossibleTags = [
+                            record.tags,
+                            record.visitTags,
+                            record.detail?.tags,
+                            record.summaryJson?.tags,
+                            record.summary_json?.tags,
+                            record.serviceTags,
+                            record.summaryTags,
+                            record.tagLabels,
+                            record.autoTags
+                          ].filter(tags => Array.isArray(tags) && tags.length > 0);
+                          
+                          const serviceTags = allPossibleTags.length > 0 ? allPossibleTags[0] : [];
+                          
+                          // 디버깅: 항상 로그 출력
+                          console.log('[HistoryScreen] 태그 확인:', {
+                            recordId: record.id,
+                            recordTags: record.tags,
+                            recordVisitTags: record.visitTags,
+                            detailTags: record.detail?.tags,
+                            summaryJsonTags: record.summaryJson?.tags,
+                            allPossibleTagsCount: allPossibleTags.length,
+                            finalServiceTags: serviceTags,
+                            serviceTagsLength: serviceTags.length
+                          });
                           
                           return serviceTags.length > 0 ? (
-                            <div className="mt-1.5 mb-1.5 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
-                              {serviceTags.map((tag, idx) => (
-                                <span 
-                                  key={idx}
-                                  className="text-[11px] px-2 py-1 rounded-md"
-                                  style={{ 
-                                    backgroundColor: '#F2F0E6',
-                                    color: '#8C6D46'
-                                  }}
-                                >
-                                  {tag}
-                                </span>
-                              ))}
+                            <div 
+                              className="mt-1.5 mb-1.5 flex flex-wrap gap-1.5" 
+                              style={{ 
+                                minHeight: '24px',
+                                width: '100%',
+                                visibility: 'visible',
+                                display: 'flex'
+                              }}
+                            >
+                              {serviceTags.map((tag, idx) => {
+                                const tagText = typeof tag === 'string' ? tag : (tag.label || String(tag));
+                                return (
+                                  <span 
+                                    key={idx}
+                                    className="text-[11px] px-2 py-1 rounded-md whitespace-nowrap"
+                                    style={{ 
+                                      backgroundColor: '#F2F0E6',
+                                      color: '#8C6D46',
+                                      display: 'inline-block',
+                                      visibility: 'visible',
+                                      opacity: 1,
+                                      flexShrink: 0
+                                    }}
+                                  >
+                                    {tagText}
+                                  </span>
+                                );
+                              })}
                             </div>
                           ) : null;
                         })()}

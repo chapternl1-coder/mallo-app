@@ -41,7 +41,7 @@ function ProfileScreen({
         {/* 시술 태그/알림/AI 추천/테마/고객 데이터 관리 카드들 */}
         <div className="space-y-3">
           <SettingRow
-            label="시술 태그/키워드 관리"
+            label="태그/키워드 관리"
             onClick={() => setCurrentScreen && setCurrentScreen(SCREENS.TAG_SETTINGS)}
           />
           <ToggleRow label="알림 설정" />

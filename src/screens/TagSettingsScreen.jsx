@@ -80,7 +80,7 @@ function TagSettingsScreen({
   // 대분류 탭 정보
   const mainTabs = {
     visit: { label: '🧴 시술 태그 관리', icon: '🧴' },
-    customer: { label: '👤 고객 특징 관리', icon: '👤' }
+    customer: { label: '👤 고객 태그 관리', icon: '👤' }
   };
 
   // 소분류 탭 정보
@@ -227,7 +227,7 @@ function TagSettingsScreen({
         >
           <span className="text-[32px]">&#x2039;</span>
         </button>
-        <h2 className="font-bold text-base" style={{ color: '#232323' }}>시술 태그 관리</h2>
+        <h2 className="font-bold text-base" style={{ color: '#232323' }}>태그/키워드 관리</h2>
         <button
           onClick={() => setIsTagEditing(!isTagEditing)}
           className="px-4 h-8 rounded-lg font-semibold text-white text-xs transition-all hover:opacity-90"

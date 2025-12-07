@@ -472,17 +472,39 @@ export default function useMalloAppState(user) {
       displayPhone = '전화번호 미기재';
     }
     
+    // 태그 우선순위: visit.tags > visit.visitTags > detail.tags > summaryJson.tags
+    const primaryTags = visit.tags || visit.visitTags || visit.detail?.tags || visit.summaryJson?.tags || visit.summary_json?.tags || [];
+    
     return {
       ...visit,
       customerName: displayName,
       customerPhone: displayPhone,
-      detail: visit.detail || {
-        sections: visit.summary ? [
-          { title: '시술 내용', content: [visit.summary] }
-        ] : []
+      // 모든 태그 필드 보존 (병합된 태그가 모든 필드에 있을 수 있음)
+      tags: primaryTags,
+      visitTags: visit.visitTags || primaryTags,
+      serviceTags: visit.serviceTags || primaryTags,
+      summaryTags: visit.summaryTags || primaryTags,
+      tagLabels: visit.tagLabels || primaryTags,
+      autoTags: visit.autoTags || primaryTags,
+      // detail 보존 (태그 포함)
+      detail: {
+        ...(visit.detail || {
+          sections: visit.summary ? [
+            { title: '시술 내용', content: [visit.summary] }
+          ] : []
+        }),
+        tags: visit.detail?.tags || primaryTags
       },
-      title: visit.title || visit.summary || '',
-      tags: visit.tags || []
+      // summaryJson 보존 (태그 포함)
+      summaryJson: {
+        ...(visit.summaryJson || {}),
+        tags: visit.summaryJson?.tags || primaryTags
+      },
+      summary_json: {
+        ...(visit.summary_json || {}),
+        tags: visit.summary_json?.tags || primaryTags
+      },
+      title: visit.title || visit.summary || ''
     };
   };
 
