@@ -108,6 +108,17 @@ function HistoryScreen({
     return updated;
   };
 
+  // Supabase visit_logs를 id 기준으로 빨리 찾을 수 있게 준비
+  const visitLogsById = React.useMemo(() => {
+    const map = new Map();
+    (visitLogs || []).forEach((log) => {
+      if (log && log.id) {
+        map.set(log.id, log);
+      }
+    });
+    return map;
+  }, [visitLogs]);
+
   // 오늘 날짜 구하기
   const todayStr = getTodayDateString();
 
@@ -645,8 +656,14 @@ function HistoryScreen({
 
                         {/* 태그 리스트: 이름/번호 아래, 시술 내용 위 */}
                         {(() => {
-                          // 방문 한 건(record) 안에서 태그를 최대한 많이 찾아오는 정규화 로직
-                          const allPossibleTags = [
+                          // 1) 이 기록에 해당하는 Supabase visit_log 찾기
+                          const supabaseLog = visitLogsById.get(record.id) || null;
+
+                          // 2) 태그 후보들 모으기
+                          //    - 항상 "record" 쪽이 제일 최신이므로 맨 앞에 둔다.
+                          //    - Supabase 쪽(supabaseLog)은 나중에 합쳐서 중복 제거.
+                          const allPossibleTagLists = [
+                            // (A) 로컬 state(record) 쪽 태그들 – 즉시 반영용
                             record.tags,
                             record.visitTags,
                             record.detail?.tags,
@@ -655,24 +672,34 @@ function HistoryScreen({
                             record.serviceTags,
                             record.summaryTags,
                             record.tagLabels,
-                            record.autoTags
-                          ].filter(tags => Array.isArray(tags) && tags.length > 0);
+                            record.autoTags,
+
+                            // (B) Supabase visit_logs 쪽 태그들 – 새로고침/재요청 후 들어오는 데이터
+                            supabaseLog?.tags,
+                            supabaseLog?.visitTags,
+                            supabaseLog?.detail?.tags,
+                            supabaseLog?.summaryJson?.tags,
+                            supabaseLog?.summary_json?.tags,
+                            supabaseLog?.serviceTags,
+                            supabaseLog?.summaryTags,
+                            supabaseLog?.tagLabels,
+                            supabaseLog?.autoTags,
+                          ].filter((tags) => Array.isArray(tags) && tags.length > 0);
+
+                          // 3) 모든 리스트를 합치고, 중복 제거
+                          let mergedTags = [];
+                          if (allPossibleTagLists.length > 0) {
+                            const tagSet = new Set();
+                            allPossibleTagLists.forEach((list) => {
+                              list.forEach((t) => tagSet.add(t));
+                            });
+                            mergedTags = Array.from(tagSet);
+                          }
+
+                          // 4) 최종 화면용 태그
+                          const serviceTags = mergedTags;
                           
-                          const serviceTags = allPossibleTags.length > 0 ? allPossibleTags[0] : [];
-                          
-                          // 디버깅: 항상 로그 출력
-                          console.log('[HistoryScreen] 태그 확인:', {
-                            recordId: record.id,
-                            recordTags: record.tags,
-                            recordVisitTags: record.visitTags,
-                            detailTags: record.detail?.tags,
-                            summaryJsonTags: record.summaryJson?.tags,
-                            allPossibleTagsCount: allPossibleTags.length,
-                            finalServiceTags: serviceTags,
-                            serviceTagsLength: serviceTags.length
-                          });
-                          
-                          return serviceTags.length > 0 ? (
+                          return serviceTags && serviceTags.length > 0 ? (
                             <div 
                               className="mt-1.5 mb-1.5 flex flex-wrap gap-1.5" 
                               style={{ 

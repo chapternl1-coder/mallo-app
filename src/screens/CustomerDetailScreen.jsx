@@ -304,7 +304,7 @@ const VisitHistoryItem = React.memo(({
 
           
 
-          // 모든 가능한 태그 소스 확인
+          // ✅ 태그 소스: 정규화된 visit(sourceVisit)만 사용
 
           const allPossibleTags = [
 
@@ -312,11 +312,11 @@ const VisitHistoryItem = React.memo(({
 
             sourceVisit.visitTags,
 
-            sourceVisit.detail?.tags,
+            sourceVisit.summary_json?.tags,
 
             sourceVisit.summaryJson?.tags,
 
-            sourceVisit.summary_json?.tags,
+            sourceVisit.detail?.tags,
 
             sourceVisit.serviceTags,
 
@@ -325,14 +325,6 @@ const VisitHistoryItem = React.memo(({
             sourceVisit.tagLabels,
 
             sourceVisit.autoTags,
-
-            visit.tags,
-
-            visit.visitTags,
-
-            visit.detail?.tags,
-
-            visit.summaryJson?.tags
 
           ].filter(tags => Array.isArray(tags) && tags.length > 0);
 
