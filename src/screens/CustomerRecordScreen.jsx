@@ -1182,18 +1182,21 @@ function CustomerRecordScreen({
                   
                   // Supabase customers 테이블에 customerTags 업데이트
                   if (targetCustomerId && isValidUuid(String(targetCustomerId)) && user) {
-                    // visit_count와 last_visit은 먼저 업데이트
-                    const { error: basicUpdateError } = await supabase
-                      .from('customers')
-                      .update({
-                        visit_count: nextVisitCount,
-                        last_visit: serviceDate,
-                      })
-                      .eq('id', targetCustomerId)
-                      .eq('owner_id', user.id);
+                    // visit_count 업데이트 (last_visit은 로컬 state에서만 관리)
+                    try {
+                      const { error: basicUpdateError } = await supabase
+                        .from('customers')
+                        .update({
+                          visit_count: nextVisitCount,
+                        })
+                        .eq('id', targetCustomerId)
+                        .eq('owner_id', user.id);
 
-                    if (basicUpdateError) {
-                      console.error('[CustomerRecordScreen] customers 테이블 기본 업데이트 에러:', basicUpdateError);
+                      if (basicUpdateError) {
+                        console.warn('[CustomerRecordScreen] visit_count 업데이트 실패:', basicUpdateError.message);
+                      }
+                    } catch (basicErr) {
+                      console.warn('[CustomerRecordScreen] visit_count 업데이트 중 예외:', basicErr);
                     }
 
                     // customer_tags는 별도로 업데이트 (컬럼이 없을 수 있음)
