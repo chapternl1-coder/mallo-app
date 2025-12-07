@@ -13,6 +13,252 @@ import {
 } from '../utils/visitUtils';
 import { extractServiceDateFromSummary } from '../utils/serviceUtils';
 
+// 스켈레톤 로더 컴포넌트
+const VisitHistorySkeleton = () => (
+  <div className="bg-white rounded-xl shadow-sm overflow-hidden relative animate-pulse" style={{ padding: '12px 16px' }}>
+    <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center gap-2">
+        <div className="h-4 w-24 bg-gray-200 rounded"></div>
+        <div className="h-5 w-12 bg-gray-200 rounded-full"></div>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="h-5 w-5 bg-gray-200 rounded"></div>
+        <div className="h-5 w-5 bg-gray-200 rounded"></div>
+      </div>
+    </div>
+    <div className="h-4 w-3/4 bg-gray-200 rounded mt-2"></div>
+  </div>
+);
+
+// 방문 기록 카드 컴포넌트 (React.memo로 최적화)
+const VisitHistoryItem = React.memo(({
+  visit,
+  customer,
+  visitOrder,
+  connectedReservation,
+  dateTimeDisplay,
+  displayTitle,
+  normalizedVisit,
+  safeName,
+  safePhone,
+  expandedVisitId,
+  setExpandedVisitId,
+  setTempResultData,
+  setEditingVisit,
+  setEditingCustomer,
+  setEditingVisitTagIds,
+  setCurrentScreen,
+  allVisitTags,
+  convertVisitTagsToIds,
+  extractServiceDateTimeLabel,
+  overrideCustomerInfoLine,
+  formatRecordDateTime,
+  SCREENS
+}) => {
+  const handleToggleExpand = useCallback((e) => {
+    e.stopPropagation();
+    setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
+  }, [visit.id, expandedVisitId, setExpandedVisitId]);
+
+  const handleEdit = useCallback((e) => {
+    e.stopPropagation();
+    const sections = normalizedVisit.detail?.sections || [];
+    const basicInfoSectionIndex = sections.findIndex(
+      section => section.title && section.title.includes('고객 기본 정보')
+    );
+    
+    if (basicInfoSectionIndex !== -1 && sections[basicInfoSectionIndex].content.length > 0) {
+      const firstLine = `이름: ${safeName} / 전화번호: ${safePhone}`;
+      sections[basicInfoSectionIndex] = {
+        ...sections[basicInfoSectionIndex],
+        content: [
+          firstLine,
+          ...sections[basicInfoSectionIndex].content.slice(1)
+        ]
+      };
+    }
+    
+    const editData = {
+      title: normalizedVisit.title,
+      sections: sections
+    };
+    setTempResultData(editData);
+    setEditingVisit(normalizedVisit);
+    setEditingCustomer(customer);
+    
+    const visitTagIds = convertVisitTagsToIds(normalizedVisit.tags || [], allVisitTags);
+    setEditingVisitTagIds(visitTagIds);
+    
+    setCurrentScreen(SCREENS.EDIT);
+  }, [normalizedVisit, safeName, safePhone, customer, setTempResultData, setEditingVisit, setEditingCustomer, setEditingVisitTagIds, setCurrentScreen, allVisitTags, convertVisitTagsToIds, SCREENS]);
+
+  const isExpanded = expandedVisitId === visit.id;
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm overflow-hidden relative" style={{ padding: '12px 16px' }}>
+      <div className="record-card-main flex flex-col relative">
+        {/* 맨 위줄: 날짜/시간과 뱃지, 아이콘들 */}
+        <div className="flex items-center justify-between mb-2">
+          <div 
+            className="flex items-center gap-2"
+            onClick={handleToggleExpand}
+            style={{ cursor: 'pointer' }}
+          >
+            {dateTimeDisplay && (
+              <span className="text-xs font-bold text-[#C9A27A]">
+                {dateTimeDisplay}
+              </span>
+            )}
+            {/* 방문 회차 뱃지 (날짜 오른쪽) */}
+            {visitOrder > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-600">
+                {visitOrder}회차
+              </span>
+            )}
+          </div>
+          
+          {/* 편집 버튼과 화살표 아이콘 (우측 상단) */}
+          <div className="flex items-center gap-2">
+            {/* 편집 버튼 */}
+            <button
+              type="button"
+              onClick={handleEdit}
+              className="p-1 hover:bg-gray-100 rounded transition-colors"
+              style={{ color: '#C9A27A' }}
+            >
+              <Edit size={18} />
+            </button>
+            {/* 화살표 아이콘 */}
+            <button 
+              type="button"
+              onClick={handleToggleExpand}
+              className="p-1 hover:bg-gray-100 rounded transition-colors"
+              style={{ color: '#C9A27A' }}
+            >
+              {isExpanded ? (
+                <ChevronUp size={20} />
+              ) : (
+                <ChevronDown size={20} />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* 태그 리스트 */}
+        {visit.tags && visit.tags.length > 0 && (
+          <div className="mb-2 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
+            {visit.tags.map((tag, idx) => (
+              <span 
+                key={idx}
+                className="text-[11px] px-2 py-1 rounded-md"
+                style={{ 
+                  backgroundColor: '#F2F0E6',
+                  color: '#8C6D46'
+                }}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* 아랫줄: 시술 내용 */}
+        <div 
+          className="mt-1"
+          onClick={handleToggleExpand}
+          style={{ cursor: 'pointer' }}
+        >
+          <div className="text-sm text-[#232323]/80 font-medium truncate">
+            {displayTitle}
+          </div>
+        </div>
+      </div>
+      
+      {isExpanded && normalizedVisit.detail && (
+        <div className="px-5 pb-5 space-y-5 border-t border-gray-200 pt-5 bg-gray-50">
+          {normalizedVisit.detail.sections.map((section, idx) => {
+            const safeSectionTitle = typeof section.title === 'string' 
+              ? section.title 
+              : (typeof section.title === 'object' && section.title !== null 
+                ? JSON.stringify(section.title, null, 2) 
+                : String(section.title || ''));
+            
+            const isCustomerInfoSection = safeSectionTitle.includes('고객 기본 정보') || 
+                                         safeSectionTitle.includes('고객 정보') ||
+                                         safeSectionTitle.toLowerCase().includes('customer');
+            
+            let formattedContent = section.content;
+            if (isCustomerInfoSection) {
+              const customerName = normalizedVisit.detail?.customerInfo?.name || 
+                                  normalizedVisit.detail?.customer?.name ||
+                                  customer?.name || 
+                                  safeName || '';
+              const customerPhone = normalizedVisit.detail?.customerInfo?.phone || 
+                                   normalizedVisit.detail?.customer?.phone ||
+                                  customer?.phone || 
+                                  safePhone || '';
+              
+              formattedContent = [];
+              if (customerName && customerName !== '이름 미입력') {
+                formattedContent.push(`이름: ${customerName}`);
+              }
+              if (customerPhone && customerPhone !== '전화번호 미기재') {
+                formattedContent.push(`전화번호: ${customerPhone}`);
+              }
+              section.content.forEach(item => {
+                const itemStr = typeof item === 'string' ? item : String(item || '');
+                if (itemStr && 
+                    !itemStr.includes('이름:') && 
+                    !itemStr.includes('전화번호:') &&
+                    !itemStr.includes('name:') &&
+                    !itemStr.includes('phone:')) {
+                  formattedContent.push(itemStr);
+                }
+              });
+            }
+            
+            return (
+              <div key={idx}>
+                <h5 className="text-base font-bold mb-3" style={{ color: '#232323' }}>
+                  {safeSectionTitle}
+                </h5>
+                <ul className="space-y-2">
+                  {formattedContent.map((item, i) => (
+                    <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
+                      {isCustomerInfoSection ? item : overrideCustomerInfoLine(item, customer)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+          
+          {/* 기록 일시 (카드 하단) */}
+          {(() => {
+            const recordedAt = visit.recordedAt || (visit.date && visit.time ? `${visit.date}T${visit.time}:00` : null);
+            return recordedAt ? (
+              <div className="visit-detail-footer">
+                기록 일시: {formatRecordDateTime(recordedAt)}
+              </div>
+            ) : null;
+          })()}
+        </div>
+      )}
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  // 커스텀 비교 함수: 중요한 props만 비교
+  return (
+    prevProps.visit.id === nextProps.visit.id &&
+    prevProps.expandedVisitId === nextProps.expandedVisitId &&
+    prevProps.visitOrder === nextProps.visitOrder &&
+    prevProps.dateTimeDisplay === nextProps.dateTimeDisplay &&
+    prevProps.displayTitle === nextProps.displayTitle
+  );
+});
+
+VisitHistoryItem.displayName = 'VisitHistoryItem';
+
 function CustomerDetailScreen({
   setCurrentScreen,
   previousScreen,
@@ -189,7 +435,6 @@ function CustomerDetailScreen({
     return digits;
   };
 
-  console.log('[CustomerDetailScreen] 필터링 결과:');
 
   // 1) Supabase visit_logs 에서 선택된 고객의 방문 기록만 필터링
   const supabaseCustomerVisits = (visitLogs || []).filter((v) => {
@@ -275,10 +520,89 @@ function CustomerDetailScreen({
     return uniqueSortedCustomerVisits.slice(0, visibleVisitCount);
   }, [uniqueSortedCustomerVisits, visibleVisitCount]);
 
-  console.log(
-    '[CustomerDetailScreen] uniqueSortedCustomerVisits.length:',
-    uniqueSortedCustomerVisits.length
-  );
+  // 방문 기록의 날짜/시간 및 제목 계산을 useMemo로 최적화
+  const processedVisits = React.useMemo(() => {
+    return visibleVisits.map((visit) => {
+      // 날짜/시간 정보 준비
+      let dateTimeDisplay = '';
+      
+      // 1순위: 예약과 연결된 경우 예약 날짜/시간 사용
+      const connectedReservation = findConnectedReservation(visit);
+      
+      if (connectedReservation && connectedReservation.date && connectedReservation.time) {
+        const dateObj = new Date(`${connectedReservation.date}T${connectedReservation.time}`);
+        if (!isNaN(dateObj.getTime())) {
+          const year = dateObj.getFullYear();
+          const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+          const day = String(dateObj.getDate()).padStart(2, '0');
+          const hours = String(dateObj.getHours()).padStart(2, '0');
+          const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+          dateTimeDisplay = `${year}.${month}.${day} ${hours}:${minutes}`;
+        }
+      }
+      
+      // 2순위: 텍스트/녹음에서 추출한 날짜/시간
+      if (!dateTimeDisplay) {
+        const serviceDateTimeLabel = extractServiceDateTimeLabel(visit);
+        if (serviceDateTimeLabel) {
+          const dateTimeMatch = serviceDateTimeLabel.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
+          if (dateTimeMatch) {
+            const [, year, month, day, hour, minute] = dateTimeMatch;
+            dateTimeDisplay = `${year}.${month}.${day} ${hour}:${minute}`;
+          }
+        }
+      }
+      
+      // 3순위: 저장된 날짜/시간 사용
+      if (!dateTimeDisplay && visit.serviceDate && visit.time) {
+        const dateObj = new Date(`${visit.serviceDate}T${visit.time}`);
+        if (!isNaN(dateObj.getTime())) {
+          const year = dateObj.getFullYear();
+          const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+          const day = String(dateObj.getDate()).padStart(2, '0');
+          const hours = String(dateObj.getHours()).padStart(2, '0');
+          const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+          dateTimeDisplay = `${year}.${month}.${day} ${hours}:${minutes}`;
+        }
+      }
+      
+      // 4순위: formatVisitDateTime 사용 (fallback)
+      if (!dateTimeDisplay) {
+        const serviceDateTimeLabel = extractServiceDateTimeLabel(visit);
+        dateTimeDisplay = formatVisitDateTime(visit, serviceDateTimeLabel);
+      }
+
+      // 시술 내용 요약 (고객 이름 제거)
+      const safeName = customer?.name?.trim() || '미기재';
+      const displayTitle = cleanVisitTitle(
+        visit.title || visit.subject || visit.summary || '',
+        safeName
+      );
+
+      // 방문 회차 계산
+      const visitOrder = visitOrderMap.get(visit.id) || 0;
+
+      // normalizedVisit 계산
+      const normalizedVisit = normalizeRecordWithCustomer(visit, customer);
+
+      return {
+        visit,
+        connectedReservation,
+        dateTimeDisplay,
+        displayTitle,
+        visitOrder,
+        normalizedVisit,
+        safeName,
+        safePhone: customer?.phone?.trim() || '미기재'
+      };
+    });
+  }, [visibleVisits, findConnectedReservation, extractServiceDateTimeLabel, formatVisitDateTime, customer, visitOrderMap, normalizeRecordWithCustomer, cleanVisitTitle]);
+
+  // 로딩 상태: 초기 데이터 로딩 중인지 확인 (짧은 시간만 표시)
+  const isLoading = React.useMemo(() => {
+    // visitLogs가 아직 로드되지 않았거나, 데이터가 없고 고객도 없는 경우에만 로딩 표시
+    return !visitLogs || (visitLogs.length === 0 && !customer && uniqueSortedCustomerVisits.length === 0);
+  }, [visitLogs, customer, uniqueSortedCustomerVisits.length]);
   
   // 고객별 방문 기록 개수 (Supabase visit_logs 기준)
   const visitCountFromLogs = Array.isArray(uniqueSortedCustomerVisits)
@@ -333,12 +657,9 @@ function CustomerDetailScreen({
         // 삭제된 고객임을 표시하는 플래그
         isDeleted: true
       };
-      console.log('[CustomerDetailScreen] summary_json에서 고객 정보 추출:', customer);
     }
   }
   
-  console.log('CustomerDetailScreen - 최종 찾은 고객:', customer);
-  console.log('CustomerDetailScreen - customer.customerTags:', customer?.customerTags);
   
   // ✅ 고객 태그를 화면용 칩 배열로 변환
   const customerTagChips = useMemo(() => {
@@ -372,8 +693,6 @@ function CustomerDetailScreen({
       });
     }
 
-    console.log('[CustomerDetailScreen] customerTagChips:', chips);
-    console.log('[CustomerDetailScreen] customer.customerTags:', customer.customerTags);
 
     return chips;
   }, [customer]);
@@ -409,9 +728,6 @@ function CustomerDetailScreen({
       });
   }, [visitLogs, selectedCustomerId]);
 
-  console.log('[CustomerDetailScreen] 필터링된 방문 기록 개수:', customerVisits.length);
-  console.log('[CustomerDetailScreen] customer:', customer);
-  console.log('[CustomerDetailScreen] uniqueSortedCustomerVisits.length:', uniqueSortedCustomerVisits.length);
 
 
   // 더 보기 함수
@@ -448,12 +764,6 @@ function CustomerDetailScreen({
       id: latestCustomer.id,
       name: latestCustomer.name,
       phone: latestCustomer.phone,
-    });
-    
-    console.log('[CustomerDetailScreen] 기록 남기기 - 최신 고객 정보:', {
-      id: latestCustomer.id,
-      name: latestCustomer.name,
-      phone: latestCustomer.phone
     });
     
     // 현재 모드에 따라 고객 상세 전용 화면으로 이동
@@ -660,326 +970,45 @@ function CustomerDetailScreen({
         {/* 방문 히스토리 */}
         <div className="space-y-4 pb-32">
           <h3 className="text-base font-bold" style={{ color: '#232323' }}>방문 히스토리</h3>
-          {uniqueSortedCustomerVisits.length === 0 ? (
+          {isLoading ? (
+            // 스켈레톤 UI: 로딩 중
+            <div className="space-y-3">
+              {[...Array(3)].map((_, idx) => (
+                <VisitHistorySkeleton key={idx} />
+              ))}
+            </div>
+          ) : uniqueSortedCustomerVisits.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-2xl border border-gray-200 shadow-sm">
               <p className="font-light text-base" style={{ color: '#232323', opacity: 0.6 }}>방문 기록이 없습니다</p>
             </div>
           ) : (
-            visibleVisits.map((visit) => {
-              // 날짜/시간 정보 준비 (예약과 연결된 경우 예약 날짜/시간 우선, 그 다음 텍스트/녹음에서 추출한 날짜/시간)
-              let dateTimeDisplay = '';
-              
-              // 1순위: 예약과 연결된 경우 예약 날짜/시간 사용
-              const connectedReservation = findConnectedReservation(visit);
-              
-              // 이름과 전화번호: 현재 고객의 정보를 무조건 사용 (예약 정보나 summary_json 무시)
-              // normalizedVisit은 사용하지 않음 (예전 summary_json의 정보가 포함될 수 있음)
-              let safeName = customer?.name?.trim() || '미기재';
-              let safePhone = customer?.phone?.trim() || '미기재';
-              
-              // record + customer를 합쳐서 사용 (customerName, customerPhone 보정)
-              // 하지만 safeName/safePhone은 현재 고객 정보만 사용하므로 normalizedVisit은 detail 등만 사용
-              const normalizedVisit = normalizeRecordWithCustomer(visit, customer);
-              
-              // 예약과 연결된 경우에도 현재 고객의 정보를 우선 사용
-              // (예약 정보에 잘못된 고객 정보가 들어가 있을 수 있음)
-              if (connectedReservation) {
-                // 예약과 연결된 경우: 예약의 고객 정보 확인 (디버깅용)
-                const reservationCustomer = connectedReservation.customer_id 
-                  ? customers.find(c => c.id === connectedReservation.customer_id)
-                  : null;
-                
-                // 이름: 현재 고객의 이름만 사용 (예약 정보 무시)
-                safeName = customer?.name?.trim() || '미기재';
-                
-                // 전화번호: 현재 고객의 전화번호만 사용 (예약 정보나 summary_json 무시)
-                safePhone = customer?.phone?.trim() || '미기재';
-                
-                // 디버깅: 어떤 정보가 사용되는지 확인
-                console.log(`📞 [방문 기록 헤더] visit.id: ${visit.id?.substring(0, 8)}...`);
-                console.log(`   예약 연결됨: reservation.id=${connectedReservation.id?.substring(0, 8)}...`);
-                console.log(`   예약 customer_id: "${connectedReservation.customer_id}"`);
-                console.log(`   예약 고객 이름: "${reservationCustomer?.name}", 전화번호: "${reservationCustomer?.phone}"`);
-                console.log(`   현재 고객 id: "${selectedCustomerId}"`);
-                console.log(`   현재 고객 이름: "${customer?.name}", 전화번호: "${customer?.phone}"`);
-                console.log(`   visit.customerPhone (무시됨): "${visit.customerPhone}"`);
-                console.log(`   normalizedVisit.customerPhone (무시됨): "${normalizedVisit.customerPhone}"`);
-                console.log(`   ✅ 최종 safeName: "${safeName}", safePhone: "${safePhone}" (현재 고객 정보만 사용)`);
-                
-                // normalizedVisit의 정보는 사용하지 않음 (예전 summary_json의 정보일 수 있음)
-              } else {
-                // 예약이 없으면 현재 고객의 정보 사용 (이미 위에서 설정됨)
-                console.log(`📞 [방문 기록 헤더] visit.id: ${visit.id?.substring(0, 8)}..., 예약 없음`);
-                console.log(`   현재 고객 이름: "${customer?.name}", 전화번호: "${customer?.phone}"`);
-                console.log(`   visit.customerPhone (무시됨): "${visit.customerPhone}"`);
-                console.log(`   normalizedVisit.customerPhone (무시됨): "${normalizedVisit.customerPhone}"`);
-                console.log(`   ✅ 최종 safeName: "${safeName}", safePhone: "${safePhone}" (현재 고객 정보만 사용)`);
-              }
-              
-              // 최종 확인: 현재 고객의 전화번호가 있으면 무조건 사용 (모든 경우에 적용)
-              // 이 단계는 이미 위에서 customer.phone으로 설정했으므로 불필요하지만, 안전장치로 유지
-              if (customer?.phone?.trim() && safePhone !== customer.phone.trim()) {
-                console.warn(`⚠️ [전화번호 최종 교체] safePhone("${safePhone}")를 customer.phone("${customer.phone}")로 교체`);
-                safePhone = customer.phone.trim();
-              }
-              
-              // 최종 최종 확인: customer 객체가 있으면 무조건 customer.phone 사용
-              if (customer && customer.phone && customer.phone.trim()) {
-                safePhone = customer.phone.trim();
-              }
-              if (connectedReservation && connectedReservation.date && connectedReservation.time) {
-                const dateObj = new Date(`${connectedReservation.date}T${connectedReservation.time}`);
-                if (!isNaN(dateObj.getTime())) {
-                  const year = dateObj.getFullYear();
-                  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                  const day = String(dateObj.getDate()).padStart(2, '0');
-                  const hours = String(dateObj.getHours()).padStart(2, '0');
-                  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-                  dateTimeDisplay = `${year}.${month}.${day} ${hours}:${minutes}`;
-                }
-              }
-              
-              // 2순위: 텍스트/녹음에서 추출한 날짜/시간
-              if (!dateTimeDisplay) {
-                const serviceDateTimeLabel = extractServiceDateTimeLabel(visit);
-                if (serviceDateTimeLabel) {
-                  // "2025-12-27 17:30 방문/예약" -> "2025.12.27 17:30" 변환
-                  const dateTimeMatch = serviceDateTimeLabel.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})/);
-                  if (dateTimeMatch) {
-                    const [, year, month, day, hour, minute] = dateTimeMatch;
-                    dateTimeDisplay = `${year}.${month}.${day} ${hour}:${minute}`;
-                  }
-                }
-              }
-              
-              // 3순위: 저장된 날짜/시간 사용
-              if (!dateTimeDisplay && visit.serviceDate && visit.time) {
-                const dateObj = new Date(`${visit.serviceDate}T${visit.time}`);
-                if (!isNaN(dateObj.getTime())) {
-                  const year = dateObj.getFullYear();
-                  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                  const day = String(dateObj.getDate()).padStart(2, '0');
-                  const hours = String(dateObj.getHours()).padStart(2, '0');
-                  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-                  dateTimeDisplay = `${year}.${month}.${day} ${hours}:${minutes}`;
-                }
-              }
-              
-              // 4순위: formatVisitDateTime 사용 (fallback)
-              if (!dateTimeDisplay) {
-                const serviceDateTimeLabel = extractServiceDateTimeLabel(visit);
-                dateTimeDisplay = formatVisitDateTime(visit, serviceDateTimeLabel);
-              }
-
-              // 시술 내용 요약 (고객 이름 제거)
-              const displayTitle = cleanVisitTitle(
-                visit.title || visit.subject || visit.summary || '',
-                safeName
-              );
-
-              // 방문 회차 계산
-              const visitOrder = visitOrderMap.get(visit.id) || 0;
-              const isFirstVisit = visitOrder === 1;
-
-              return (
-                <div key={visit.id} className="bg-white rounded-xl shadow-sm overflow-hidden relative" style={{ padding: '12px 16px' }}>
-                  <div className="record-card-main flex flex-col relative">
-                    {/* 맨 위줄: 날짜/시간과 뱃지, 아이콘들 */}
-                    <div className="flex items-center justify-between mb-2">
-                      <div 
-                        className="flex items-center gap-2"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
-                        }}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        {dateTimeDisplay && (
-                          <span className="text-xs font-bold text-[#C9A27A]">
-                            {dateTimeDisplay}
-                          </span>
-                        )}
-                        {/* 방문 회차 뱃지 (날짜 오른쪽) */}
-                        {visitOrder > 0 && (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-100 text-orange-600">
-                            {visitOrder}회차
-                          </span>
-                        )}
-                      </div>
-                      
-                      {/* 편집 버튼과 화살표 아이콘 (우측 상단) */}
-                      <div className="flex items-center gap-2">
-                        {/* 편집 버튼 */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // 편집 화면으로 이동 (visit과 customer 함께 전달)
-                            // "고객 기본 정보" 섹션의 첫 번째 줄을 보정된 값으로 업데이트
-                            const sections = normalizedVisit.detail?.sections || [];
-                            const basicInfoSectionIndex = sections.findIndex(
-                              section => section.title && section.title.includes('고객 기본 정보')
-                            );
-                            
-                            if (basicInfoSectionIndex !== -1 && sections[basicInfoSectionIndex].content.length > 0) {
-                              const firstLine = `이름: ${safeName} / 전화번호: ${safePhone}`;
-                              sections[basicInfoSectionIndex] = {
-                                ...sections[basicInfoSectionIndex],
-                                content: [
-                                  firstLine,
-                                  ...sections[basicInfoSectionIndex].content.slice(1)
-                                ]
-                              };
-                            }
-                            
-                            const editData = {
-                              title: normalizedVisit.title,
-                              sections: sections
-                            };
-                            setTempResultData(editData);
-                            setEditingVisit(normalizedVisit);
-                            setEditingCustomer(customer);
-                            
-                            // 편집 중인 방문의 태그를 ID 배열로 변환
-                            const visitTagIds = convertVisitTagsToIds(normalizedVisit.tags || [], allVisitTags);
-                            setEditingVisitTagIds(visitTagIds);
-                            
-                            setCurrentScreen(SCREENS.EDIT);
-                          }}
-                          className="p-1 hover:bg-gray-100 rounded transition-colors"
-                          style={{ color: '#C9A27A' }}
-                        >
-                          <Edit size={18} />
-                        </button>
-                        {/* 화살표 아이콘 */}
-                        <button 
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
-                          }}
-                          className="p-1 hover:bg-gray-100 rounded transition-colors"
-                          style={{ color: '#C9A27A' }}
-                        >
-                          {expandedVisitId === visit.id ? (
-                            <ChevronUp size={20} />
-                          ) : (
-                            <ChevronDown size={20} />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* 태그 리스트 */}
-                    {visit.tags && visit.tags.length > 0 && (
-                      <div className="mb-2 max-h-[70px] overflow-hidden flex flex-wrap gap-1.5">
-                        {visit.tags.map((tag, idx) => (
-                          <span 
-                            key={idx}
-                            className="text-[11px] px-2 py-1 rounded-md"
-                            style={{ 
-                              backgroundColor: '#F2F0E6',
-                              color: '#8C6D46'
-                            }}
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* 아랫줄: 시술 내용 */}
-                    <div 
-                      className="mt-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setExpandedVisitId(expandedVisitId === visit.id ? null : visit.id);
-                      }}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <div className="text-sm text-[#232323]/80 font-medium truncate">
-                        {displayTitle}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {expandedVisitId === visit.id && normalizedVisit.detail && (
-                    <div className="px-5 pb-5 space-y-5 border-t border-gray-200 pt-5 bg-gray-50">
-                      {normalizedVisit.detail.sections.map((section, idx) => {
-                        // section.title을 안전하게 문자열로 변환
-                        const safeSectionTitle = typeof section.title === 'string' 
-                          ? section.title 
-                          : (typeof section.title === 'object' && section.title !== null 
-                            ? JSON.stringify(section.title, null, 2) 
-                            : String(section.title || ''));
-                        
-                        // [고객 기본 정보] 섹션인지 확인
-                        const isCustomerInfoSection = safeSectionTitle.includes('고객 기본 정보') || 
-                                                     safeSectionTitle.includes('고객 정보') ||
-                                                     safeSectionTitle.toLowerCase().includes('customer');
-                        
-                        // 고객 기본 정보 섹션인 경우 content를 특정 형식으로 변환
-                        let formattedContent = section.content;
-                        if (isCustomerInfoSection) {
-                          const customerName = normalizedVisit.detail?.customerInfo?.name || 
-                                              normalizedVisit.detail?.customer?.name ||
-                                              customer?.name || 
-                                              safeName || '';
-                          const customerPhone = normalizedVisit.detail?.customerInfo?.phone || 
-                                               normalizedVisit.detail?.customer?.phone ||
-                                              customer?.phone || 
-                                              safePhone || '';
-                          
-                          formattedContent = [];
-                          if (customerName && customerName !== '이름 미입력') {
-                            formattedContent.push(`이름: ${customerName}`);
-                          }
-                          if (customerPhone && customerPhone !== '전화번호 미기재') {
-                            formattedContent.push(`전화번호: ${customerPhone}`);
-                          }
-                          // 기존 content가 있으면 추가 (이름/전화번호가 아닌 다른 정보)
-                          section.content.forEach(item => {
-                            const itemStr = typeof item === 'string' ? item : String(item || '');
-                            if (itemStr && 
-                                !itemStr.includes('이름:') && 
-                                !itemStr.includes('전화번호:') &&
-                                !itemStr.includes('name:') &&
-                                !itemStr.includes('phone:')) {
-                              formattedContent.push(itemStr);
-                            }
-                          });
-                        }
-                        
-                        return (
-                          <div key={idx}>
-                            <h5 className="text-base font-bold mb-3" style={{ color: '#232323' }}>
-                              {safeSectionTitle}
-                            </h5>
-                            <ul className="space-y-2">
-                              {formattedContent.map((item, i) => (
-                                <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
-                                  {isCustomerInfoSection ? item : overrideCustomerInfoLine(item, customer)}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        );
-                      })}
-                      
-                      {/* 기록 일시 (카드 하단) */}
-                      {(() => {
-                        const recordedAt = visit.recordedAt || (visit.date && visit.time ? `${visit.date}T${visit.time}:00` : null);
-                        return recordedAt ? (
-                          <div className="visit-detail-footer">
-                            기록 일시: {formatRecordDateTime(recordedAt)}
-                          </div>
-                        ) : null;
-                      })()}
-                    </div>
-                  )}
-                </div>
-              );
-            })
+            processedVisits.map((processed) => (
+              <VisitHistoryItem
+                key={processed.visit.id}
+                visit={processed.visit}
+                customer={customer}
+                visitOrder={processed.visitOrder}
+                connectedReservation={processed.connectedReservation}
+                dateTimeDisplay={processed.dateTimeDisplay}
+                displayTitle={processed.displayTitle}
+                normalizedVisit={processed.normalizedVisit}
+                safeName={processed.safeName}
+                safePhone={processed.safePhone}
+                expandedVisitId={expandedVisitId}
+                setExpandedVisitId={setExpandedVisitId}
+                setTempResultData={setTempResultData}
+                setEditingVisit={setEditingVisit}
+                setEditingCustomer={setEditingCustomer}
+                setEditingVisitTagIds={setEditingVisitTagIds}
+                setCurrentScreen={setCurrentScreen}
+                allVisitTags={allVisitTags}
+                convertVisitTagsToIds={convertVisitTagsToIds}
+                extractServiceDateTimeLabel={extractServiceDateTimeLabel}
+                overrideCustomerInfoLine={overrideCustomerInfoLine}
+                formatRecordDateTime={formatRecordDateTime}
+                SCREENS={SCREENS}
+              />
+            ))
           )}
           
           {/* 이전 기록 더 보기 / 접기 버튼 */}
