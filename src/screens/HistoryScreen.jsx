@@ -1,6 +1,6 @@
 // src/screens/HistoryScreen.jsx
 import React, { useEffect, useRef, useMemo } from 'react';
-import { ArrowLeft, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Calendar, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { formatRecordDateTime } from '../utils/date';
 import { SCREENS } from '../constants/screens';
 
@@ -424,19 +424,24 @@ function HistoryScreen({
                   const connectedReservation = findConnectedReservation(record);
                   const reservationTime = connectedReservation ? connectedReservation.time : null;
                   
-                  // 시간 표시 레이블 생성
-                  const reservationTimeLabel = (() => {
+                  // 시간 표시 레이블 생성 (시간만 추출)
+                  const reservationTimeDisplay = (() => {
                     if (reservationTime) {
                       const timeStr = String(reservationTime).trim();
                       if (/^\d{1,2}:\d{2}/.test(timeStr)) {
                         const [hour, minute] = timeStr.split(':');
                         const hh = String(parseInt(hour, 10)).padStart(2, '0');
                         const mm = String(parseInt(minute, 10)).padStart(2, '0');
-                        return `${hh}:${mm} 예약`;
+                        return `${hh}:${mm}`;
                       }
-                      return `${reservationTime} 예약`;
+                      return timeStr;
                     }
-                    return record.timeLabel || '';
+                    // record.timeLabel에서 시간만 추출
+                    if (record.timeLabel) {
+                      const timeMatch = record.timeLabel.match(/(\d{1,2}:\d{2})/);
+                      return timeMatch ? timeMatch[1] : record.timeLabel;
+                    }
+                    return null;
                   })();
                   
                   // 고객 상세 페이지로 이동 핸들러
@@ -469,17 +474,18 @@ function HistoryScreen({
                     <div key={record.id} className="bg-white rounded-xl shadow-sm overflow-hidden relative" style={{ padding: '12px 16px' }}>
                       <div className="record-card-main flex flex-col relative">
                         {/* 맨 위줄: 날짜/시간 */}
-                        {reservationTimeLabel && (
+                        {reservationTimeDisplay && (
                           <div 
-                            className="mb-1"
+                            className="mb-1 flex items-center gap-1"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleRecordClick(record);
                             }}
                             style={{ cursor: 'pointer' }}
                           >
+                            <Clock size={12} style={{ color: accentColor }} />
                             <span className="text-xs font-bold" style={{ color: accentColor }}>
-                              {reservationTimeLabel}
+                              {reservationTimeDisplay}
                             </span>
                           </div>
                         )}

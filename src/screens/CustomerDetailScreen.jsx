@@ -464,9 +464,9 @@ function CustomerDetailScreen({
         </button>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-8 space-y-6 pb-40">
+      <main className="flex-1 overflow-y-auto px-5 pt-5 space-y-4 pb-40">
         {/* 고객 정보 카드 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 relative">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 relative" style={{ padding: '12px 16px' }}>
           {/* 편집 버튼 */}
           <button
             onClick={() => {
@@ -482,13 +482,13 @@ function CustomerDetailScreen({
               
               setCurrentScreen(SCREENS.EDIT_CUSTOMER);
             }}
-            className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
+            className="absolute top-3 right-3 p-2 rounded-full hover:bg-gray-100 transition-colors"
             style={{ color: '#C9A27A' }}
             title="편집"
           >
             <Edit size={20} />
           </button>
-          <div className="flex items-center gap-6 mb-6">
+          <div className="flex items-center gap-6 mb-4">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
                 <h3 className="font-bold text-2xl" style={{ color: '#232323' }}>{customer.name}</h3>
@@ -889,18 +889,6 @@ function CustomerDetailScreen({
                   {expandedVisitId === visit.id && normalizedVisit.detail && (
                     <div className="px-5 pb-5 space-y-5 border-t border-gray-200 pt-5 bg-gray-50">
                       {normalizedVisit.detail.sections.map((section, idx) => {
-                        // "고객 기본 정보" 섹션의 첫 번째 줄을 보정된 값으로 표시
-                        let displayContent = section.content;
-                        if (section.title && section.title.includes('고객 기본 정보') && section.content.length > 0) {
-                          const firstLine = section.content[0];
-                          if (firstLine && firstLine.includes('이름:')) {
-                            displayContent = [
-                              `이름: ${safeName} / 전화번호: ${safePhone}`,
-                              ...section.content.slice(1)
-                            ];
-                          }
-                        }
-                        
                         // section.title을 안전하게 문자열로 변환
                         const safeSectionTitle = typeof section.title === 'string' 
                           ? section.title 
@@ -908,15 +896,52 @@ function CustomerDetailScreen({
                             ? JSON.stringify(section.title, null, 2) 
                             : String(section.title || ''));
                         
+                        // [고객 기본 정보] 섹션인지 확인
+                        const isCustomerInfoSection = safeSectionTitle.includes('고객 기본 정보') || 
+                                                     safeSectionTitle.includes('고객 정보') ||
+                                                     safeSectionTitle.toLowerCase().includes('customer');
+                        
+                        // 고객 기본 정보 섹션인 경우 content를 특정 형식으로 변환
+                        let formattedContent = section.content;
+                        if (isCustomerInfoSection) {
+                          const customerName = normalizedVisit.detail?.customerInfo?.name || 
+                                              normalizedVisit.detail?.customer?.name ||
+                                              customer?.name || 
+                                              safeName || '';
+                          const customerPhone = normalizedVisit.detail?.customerInfo?.phone || 
+                                               normalizedVisit.detail?.customer?.phone ||
+                                              customer?.phone || 
+                                              safePhone || '';
+                          
+                          formattedContent = [];
+                          if (customerName && customerName !== '이름 미입력') {
+                            formattedContent.push(`이름: ${customerName}`);
+                          }
+                          if (customerPhone && customerPhone !== '전화번호 미기재') {
+                            formattedContent.push(`전화번호: ${customerPhone}`);
+                          }
+                          // 기존 content가 있으면 추가 (이름/전화번호가 아닌 다른 정보)
+                          section.content.forEach(item => {
+                            const itemStr = typeof item === 'string' ? item : String(item || '');
+                            if (itemStr && 
+                                !itemStr.includes('이름:') && 
+                                !itemStr.includes('전화번호:') &&
+                                !itemStr.includes('name:') &&
+                                !itemStr.includes('phone:')) {
+                              formattedContent.push(itemStr);
+                            }
+                          });
+                        }
+                        
                         return (
                           <div key={idx}>
                             <h5 className="text-base font-bold mb-3" style={{ color: '#232323' }}>
                               {safeSectionTitle}
                             </h5>
                             <ul className="space-y-2">
-                              {displayContent.map((item, i) => (
+                              {formattedContent.map((item, i) => (
                                 <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
-                                  {overrideCustomerInfoLine(item, customer)}
+                                  {isCustomerInfoSection ? item : overrideCustomerInfoLine(item, customer)}
                                 </li>
                               ))}
                             </ul>
