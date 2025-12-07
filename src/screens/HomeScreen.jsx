@@ -6,6 +6,7 @@ import { format, isToday, addDays, subDays } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import InputModeToggle from '../components/InputModeToggle';
 import AppLogo from '../components/AppLogo';
+import { supabase } from '../lib/supabaseClient';
 
 /**
  * 홈 화면 컴포넌트 - 검색 및 예약 중심의 현대적인 UI
@@ -64,6 +65,8 @@ function HomeScreen({
   const [tempMemoValue, setTempMemoValue] = useState('');
   const memoInputRef = useRef(null);
   const isComposingRef = useRef(false); // 한글 조합 중인지 추적
+  // 예약 메모 임시 입력값 관리 (id -> text)
+  const [reservationMemoDrafts, setReservationMemoDrafts] = useState({});
   const [inputMode, setInputMode] = useState(() => {
     if (typeof window === 'undefined') return 'voice';
     const saved = window.localStorage.getItem('mallo_input_mode');
@@ -356,6 +359,54 @@ function HomeScreen({
     setTempMemoValue(reservation.note || '');
   };
 
+  // 메모 입력값 변경
+  const handleReservationMemoChange = (reservationId, value) => {
+    setReservationMemoDrafts((prev) => ({
+      ...prev,
+      [reservationId]: value,
+    }));
+  };
+
+  // 메모 저장 (blur 또는 Enter 시 호출)
+  const handleReservationMemoSave = async (reservation) => {
+    const reservationId = reservation.id;
+    // 초안(draft) → 없으면 기존 memo 사용
+    const draft = reservationMemoDrafts[reservationId];
+    const nextMemo = (draft ?? reservation.memo ?? '').trim();
+
+    // 메모 내용이 기존이랑 똑같으면 아무것도 안 함
+    if ((reservation.memo || '') === nextMemo) return;
+
+    try {
+      console.log('[HomeScreen] 예약 메모 저장 시도:', reservationId, nextMemo);
+
+      const { data, error } = await supabase
+        .from('reservations')
+        .update({ memo: nextMemo })
+        .eq('id', reservationId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[HomeScreen] 예약 메모 업데이트 실패:', error);
+        alert('예약 메모 저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+        return;
+      }
+
+      console.log('[HomeScreen] 예약 메모 업데이트 성공:', data);
+
+      // 로컬 reservations 상태도 같이 업데이트
+      setReservations((prev) =>
+        prev.map((r) =>
+          r.id === reservationId ? { ...r, memo: data.memo } : r
+        )
+      );
+    } catch (e) {
+      console.error('[HomeScreen] 예약 메모 업데이트 예외:', e);
+      alert('예약 메모 저장 중 오류가 발생했습니다.');
+    }
+  };
+
   return (
     <div
       className="flex flex-col h-dvh bg-[#F2F0E6] font-sans"
@@ -615,7 +666,11 @@ function HomeScreen({
                               <input
                                 ref={memoInputRef}
                                 type="text"
-                                value={tempMemoValue}
+                                value={
+                                  reservationMemoDrafts[reservation.id] ??
+                                  reservation.memo ??
+                                  ''
+                                }
                                 onCompositionStart={() => {
                                   // 한글 조합 시작
                                   isComposingRef.current = true;
@@ -627,7 +682,7 @@ function HomeScreen({
                                   // 조합 종료 후 길이 체크 및 강제 고정
                                   if (value.length > maxMemoLength) {
                                     const fixedValue = value.slice(0, maxMemoLength);
-                                    setTempMemoValue(fixedValue);
+                                    handleReservationMemoChange(reservation.id, fixedValue);
                                     // 입력값 강제 업데이트
                                     e.target.value = fixedValue;
                                   }
@@ -640,7 +695,7 @@ function HomeScreen({
                                     // 30자 초과 시 강제로 30자까지만 자르고 상태 업데이트
                                     if (value.length > maxMemoLength) {
                                       const fixedValue = value.slice(0, maxMemoLength);
-                                      setTempMemoValue(fixedValue);
+                                      handleReservationMemoChange(reservation.id, fixedValue);
                                       // 입력값 강제 업데이트 (30자가 찬 상태에서 키보드를 눌러도 글자가 절대 바뀌지 않음)
                                       e.target.value = fixedValue;
                                       return;
@@ -648,22 +703,22 @@ function HomeScreen({
                                   }
                                   
                                   // 정상 범위 내에서는 상태 업데이트
-                                  setTempMemoValue(value);
+                                  handleReservationMemoChange(reservation.id, value);
                                 }}
-                                onBlur={(e) => {
-                                  // 포커스를 잃으면 자동 저장
-                                  handleSaveMemo(e, reservation.id);
-                                }}
+                                onBlur={() => handleReservationMemoSave(reservation)}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
-                                    // Enter 키로 저장
                                     e.preventDefault();
-                                    e.target.blur(); // blur 이벤트를 트리거하여 저장
+                                    handleReservationMemoSave(reservation);
                                   } else if (e.key === 'Escape') {
                                     // Escape 키로 취소 (변경사항 무시)
                                     e.stopPropagation();
                                     setEditingMemoReservationId(null);
-                                    setTempMemoValue('');
+                                    setReservationMemoDrafts((prev) => {
+                                      const copy = { ...prev };
+                                      delete copy[reservation.id];
+                                      return copy;
+                                    });
                                   }
                                 }}
                                 onClick={(e) => {

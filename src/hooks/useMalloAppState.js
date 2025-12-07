@@ -13,6 +13,7 @@ import { SYSTEM_PROMPT } from '../constants/systemPrompt';
 import TagPickerModal from '../components/TagPickerModal';
 import CustomerTagPickerModal from '../components/CustomerTagPickerModal';
 import { supabase } from '../lib/supabaseClient';
+import useProfile from './useProfile';
 
 // 녹음 시간 제한 상수
 const MAX_RECORD_SECONDS = 120; // 2분
@@ -60,6 +61,9 @@ export default function useMalloAppState(user) {
   const [currentScreen, setCurrentScreenState] = useState(SCREENS.LOGIN);
   const [previousScreen, setPreviousScreen] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  
+  // 프로필 정보 가져오기
+  const { profile } = useProfile();
 
   // Auth 도입 후에는 내부 SCREENS.LOGIN을 더 이상 쓰지 않으므로, Login이면 자동으로 Home으로 교정
   useEffect(() => {
@@ -84,6 +88,17 @@ export default function useMalloAppState(user) {
     email: 'mallo@beauty.com',
     phone: '010-1234-5678'
   });
+  
+  // 프로필의 shop_name을 userProfile.shopName에 반영
+  useEffect(() => {
+    if (profile && profile.shop_name) {
+      setUserProfile((prev) => ({
+        ...prev,
+        shopName: profile.shop_name,
+        name: profile.owner_name || prev.name,
+      }));
+    }
+  }, [profile]);
   const [recordingTime, setRecordingTime] = useState(0);
   const [transcript, setTranscript] = useState('');
   const [rawTranscript, setRawTranscript] = useState('');
