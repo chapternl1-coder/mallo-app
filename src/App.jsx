@@ -349,6 +349,8 @@ export default function MalloApp() {
 
           refreshVisitLogs={refreshVisitLogs}
 
+          refetchVisitLogs={refetchVisitLogs}  // ✅ 태그 변경 후 Supabase 데이터 새로고침용
+
           refreshReservations={refreshReservations}
 
           refreshCustomers={refreshReservations}

@@ -704,45 +704,14 @@ function HistoryScreen({
                           // 1) 이 기록에 해당하는 Supabase visit_log 찾기
                           const supabaseLog = visitLogsById.get(record.id) || null;
 
-                          // 2) 태그 후보들 모으기
-                          //    - 항상 "record" 쪽이 제일 최신이므로 맨 앞에 둔다.
-                          //    - Supabase 쪽(supabaseLog)은 나중에 합쳐서 중복 제거.
-                          const allPossibleTagLists = [
-                            // (A) 로컬 state(record) 쪽 태그들 – 즉시 반영용
-                            record.tags,
-                            record.visitTags,
-                            record.detail?.tags,
-                            record.summaryJson?.tags,
-                            record.summary_json?.tags,
-                            record.serviceTags,
-                            record.summaryTags,
-                            record.tagLabels,
-                            record.autoTags,
+                          // 2) Supabase 태그 찾기 (단일 진실의 원천)
+                          const supabaseTags = Array.isArray(supabaseLog?.tags)
+                            ? supabaseLog.tags
+                            : [];
 
-                            // (B) Supabase visit_logs 쪽 태그들 – 새로고침/재요청 후 들어오는 데이터
-                            supabaseLog?.tags,
-                            supabaseLog?.visitTags,
-                            supabaseLog?.detail?.tags,
-                            supabaseLog?.summaryJson?.tags,
-                            supabaseLog?.summary_json?.tags,
-                            supabaseLog?.serviceTags,
-                            supabaseLog?.summaryTags,
-                            supabaseLog?.tagLabels,
-                            supabaseLog?.autoTags,
-                          ].filter((tags) => Array.isArray(tags) && tags.length > 0);
-
-                          // 3) 모든 리스트를 합치고, 중복 제거
-                          let mergedTags = [];
-                          if (allPossibleTagLists.length > 0) {
-                            const tagSet = new Set();
-                            allPossibleTagLists.forEach((list) => {
-                              list.forEach((t) => tagSet.add(t));
-                            });
-                            mergedTags = Array.from(tagSet);
-                          }
-
-                          // 4) 최종 화면용 태그
-                          const serviceTags = mergedTags;
+                          // 3) 화면 표시는 Supabase 태그를 우선 사용
+                          //    로컬 태그는 Supabase 업데이트용으로만 사용 (CustomerDetailScreen에서 처리)
+                          const serviceTags = Array.isArray(supabaseTags) ? supabaseTags : [];
                           
                           return serviceTags && serviceTags.length > 0 ? (
                             <div 

@@ -2,7 +2,8 @@
 import React from 'react';
 import { ArrowLeft, X, Minus } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
-import { runAutoTagMatchingForVisit } from '../utils/tagMatching';
+import { supabase } from '../lib/supabaseClient'; // 🔥 새로 추가
+// ⛔ runAutoTagMatchingForVisit는 더 이상 사용하지 않으니까 삭제
 
 function EditScreen({
   tempResultData,
@@ -22,7 +23,8 @@ function EditScreen({
   setSelectedCustomerId,
   isEditingVisitTagPickerOpen,
   setIsEditingVisitTagPickerOpen,
-  TagPickerModal
+  TagPickerModal,
+  refetchVisitLogs  // ✅ Supabase 데이터 새로고침용
 }) {
   if (!tempResultData) {
     return (
@@ -196,33 +198,11 @@ function EditScreen({
         finalCustomerId: customerId
       });
 
-      // (1) 자동 태그 재매칭 실행
-      let autoMatchedIds = [];
-      try {
-        const summarySections = cleanedSections.map((section) => ({
-          title:
-            typeof section.title === 'string'
-              ? section.title
-              : String(section.title || ''),
-          content: Array.isArray(section.content)
-            ? section.content.join('\n')
-            : String(section.content || ''),
-        }));
+      // 🔥 1) 자동 태그 재매칭 ❌
+      //    → 편집 화면에서는 "사용자가 선택한 태그(editingVisitTagIds)"만 진실로 사용
+      const finalVisitTagIds = [...new Set(editingVisitTagIds)];
 
-        const { visitTags } = runAutoTagMatchingForVisit({
-          summarySections,
-          allTags: allVisitTags,
-        });
-
-        autoMatchedIds = Array.isArray(visitTags) ? visitTags : [];
-      } catch (e) {
-        console.warn('[편집 저장] 자동 태그 재매칭 실패, 기존 태그만 사용:', e);
-      }
-
-      // (2) 기존 선택 태그 + 자동 매칭 태그 합치고 중복 제거
-      const finalVisitTagIds = [...new Set([...editingVisitTagIds, ...autoMatchedIds])];
-
-      // (3) ID → 라벨 배열로 변환 (빈 값 제거)
+      // 2) ID → 라벨 배열로 변환 (빈 값 제거)
       const finalTagLabels = finalVisitTagIds
         .map((id) => {
           const tag = allVisitTags.find((t) => t.id === id);
@@ -230,9 +210,8 @@ function EditScreen({
         })
         .filter((label) => label !== null);
 
-      console.log('[편집 저장] 태그 정보:', {
+      console.log('[편집 저장] 태그 정보(자동매칭 없음):', {
         editingVisitTagIds,
-        autoMatchedIds,
         finalVisitTagIds,
         finalTagLabels,
         allVisitTagsCount: allVisitTags.length
@@ -242,18 +221,115 @@ function EditScreen({
       setVisits((prev) => {
         const updated = { ...prev };
         
-        // customerId가 없으면 초기화
+        // 1) 모든 customerId를 순회하면서 editingVisit.id로 방문 기록 찾기
+        let foundCustomerId = null;
+        let foundVisitIndex = -1;
+        
+        for (const key of Object.keys(updated)) {
+          const visitIndex = updated[key].findIndex((v) => v.id === editingVisit.id);
+          if (visitIndex !== -1) {
+            foundCustomerId = key;
+            foundVisitIndex = visitIndex;
+            break;
+          }
+        }
+        
+        // 2) customerId가 없으면 초기화
         if (!updated[customerId]) {
-          console.warn('[편집 저장] customerId가 visits에 없음, 초기화:', customerId);
           updated[customerId] = [];
         }
-
-        // 해당 customerId의 visits 배열에서 편집 중인 visit 찾기
-        const visitIndex = updated[customerId].findIndex((v) => v.id === editingVisit.id);
         
-        if (visitIndex === -1) {
-          // visit이 없으면 새로 추가
-          console.log('[편집 저장] visit이 없어서 새로 추가:', editingVisit.id);
+        // 3) 방문 기록을 찾았는지 확인
+        if (foundCustomerId && foundVisitIndex !== -1) {
+          // 기존 방문 기록을 찾았으면 해당 위치에서 업데이트
+          if (foundCustomerId !== customerId) {
+            // 다른 customerId에 있으면 제거하고 새 customerId에 추가
+            const existingVisit = updated[foundCustomerId][foundVisitIndex];
+            updated[foundCustomerId] = updated[foundCustomerId].filter((v, idx) => idx !== foundVisitIndex);
+            
+            // 새 customerId에 업데이트된 방문 기록 추가
+            const updatedVisit = {
+              ...existingVisit,
+              customerId: customerId,
+              customer_id: customerId,
+              tags: finalTagLabels,
+              tagLabels: finalTagLabels,
+              autoTags: finalTagLabels,
+              serviceTags: finalTagLabels,
+              summaryTags: finalTagLabels,
+              visitTags: finalTagLabels,
+              visitTagIds: finalVisitTagIds,
+              tagIds: finalVisitTagIds,
+              detail: {
+                ...(existingVisit.detail || {}),
+                sections: cleanedSections,
+                tags: finalTagLabels,
+                tagIds: finalVisitTagIds,
+              },
+              summaryJson: {
+                ...(existingVisit.summaryJson || {}),
+                tags: finalTagLabels,
+                tagIds: finalVisitTagIds,
+              },
+              summary_json: {
+                ...(existingVisit.summary_json || {}),
+                tags: finalTagLabels,
+                tagIds: finalVisitTagIds,
+              },
+              title: cleanedData.title || existingVisit.title,
+              customerName: currentNormalizedVisit.customerName,
+              customerPhone: currentNormalizedVisit.customerPhone,
+            };
+            updated[customerId].push(updatedVisit);
+          } else {
+            // 같은 customerId에 있으면 그 자리에서 업데이트
+            updated[customerId] = updated[customerId].map((v, idx) => {
+              if (idx !== foundVisitIndex) return v;
+              
+              const base = {
+                ...v,
+                customerName: currentNormalizedVisit.customerName,
+                customerPhone: currentNormalizedVisit.customerPhone,
+                detail: {
+                  ...(v.detail || {}),
+                  sections: cleanedSections,
+                },
+                title: cleanedData.title || v.title,
+              };
+
+              return {
+                ...base,
+                customerId: customerId,
+                customer_id: customerId,
+                tags: finalTagLabels,
+                tagLabels: finalTagLabels,
+                autoTags: finalTagLabels,
+                serviceTags: finalTagLabels,
+                summaryTags: finalTagLabels,
+                visitTags: finalTagLabels,
+                visitTagIds: finalVisitTagIds,
+                tagIds: finalVisitTagIds,
+                detail: {
+                  ...base.detail,
+                  tags: finalTagLabels,
+                  tagIds: finalVisitTagIds,
+                },
+                summaryJson: {
+                  ...(v.summaryJson || {}),
+                  tags: finalTagLabels,
+                  tagIds: finalVisitTagIds,
+                },
+                summary_json: {
+                  ...(v.summary_json || {}),
+                  tags: finalTagLabels,
+                  tagIds: finalVisitTagIds,
+                },
+              };
+            });
+          }
+        } else {
+          // 방문 기록을 찾지 못했으면 새로 추가
+          console.log('[편집 저장] 방문 기록을 찾지 못해 새로 추가:', editingVisit.id);
           const updatedVisit = {
             ...editingVisit,
             customerId: customerId,
@@ -287,97 +363,143 @@ function EditScreen({
             customerPhone: currentNormalizedVisit.customerPhone,
           };
           updated[customerId].push(updatedVisit);
-        } else {
-          // visit이 있으면 업데이트
-          updated[customerId] = updated[customerId].map((v) => {
-          if (v.id !== editingVisit.id) return v;
-
-          const base = {
-            ...v,
-            // 고객 이름/전화번호는 항상 최신 값으로 덮어쓰기
-            customerName: currentNormalizedVisit.customerName,
-            customerPhone: currentNormalizedVisit.customerPhone,
-            // detail.sections 갱신
-            detail: {
-              ...(v.detail || {}),
-              sections: cleanedSections,
-            },
-            // 제목도 여기서 같이 맞춰주기 (History 카드에서 제목을 이 필드로 쓸 수도 있어서)
-            title: cleanedData.title || v.title,
-          };
-
-          // 태그 관련 필드를 한 번에 싹 맞춰줌
-          const updatedVisit = {
-            ...base,
-            // customerId 명시적으로 설정 (중요!)
-            customerId: customerId,
-            customer_id: customerId,
-            // 실제로 화면에서 어떤 필드를 참조하든 태그가 보이도록 모두 동기화
-            tags: finalTagLabels,
-            tagLabels: finalTagLabels,
-            autoTags: finalTagLabels,
-            serviceTags: finalTagLabels,
-            summaryTags: finalTagLabels,
-            visitTags: finalTagLabels, // 라벨 배열로 저장 (ID 배열이 아님)
-            visitTagIds: finalVisitTagIds, // ID 배열
-            tagIds: finalVisitTagIds,
-            // detail에도 태그 정보 포함
-            detail: {
-              ...base.detail,
-              tags: finalTagLabels,
-              tagIds: finalVisitTagIds,
-            },
-            // summaryJson에도 태그 정보 포함
-            summaryJson: {
-              ...(v.summaryJson || {}),
-              tags: finalTagLabels,
-              tagIds: finalVisitTagIds,
-            },
-            summary_json: {
-              ...(v.summary_json || {}),
-              tags: finalTagLabels,
-              tagIds: finalVisitTagIds,
-            },
-          };
-
-          console.log('[편집 저장] 업데이트된 visit:', {
-            id: updatedVisit.id,
-            customerId: customerId,
-            tags: updatedVisit.tags,
-            visitTags: updatedVisit.visitTags,
-            detailTags: updatedVisit.detail?.tags,
-            summaryJsonTags: updatedVisit.summaryJson?.tags
-          });
-
-          return updatedVisit;
-        });
         }
 
-        // localStorage 저장은 useEffect에서 자동으로 처리되지만, 
-        // 즉시 반영을 위해 여기서도 저장
+        // localStorage 저장
         try {
           localStorage.setItem('mallo_visits', JSON.stringify(updated));
           console.log('[편집 저장] localStorage 저장 완료 (mallo_visits)');
-          
-          // 저장 후 검증: 실제로 저장되었는지 확인
-          const saved = JSON.parse(localStorage.getItem('mallo_visits') || '{}');
-          const savedVisit = saved[customerId]?.find(v => v.id === editingVisit.id);
-          console.log('[편집 저장] 저장 검증:', {
-            customerId,
-            visitId: editingVisit.id,
-            savedVisitExists: !!savedVisit,
-            savedVisitTags: savedVisit?.tags,
-            savedVisitVisitTags: savedVisit?.visitTags,
-            savedVisitCustomerId: savedVisit?.customerId || savedVisit?.customer_id,
-            updatedKeys: Object.keys(updated),
-            updatedCustomerVisitsCount: updated[customerId]?.length
-          });
         } catch (e) {
           console.warn('[편집 저장] localStorage(mallo_visits) 저장 실패:', e);
         }
 
         return updated;
       });
+
+      // 🔥 Supabase visit_logs.tags도 동시에 업데이트 (있으면)
+      // UUID 검증: Supabase에 저장된 방문 기록만 업데이트
+      const isValidUuid = (value) => {
+        if (typeof value !== 'string') return false;
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+      };
+
+      // 🔥 Supabase visit_logs.tags 업데이트 및 로컬 저장소 동기화
+      // ⚠️ 중요: await로 기다려서 업데이트가 완료된 후 화면 전환
+      if (editingVisit.id && isValidUuid(editingVisit.id)) {
+        try {
+          console.log('[편집 저장] Supabase 태그 업데이트 시작:', {
+            visitId: editingVisit.id,
+            tags: finalTagLabels,
+          });
+
+          const { error, data } = await supabase
+            .from('visit_logs')
+            .update({ tags: finalTagLabels })
+            .eq('id', editingVisit.id)
+            .select();
+
+          if (error) {
+            console.error('[편집 저장] Supabase visit_logs.tags 업데이트 실패:', {
+              visitId: editingVisit.id,
+              error,
+              tags: finalTagLabels,
+            });
+          } else {
+            console.log('[편집 저장] Supabase visit_logs.tags 업데이트 완료:', {
+              visitId: editingVisit.id,
+              tags: finalTagLabels,
+              supabaseResponse: data,
+            });
+            
+            // ✅ Supabase 업데이트 성공 후, 로컬 저장소도 Supabase 태그로 동기화
+            const supabaseTags = data && data[0]?.tags ? data[0].tags : finalTagLabels;
+            
+            console.log('[편집 저장] 로컬 저장소 동기화 시작:', {
+              visitId: editingVisit.id,
+              supabaseTags,
+            });
+
+            setVisits((prev) => {
+              const updated = { ...prev };
+              
+              // 모든 customerId를 순회하면서 해당 방문 기록 찾기
+              let found = false;
+              for (const key of Object.keys(updated)) {
+                const visitIndex = updated[key].findIndex((v) => v.id === editingVisit.id);
+                if (visitIndex !== -1) {
+                  found = true;
+                  
+                  updated[key] = updated[key].map((v, idx) => {
+                    if (idx !== visitIndex) return v;
+                    
+                    const updatedVisit = {
+                      ...v,
+                      tags: supabaseTags,
+                      tagLabels: supabaseTags,
+                      autoTags: supabaseTags,
+                      serviceTags: supabaseTags,
+                      summaryTags: supabaseTags,
+                      visitTags: supabaseTags,
+                      detail: {
+                        ...(v.detail || {}),
+                        tags: supabaseTags,
+                      },
+                      summaryJson: {
+                        ...(v.summaryJson || {}),
+                        tags: supabaseTags,
+                      },
+                      summary_json: {
+                        ...(v.summary_json || {}),
+                        tags: supabaseTags,
+                      },
+                    };
+                    
+                    console.log('[편집 저장] 방문 기록 업데이트:', {
+                      visitId: updatedVisit.id,
+                      customerId: key,
+                      tags: updatedVisit.tags,
+                    });
+                    
+                    return updatedVisit;
+                  });
+                  
+                  // localStorage에도 즉시 저장
+                  try {
+                    localStorage.setItem('mallo_visits', JSON.stringify(updated));
+                    console.log('[편집 저장] localStorage 저장 완료');
+                  } catch (e) {
+                    console.error('[편집 저장] localStorage 저장 실패:', e);
+                  }
+                  
+                  break;
+                }
+              }
+              
+              if (!found) {
+                console.warn('[편집 저장] 방문 기록을 찾지 못함:', editingVisit.id);
+              }
+              
+              return updated;
+            });
+
+            // 🔄 Supabase에서 최신 데이터 가져오기 (화면에 즉시 반영)
+            // ⚠️ await로 기다려서 최신 데이터를 가져온 후 화면 전환
+            if (refetchVisitLogs) {
+              console.log('[편집 저장] Supabase 데이터 새로고침 시작');
+              try {
+                await refetchVisitLogs();
+                console.log('[편집 저장] Supabase 데이터 새로고침 완료');
+              } catch (e) {
+                console.error('[편집 저장] Supabase 데이터 새로고침 실패:', e);
+              }
+            }
+          }
+        } catch (e) {
+          console.error('[편집 저장] Supabase visit_logs.tags 업데이트 예외:', e);
+        }
+      } else if (editingVisit.id) {
+        console.log('[편집 저장] 로컬 방문 기록이므로 Supabase 업데이트 생략:', editingVisit.id);
+      }
 
       // (5) 편집용 editingVisit / editingVisitTagIds 도 동일하게 맞춰두기
       setEditingVisit((prev) => {

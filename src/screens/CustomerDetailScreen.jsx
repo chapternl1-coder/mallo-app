@@ -1294,195 +1294,29 @@ function CustomerDetailScreen({
 
 
 
-      // Supabase 에 이미 있는 태그
-
-      const supabaseTags =
-
-        (Array.isArray(supabaseVisit.tags) && supabaseVisit.tags) || [];
-
-
-
-      // 로컬 visit에서 태그 찾기 (모든 가능한 위치 확인)
-
-      const localTags = 
-
-        (Array.isArray(localVisit.tags) && localVisit.tags.length > 0 && localVisit.tags) ||
-
-        (Array.isArray(localVisit.visitTags) && localVisit.visitTags.length > 0 && localVisit.visitTags) ||
-
-        (Array.isArray(localVisit.detail?.tags) && localVisit.detail.tags.length > 0 && localVisit.detail.tags) ||
-
-        (Array.isArray(localVisit.summaryJson?.tags) && localVisit.summaryJson.tags.length > 0 && localVisit.summaryJson.tags) ||
-
-        (Array.isArray(localVisit.summary_json?.tags) && localVisit.summary_json.tags.length > 0 && localVisit.summary_json.tags) ||
-
-        (Array.isArray(localVisit.serviceTags) && localVisit.serviceTags.length > 0 && localVisit.serviceTags) ||
-
-        (Array.isArray(localVisit.summaryTags) && localVisit.summaryTags.length > 0 && localVisit.summaryTags) ||
-
-        (Array.isArray(localVisit.tagLabels) && localVisit.tagLabels.length > 0 && localVisit.tagLabels) ||
-
-        (Array.isArray(localVisit.autoTags) && localVisit.autoTags.length > 0 && localVisit.autoTags) ||
-
-        null;
-
-
-
-      // ✅ Supabase 태그 + 로컬 태그 합집합 만들기
-
-      let mergedTags = supabaseTags;
-
-      if (localTags && localTags.length > 0) {
-
-        const tagSet = new Set();
-
-        supabaseTags.forEach((t) => tagSet.add(t));
-
-        localTags.forEach((t) => tagSet.add(t));
-
-        mergedTags = Array.from(tagSet);
-
-      }
-
-
-
-      // ✅ Supabase 쪽 tags 컬럼도 한 번만 업데이트
-
-      if (
-
-        mergedTags &&
-
-        mergedTags.length > 0 &&
-
-        supabaseVisit.id &&
-
-        JSON.stringify(mergedTags) !== JSON.stringify(supabaseTags) &&
-
-        !syncedVisitTagsRef.current.has(supabaseVisit.id)
-
-      ) {
-
-        syncedVisitTagsRef.current.add(supabaseVisit.id);
-
-
-
-        supabase
-
-          .from('visit_logs')
-
-          .update({ tags: mergedTags })
-
-          .eq('id', supabaseVisit.id)
-
-          .then(({ error }) => {
-
-            if (error) {
-
-              console.warn('[CustomerDetail] visit_logs 태그 Supabase 동기화 실패:', {
-
-                visitId: supabaseVisit.id,
-
-                error,
-
-              });
-
-              // 실패하면 다시 시도할 수 있도록 ref 에서 제거
-
-              syncedVisitTagsRef.current.delete(supabaseVisit.id);
-
-            } else {
-
-              console.log('[CustomerDetail] visit_logs 태그 Supabase 동기화 완료:', {
-
-                visitId: supabaseVisit.id,
-
-                before: supabaseTags,
-
-                local: localTags,
-
-                merged: mergedTags,
-
-              });
-
-            }
-
-          });
-
-      }
-
-
-
-      if (mergedTags && mergedTags.length > 0) {
-
-        console.log('[CustomerDetail] 태그 병합 성공:', {
-
-          visitId: supabaseVisit.id,
-
-          localVisitId: localVisit.id,
-
-          supabaseTags,
-
-          localTags,
-
-          mergedTags,
-
-        });
-
-        
-
-        return {
-
-          ...supabaseVisit,
-
-          tags: mergedTags,
-
-          visitTags: mergedTags,
-
-          detail: {
-
-            ...supabaseVisit.detail,
-
-            tags: mergedTags,
-
-          },
-
-          summaryJson: {
-
-            ...supabaseVisit.summaryJson,
-
-            tags: mergedTags,
-
-          },
-
-          summary_json: {
-
-            ...supabaseVisit.summary_json,
-
-            tags: mergedTags,
-
-          },
-
-        };
-
-      } else {
-
-        console.log('[CustomerDetail] 로컬+Supabase 태그 모두 없음:', {
-
-          visitId: supabaseVisit.id,
-
-          localVisitId: localVisit.id,
-
-          supabaseTags,
-
-          localTags,
-
-        });
-
-      }
-
-
-
-      return supabaseVisit;
+      // ✅ Supabase를 단일 진실의 원천으로 사용
+      // 로컬 태그는 완전히 무시하고 항상 Supabase 태그만 사용
+      const normalizedTags = Array.isArray(supabaseVisit.tags)
+        ? supabaseVisit.tags
+        : [];
+
+      return {
+        ...supabaseVisit,
+        tags: normalizedTags,
+        visitTags: normalizedTags,
+        detail: {
+          ...supabaseVisit.detail,
+          tags: normalizedTags,
+        },
+        summaryJson: {
+          ...supabaseVisit.summaryJson,
+          tags: normalizedTags,
+        },
+        summary_json: {
+          ...supabaseVisit.summary_json,
+          tags: normalizedTags,
+        },
+      };
 
     });
 
