@@ -558,20 +558,10 @@ function EditScreen({
     setEditingVisitTagIds([]);
 
     if (editingVisit) {
-      // 고객 상세에서 온 경우 → 다시 고객 상세
-      // 🔄 강제 재렌더링: HISTORY 화면을 거쳐서 가기
-      console.log('[편집 저장] 고객 상세 화면으로 이동 (강제 재렌더링)');
+      // 고객 상세에서 온 경우 → 바로 고객 상세로 복귀 (중간 화면 없이)
       const currentCustomerId = editingCustomer?.id || editingVisit.customerId || editingVisit.customer_id;
-      
-      // 1단계: HISTORY 화면으로 전환 (CustomerDetailScreen 언마운트)
-      setCurrentScreen(SCREENS.HISTORY);
-      
-      // 2단계: 즉시 다시 CUSTOMER_DETAIL로 전환 (새로운 props로 재마운트)
-      setTimeout(() => {
-        setSelectedCustomerId(currentCustomerId);
+      setSelectedCustomerId(currentCustomerId);
       setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
-        console.log('[편집 저장] 고객 상세 화면 재마운트 완료');
-      }, 50);
     } else {
       // 녹음/키보드 요약에서 온 경우 → 다시 요약 결과
       console.log('[편집 저장] 기록 화면으로 이동');
@@ -711,7 +701,9 @@ function EditScreen({
                           prev.filter(id => id !== tag.id)
                         );
                       }}
-                      className="px-3 py-1.5 rounded-full text-sm font-medium transition-all bg-[#C9A27A] text-white shadow-sm hover:opacity-80 flex items-center gap-1"
+                      className="px-4 py-2 rounded-full text-sm font-semibold transition-transform duration-150 bg-[#C9A27A] text-white shadow-sm hover:opacity-90 active:scale-95 flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#C9A27A]"
+                      aria-label={`${tag.label} 태그 삭제`}
+                      title="태그 삭제"
                     >
                       {tag.label}
                       <X size={14} />

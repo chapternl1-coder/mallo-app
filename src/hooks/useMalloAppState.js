@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { SCREENS } from '../constants/screens';
 import { BEAUTY_THEME } from '../theme/beautyTheme';
 import { MOCK_CUSTOMERS } from '../mock/customers';
@@ -199,6 +199,20 @@ export default function useMalloAppState(user) {
   const [recommendedTagIds, setRecommendedTagIds] = useState([]);
   const [selectedTagIds, setSelectedTagIds] = useState([]);
   const [isTagPickerOpen, setIsTagPickerOpen] = useState(false);
+  const tagSyncChannelRef = useRef(null);
+  const tagSyncClientIdRef = useRef(`tag-sync-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  const tagSyncReadyRef = useRef(false);
+  const lastServerVisitTagsRef = useRef(null);
+  const lastServerCustomerTagsRef = useRef(null);
+  const latestVisitTagsRef = useRef(null);
+  const latestCustomerTagsRef = useRef(null);
+  const fetchInFlightRef = useRef(false);
+  const syncCooldownUntilRef = useRef(0);
+  const lastWarnAtRef = useRef(0);
+  const customerTagsFetchInFlightRef = useRef(false);
+  // Supabase 정책과 동일한 공용 owner_id (테스트/비로그인용)
+  const TAG_SYNC_PUBLIC_OWNER_ID = '0b788d1e-b1cf-4a94-aab9-4c57a09cca28';
+  const effectiveOwnerId = useMemo(() => user?.id || TAG_SYNC_PUBLIC_OWNER_ID, [user?.id]);
   
   const DEV_MODE = true; // 개발용 요약 테스트 박스 표시 여부
   const [testSummaryInput, setTestSummaryInput] = useState('');
@@ -269,6 +283,221 @@ export default function useMalloAppState(user) {
   });
   
   const [tempResultData, setTempResultData] = useState(null);
+
+  // 로컬스토리지에서 최신 태그를 다시 불러오는 헬퍼
+  const refreshTagsFromStorage = () => {
+    try {
+      const savedVisit = localStorage.getItem('visitTags');
+      if (savedVisit) {
+        const parsed = migrateTagsToObjects(JSON.parse(savedVisit));
+        if (JSON.stringify(parsed) !== JSON.stringify(visitTags)) {
+          setVisitTags(parsed);
+        }
+      }
+    } catch (e) {
+      console.warn('[태그 동기화] visitTags 재로딩 실패', e);
+    }
+
+    try {
+      const savedCustomer = localStorage.getItem('customerTags');
+      if (savedCustomer) {
+        const parsed = migrateTagsToObjects(JSON.parse(savedCustomer));
+        if (JSON.stringify(parsed) !== JSON.stringify(customerTags)) {
+          setCustomerTags(parsed);
+        }
+      }
+    } catch (e) {
+      console.warn('[태그 동기화] customerTags 재로딩 실패', e);
+    }
+  };
+
+  // 동일 기기 내 다른 탭/창에서 localStorage 변경 시 반영
+  useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === 'visitTags' || e.key === 'customerTags') {
+        refreshTagsFromStorage();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [visitTags, customerTags]);
+
+  // 다른 화면 갔다가 돌아올 때(포커스/가시성 변경) 최신 태그 재로딩
+  useEffect(() => {
+    const handleFocus = () => refreshTagsFromStorage();
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+    };
+  }, [visitTags, customerTags]);
+
+  // Supabase에 태그 저장 (최신 상태를 테이블에 upsert)
+  useEffect(() => {
+    if (!effectiveOwnerId) return;
+    if (!canSync()) return;
+
+    const visitStr = JSON.stringify(visitTags);
+    const customerStr = JSON.stringify(customerTags);
+
+    if (
+      lastServerVisitTagsRef.current === visitStr &&
+      lastServerCustomerTagsRef.current === customerStr
+    ) {
+      return;
+    }
+
+    const saveTagsToServer = async () => {
+      try {
+        const { error } = await supabase
+          .from('tag_settings')
+          .upsert({
+            owner_id: effectiveOwnerId,
+            visit_tags: visitTags,
+            customer_tags: customerTags,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'owner_id' });
+
+        if (error) {
+          markSyncFailure('[태그 동기화] Supabase 저장 실패:', error);
+        } else {
+          lastServerVisitTagsRef.current = visitStr;
+          lastServerCustomerTagsRef.current = customerStr;
+        }
+      } catch (e) {
+        markSyncFailure('[태그 동기화] Supabase 저장 예외:', e);
+      }
+    };
+
+    saveTagsToServer();
+  }, [visitTags, customerTags, effectiveOwnerId]);
+
+  // Supabase에서 태그 불러오기 (polling + 포커스 시)
+  const fetchTagsFromServer = useCallback(
+    async (reason = 'poll') => {
+      if (!effectiveOwnerId) return;
+      if (!canSync()) return;
+      if (fetchInFlightRef.current) return;
+      fetchInFlightRef.current = true;
+      try {
+        const { data, error } = await supabase
+          .from('tag_settings')
+          .select('visit_tags, customer_tags, updated_at')
+          .eq('owner_id', effectiveOwnerId)
+          .single();
+
+        if (error) {
+          markSyncFailure(`[태그 동기화] Supabase 로드 실패(${reason}):`, error);
+          return;
+        }
+
+        if (data) {
+          const incomingVisit = migrateTagsToObjects(data.visit_tags || {});
+          const incomingCustomer = migrateTagsToObjects(data.customer_tags || {});
+
+          const visitStr = JSON.stringify(incomingVisit);
+          const customerStr = JSON.stringify(incomingCustomer);
+
+          if (visitStr !== JSON.stringify(latestVisitTagsRef.current)) {
+            setVisitTags(incomingVisit);
+          }
+          if (customerStr !== JSON.stringify(latestCustomerTagsRef.current)) {
+            setCustomerTags(incomingCustomer);
+          }
+
+          // 서버에서 가져온 값으로 동기화 기준 업데이트
+          lastServerVisitTagsRef.current = visitStr;
+          lastServerCustomerTagsRef.current = customerStr;
+        }
+      } catch (e) {
+        markSyncFailure(`[태그 동기화] Supabase 로드 예외(${reason}):`, e);
+      } finally {
+        fetchInFlightRef.current = false;
+      }
+    },
+    [effectiveOwnerId]
+  );
+
+  // Supabase에서 고객별 customer_tags를 가져와 로컬 customers에 병합
+  const fetchCustomerTagsFromServer = useCallback(
+    async (reason = 'poll') => {
+      if (!effectiveOwnerId) return;
+      if (!canSync()) return;
+      if (customerTagsFetchInFlightRef.current) return;
+      customerTagsFetchInFlightRef.current = true;
+      try {
+        const { data, error } = await supabase
+          .from('customers')
+          .select('id, customer_tags')
+          .eq('owner_id', effectiveOwnerId);
+
+        if (error) {
+          markSyncFailure(`[고객 태그 동기화] Supabase 로드 실패(${reason}):`, error);
+          return;
+        }
+
+        if (Array.isArray(data) && data.length > 0) {
+          const serverMap = new Map();
+          data.forEach((row) => {
+            if (row && row.id) {
+              serverMap.set(String(row.id), row.customer_tags || {});
+            }
+          });
+
+          setCustomers((prev) => {
+            let changed = false;
+            const updated = prev.map((c) => {
+              const serverTags = serverMap.get(String(c.id));
+              if (!serverTags) return c;
+              const currentTags = c.customerTags || {};
+              const currentStr = JSON.stringify(currentTags);
+              const serverStr = JSON.stringify(serverTags);
+              if (currentStr !== serverStr) {
+                changed = true;
+                return { ...c, customerTags: serverTags };
+              }
+              return c;
+            });
+            return changed ? updated : prev;
+          });
+        }
+      } catch (e) {
+        markSyncFailure(`[고객 태그 동기화] Supabase 로드 예외(${reason}):`, e);
+      } finally {
+        customerTagsFetchInFlightRef.current = false;
+      }
+    },
+    [effectiveOwnerId]
+  );
+
+  // 폴링 및 포커스 시 서버에서 최신 태그 가져오기
+  useEffect(() => {
+    if (!effectiveOwnerId) return undefined;
+
+    // 초기 1회 즉시 로드
+    fetchTagsFromServer('initial');
+    fetchCustomerTagsFromServer('initial');
+
+    const interval = setInterval(() => {
+      fetchTagsFromServer('interval');
+      fetchCustomerTagsFromServer('interval');
+    }, 15000); // 15초마다 폴링
+
+    const handleFocus = () => fetchTagsFromServer('focus');
+    const handleFocusAll = () => {
+      fetchTagsFromServer('focus');
+      fetchCustomerTagsFromServer('focus');
+    };
+    window.addEventListener('focus', handleFocusAll);
+    document.addEventListener('visibilitychange', handleFocusAll);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocusAll);
+      document.removeEventListener('visibilitychange', handleFocusAll);
+    };
+  }, [effectiveOwnerId, fetchTagsFromServer, fetchCustomerTagsFromServer]);
   
   useEffect(() => {
     saveToLocalStorage('mallo_customers', customers);
@@ -281,6 +510,38 @@ export default function useMalloAppState(user) {
   useEffect(() => {
     saveToLocalStorage('mallo_reservations', reservations);
   }, [reservations]);
+
+  useEffect(() => {
+    latestVisitTagsRef.current = visitTags;
+  }, []); // 초기값 한 번 세팅
+
+  useEffect(() => {
+    latestCustomerTagsRef.current = customerTags;
+  }, []); // 초기값 한 번 세팅
+
+  useEffect(() => {
+    latestVisitTagsRef.current = visitTags;
+  }, [visitTags]);
+
+  useEffect(() => {
+    latestCustomerTagsRef.current = customerTags;
+  }, [customerTags]);
+
+  const canSync = () => {
+    const now = Date.now();
+    if (syncCooldownUntilRef.current > now) return false;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+    return true;
+  };
+
+  const markSyncFailure = (msg, error) => {
+    const now = Date.now();
+    syncCooldownUntilRef.current = now + 30000; // 30초 쿨다운
+    if (lastWarnAtRef.current + 15000 < now) {
+      console.warn(msg, error || '');
+      lastWarnAtRef.current = now;
+    }
+  };
 
   // 기존 예약 데이터에 isNew 플래그 마이그레이션
   useEffect(() => {
@@ -517,6 +778,58 @@ export default function useMalloAppState(user) {
     const converted = convertCustomerTagsToArray(customerTags);
     setAllCustomerTags(converted);
   }, [customerTags]);
+
+  // 태그 설정을 Supabase Realtime으로 동기화 (PC/모바일 간 새로고침 없이 반영)
+  useEffect(() => {
+    const channel = supabase.channel('tag-settings');
+    tagSyncChannelRef.current = channel;
+
+    channel
+      .on('broadcast', { event: 'tags-updated' }, (payload) => {
+        const { sender, visitTags: incomingVisitTags, customerTags: incomingCustomerTags } = payload?.payload || {};
+        if (!payload || sender === tagSyncClientIdRef.current) return; // 내 이벤트 무시
+
+        if (incomingVisitTags) {
+          setVisitTags(migrateTagsToObjects(incomingVisitTags));
+        }
+        if (incomingCustomerTags) {
+          setCustomerTags(migrateTagsToObjects(incomingCustomerTags));
+        }
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          tagSyncReadyRef.current = true;
+          console.log('[태그 동기화] Realtime 구독 완료:', tagSyncClientIdRef.current);
+        }
+      });
+
+    return () => {
+      tagSyncReadyRef.current = false;
+      channel.unsubscribe();
+      tagSyncChannelRef.current = null;
+    };
+  }, []);
+
+  // 태그 변경 시 다른 클라이언트로 브로드캐스트
+  useEffect(() => {
+    if (!tagSyncChannelRef.current || !tagSyncReadyRef.current) return;
+    const sendUpdate = async () => {
+      const { error } = await tagSyncChannelRef.current.send({
+        type: 'broadcast',
+        event: 'tags-updated',
+        payload: {
+          sender: tagSyncClientIdRef.current,
+          visitTags,
+          customerTags,
+          updatedAt: Date.now(),
+        },
+      });
+      if (error) {
+        console.warn('[태그 동기화] 브로드캐스트 실패:', error);
+      }
+    };
+    sendUpdate();
+  }, [visitTags, customerTags]);
 
   useEffect(() => {
     if (customerTags.payment && customerTags.payment.length > 0) {

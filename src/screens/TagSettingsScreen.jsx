@@ -368,7 +368,9 @@ function TagSettingsScreen({
                     {isTagEditing && (
                       <button
                         onClick={() => handleDeleteTag(idx)}
-                        className="ml-1 hover:opacity-70 transition-opacity"
+                        className="ml-1 p-1 rounded-full hover:opacity-80 active:scale-90 transition transform duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#C9A27A]"
+                        aria-label="태그 삭제"
+                        title="태그 삭제"
                         style={{ color: isCautionTab ? '#DC2626' : (isFeatureTab ? '#1E40AF' : '#B8A08A') }}
                       >
                         <X size={14} />

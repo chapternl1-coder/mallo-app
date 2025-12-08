@@ -1212,185 +1212,54 @@ function CustomerDetailScreen({
   // 3) Supabase + 로컬 방문 기록 합치기 및 정렬 (성능 최적화: useMemo로 메모이제이션)
 
   const uniqueSortedCustomerVisits = React.useMemo(() => {
-
-    // 로컬 visits를 Map으로 변환하여 빠른 조회 가능하도록 함
-
-    const localVisitsMap = new Map();
-
-    localCustomerVisits.forEach((visit) => {
-
-      if (visit && visit.id) {
-
-        localVisitsMap.set(visit.id, visit);
-
-      }
-
-    });
-
-
-
-    console.log('[CustomerDetail] 병합 전:', {
-
-      supabaseVisitsCount: supabaseCustomerVisits.length,
-
-      localVisitsCount: localCustomerVisits.length,
-
-      localVisitsMapSize: localVisitsMap.size,
-
-      localVisitIds: Array.from(localVisitsMap.keys()).slice(0, 5),
-
-      supabaseVisitIds: supabaseCustomerVisits.map(v => v.id).slice(0, 5)
-
-    });
-
-
-
-    // Supabase 방문 기록에 로컬 태그 정보 병합
-
-    // ID로 직접 매칭이 안 될 경우를 대비해 날짜/시간/제목으로도 매칭 시도
-
-    const mergedSupabaseVisits = supabaseCustomerVisits.map((supabaseVisit) => {
-
-      // 1순위: ID로 직접 매칭
-
-      let localVisit = localVisitsMap.get(supabaseVisit.id);
-
-      
-
-      // 2순위: ID 매칭 실패 시 날짜/시간/제목으로 매칭
-
-      if (!localVisit) {
-
-        const supabaseDate = supabaseVisit.serviceDate || supabaseVisit.date;
-
-        const supabaseTime = supabaseVisit.serviceTime || supabaseVisit.time;
-
-        const supabaseTitle = supabaseVisit.title || '';
-
-        
-
-        localVisit = localCustomerVisits.find((lv) => {
-
-          const localDate = lv.serviceDate || lv.date;
-
-          const localTime = lv.serviceTime || lv.time;
-
-          const localTitle = lv.title || '';
-
-          
-
-          return (
-
-            localDate === supabaseDate &&
-
-            localTime === supabaseTime &&
-
-            localTitle === supabaseTitle
-
-          );
-
-        });
-
-      }
-
-      
-
-      if (!localVisit) {
-
-        // 로컬에 없으면 Supabase 데이터 그대로 사용
-
-        return supabaseVisit;
-
-      }
-
-
-
-      // ✅ Supabase를 단일 진실의 원천으로 사용
-      // 로컬 태그는 완전히 무시하고 항상 Supabase 태그만 사용
-      const normalizedTags = Array.isArray(supabaseVisit.tags)
-        ? supabaseVisit.tags
-        : [];
-
-      return {
-        ...supabaseVisit,
-        tags: normalizedTags,
-        visitTags: normalizedTags,
-        detail: {
-          ...supabaseVisit.detail,
+    // Supabase에 데이터가 있으면 Supabase를 단일 진실의 원천으로 사용
+    if (supabaseCustomerVisits.length > 0) {
+      const normalizedSupabase = supabaseCustomerVisits.map((v) => {
+        const normalizedTags = Array.isArray(v.tags) ? v.tags : [];
+        return {
+          ...v,
           tags: normalizedTags,
-        },
-        summaryJson: {
-          ...supabaseVisit.summaryJson,
-          tags: normalizedTags,
-        },
-        summary_json: {
-          ...supabaseVisit.summary_json,
-          tags: normalizedTags,
-        },
-      };
+          visitTags: normalizedTags,
+          detail: { ...(v.detail || {}), tags: normalizedTags },
+          summaryJson: { ...(v.summaryJson || {}), tags: normalizedTags },
+          summary_json: { ...(v.summary_json || {}), tags: normalizedTags },
+        };
+      });
 
-    });
+      const sorted = [...normalizedSupabase].sort((a, b) => {
+        const dateA = (a.serviceDate || a.date || '').toString();
+        const dateB = (b.serviceDate || b.date || '').toString();
+        if (dateA !== dateB) return dateB.localeCompare(dateA);
+        const tA = (a.serviceTime || a.time || '').toString();
+        const tB = (b.serviceTime || b.time || '').toString();
+        return tB.localeCompare(tA);
+      });
 
+      const map = new Map();
+      sorted.forEach((visit) => {
+        if (visit && visit.id && !map.has(visit.id)) {
+          map.set(visit.id, visit);
+        }
+      });
+      return Array.from(map.values());
+    }
 
-
-    // Supabase + 로컬 방문 기록 합치기 (로컬에만 있는 것들도 포함)
-
-    const mergedVisits = [...mergedSupabaseVisits, ...localCustomerVisits];
-
-
-
-    // 날짜와 시간 기준 내림차순 정렬 (최신 것이 위에 오도록)
-
-    const sorted = [...mergedVisits].sort((a, b) => {
-
-      // 날짜 비교 (serviceDate -> date 순으로 사용)
-
+    // Supabase 데이터가 없을 때만 로컬 visits 사용
+    const sortedLocal = [...localCustomerVisits].sort((a, b) => {
       const dateA = (a.serviceDate || a.date || '').toString();
-
       const dateB = (b.serviceDate || b.date || '').toString();
-
-      
-
-      // 날짜가 다르면 날짜 기준으로 내림차순 정렬
-
-      if (dateA !== dateB) {
-
-        return dateB.localeCompare(dateA); // 내림차순
-
-      }
-
-      
-
-      // 날짜가 같으면 시간 기준으로 내림차순 정렬
-
-    const tA = (a.serviceTime || a.time || '').toString();
-
-    const tB = (b.serviceTime || b.time || '').toString();
-
-      return tB.localeCompare(tA); // 내림차순
-
-  });
-
-
-
-    // 중복 제거: 같은 visit.id가 여러 번 들어와도 처음 것만 유지
+      if (dateA !== dateB) return dateB.localeCompare(dateA);
+      const tA = (a.serviceTime || a.time || '').toString();
+      const tB = (b.serviceTime || b.time || '').toString();
+      return tB.localeCompare(tA);
+    });
 
     const map = new Map();
-
-    sorted.forEach((visit) => {
-
-      if (!visit || !visit.id) return;
-
-      if (!map.has(visit.id)) {
-
+    sortedLocal.forEach((visit) => {
+      if (visit && visit.id && !map.has(visit.id)) {
         map.set(visit.id, visit);
-
       }
-
     });
-
-
-
     return Array.from(map.values());
 
   }, [supabaseCustomerVisits, localCustomerVisits]);

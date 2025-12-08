@@ -8,6 +8,7 @@ export default function ProfileEditScreen({ setCurrentScreen }) {
   const { user } = useAuth();
   const { profile, loading, saving, updateProfile } = useProfile();
 
+  const [initialized, setInitialized] = useState(false);
   const [ownerName, setOwnerName] = useState('');
   const [shopName, setShopName] = useState('말로뷰티스튜디오');
   const [phone, setPhone] = useState('');
@@ -17,21 +18,21 @@ export default function ProfileEditScreen({ setCurrentScreen }) {
 
   // Supabase에서 가져온 프로필을 폼에 채워 넣기
   useEffect(() => {
-    if (profile) {
+    // 프로필을 처음 한 번만 폼에 세팅 (재렌더 시 깜빡임 방지)
+    if (!initialized && profile) {
       setOwnerName(profile.owner_name || '');
-      // "강민샵"이거나 빈 값이면 "말로뷰티스튜디오"로 설정
       const currentShopName = profile.shop_name || '';
       if (currentShopName === '강민샵' || currentShopName === '' || !currentShopName.trim()) {
         setShopName('말로뷰티스튜디오');
       } else {
         setShopName(currentShopName);
       }
-      // phone, address, memo는 아직 DB에 없어서 일단 빈 값 유지
-    } else {
-      // 프로필이 없을 때 기본값 설정
+      setInitialized(true);
+    } else if (!initialized && !profile) {
       setShopName('말로뷰티스튜디오');
+      setInitialized(true);
     }
-  }, [profile]);
+  }, [profile, initialized]);
 
   const handleBack = () => {
     if (setCurrentScreen) {

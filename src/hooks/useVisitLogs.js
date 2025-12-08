@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -169,6 +169,8 @@ export async function ensureCustomerForVisit({
 
 export default function useVisitLogs() {
   const { user } = useAuth();
+  const TAG_SYNC_PUBLIC_OWNER_ID = '0b788d1e-b1cf-4a94-aab9-4c57a09cca28'; // 공용/비로그인용 (테스트)
+  const effectiveOwnerId = useMemo(() => user?.id || TAG_SYNC_PUBLIC_OWNER_ID, [user?.id]);
   const [visitLogsByCustomer, setVisitLogsByCustomer] = useState({});
   const [allVisitLogs, setAllVisitLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -178,8 +180,8 @@ export default function useVisitLogs() {
 
   // ✅ 1) 한 번만 정의해두고, 어디서든 다시 쓸 수 있는 fetch 함수
   const fetchVisitLogs = useCallback(async () => {
-    // 로그인 안 된 상태면 비워두기
-    if (!user) {
+    // owner가 없으면 종료
+    if (!effectiveOwnerId) {
       setVisitLogsByCustomer({});
       setAllVisitLogs([]);
       setLoading(false);
@@ -212,7 +214,7 @@ export default function useVisitLogs() {
         raw_text,
         tags
       `)
-      .eq('owner_id', user.id)
+      .eq('owner_id', effectiveOwnerId)
       .order('recorded_at', { ascending: false });
 
     if (error) {
@@ -267,12 +269,31 @@ export default function useVisitLogs() {
     setLoading(false);
       }
     }
-  }, [user, hasLoadedOnce]);
+  }, [effectiveOwnerId, hasLoadedOnce]);
 
   // ✅ 2) 처음 마운트/유저 변경될 때 자동으로 한 번 실행
   useEffect(() => {
     fetchVisitLogs();
   }, [fetchVisitLogs]);
+
+  // 화면 포커스/가시성 변화 또는 주기적으로 최신 방문 기록 갱신 (새로고침 없이 동기화)
+  useEffect(() => {
+    if (!effectiveOwnerId) return undefined;
+
+    const handleFocus = () => fetchVisitLogs(false);
+    const interval = setInterval(() => {
+      fetchVisitLogs(false);
+    }, 15000); // 15초마다 폴링
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+    };
+  }, [effectiveOwnerId, fetchVisitLogs]);
 
   // ✅ 3) refetchVisitLogs 를 외부에서도 쓸 수 있게 리턴
   return {
