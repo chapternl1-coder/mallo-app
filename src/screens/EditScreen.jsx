@@ -489,6 +489,10 @@ function EditScreen({
               try {
                 await refetchVisitLogs();
                 console.log('[편집 저장] Supabase 데이터 새로고침 완료');
+                
+                // 추가 지연: React state 업데이트가 완료될 시간 확보
+                await new Promise(resolve => setTimeout(resolve, 300));
+                console.log('[편집 저장] state 업데이트 대기 완료');
               } catch (e) {
                 console.error('[편집 저장] Supabase 데이터 새로고침 실패:', e);
               }
@@ -555,9 +559,22 @@ function EditScreen({
 
     if (editingVisit) {
       // 고객 상세에서 온 경우 → 다시 고객 상세
-      setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+      // 🔄 강제 재렌더링: HISTORY 화면을 거쳐서 가기
+      console.log('[편집 저장] 고객 상세 화면으로 이동 (강제 재렌더링)');
+      const currentCustomerId = editingCustomer?.id || editingVisit.customerId || editingVisit.customer_id;
+      
+      // 1단계: HISTORY 화면으로 전환 (CustomerDetailScreen 언마운트)
+      setCurrentScreen(SCREENS.HISTORY);
+      
+      // 2단계: 즉시 다시 CUSTOMER_DETAIL로 전환 (새로운 props로 재마운트)
+      setTimeout(() => {
+        setSelectedCustomerId(currentCustomerId);
+        setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+        console.log('[편집 저장] 고객 상세 화면 재마운트 완료');
+      }, 50);
     } else {
       // 녹음/키보드 요약에서 온 경우 → 다시 요약 결과
+      console.log('[편집 저장] 기록 화면으로 이동');
       setCurrentScreen(SCREENS.RECORD);
     }
   };

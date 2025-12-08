@@ -1020,6 +1020,17 @@ function CustomerDetailScreen({
 
   });
 
+  
+  // 🔍 디버깅: visitLogs 변경 감지
+  useEffect(() => {
+    console.log('[CustomerDetail] visitLogs 변경됨:', {
+      visitLogsLength: visitLogs?.length,
+      supabaseCustomerVisitsLength: supabaseCustomerVisits.length,
+      selectedCustomerId,
+      timestamp: new Date().toISOString()
+    });
+  }, [visitLogs, selectedCustomerId, supabaseCustomerVisits.length]);
+
 
 
   // 2) 기존 로컬 visits (localStorage 기반)에서 선택된 고객의 방문 기록만 가져오기

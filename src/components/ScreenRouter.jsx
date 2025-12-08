@@ -74,7 +74,12 @@ export default function ScreenRouter(props) {
       // visitLogs prop이 있으면 Supabase 데이터 사용, 없으면 기존 로직 사용
       return <HistoryScreen {...props} visitLogs={props.visitLogs} allRecords={props.allRecords || calculateAllRecords()} isVisitLogsLoading={props.isVisitLogsLoading} />;
     case SCREENS.CUSTOMER_DETAIL:
-      return <CustomerDetailScreen {...props} visitLogs={props.visitLogs} />;
+      // key prop으로 강제 재마운트: visitLogs가 변경되면 컴포넌트 전체 재생성
+      return <CustomerDetailScreen 
+        key={`customer-${props.selectedCustomerId}-${props.visitLogs?.length || 0}`} 
+        {...props} 
+        visitLogs={props.visitLogs} 
+      />;
     case SCREENS.EDIT:
       return <EditScreen {...props} />;
     case SCREENS.EDIT_CUSTOMER:
