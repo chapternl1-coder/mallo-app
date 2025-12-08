@@ -214,8 +214,8 @@ function RecordScreen({
   }, [recordState, recordingTime]);
 
   // recordState에 따라 다른 화면 렌더링
-  // 녹음 화면 깜빡임 방지: 실제로 녹음 중이거나 녹음 시간이 있을 때만 녹음 화면 표시
-  if (recordState === 'recording' || (recordState === 'idle' && recordingTime > 0)) {
+  // idle 상태에서도 초기 녹음 UI를 즉시 표시
+  if (recordState === 'recording' || recordState === 'idle') {
     return (
       <div
         className="flex flex-col min-h-screen"
@@ -441,8 +441,8 @@ function RecordScreen({
     );
   }
 
-  // recordState === 'result'인 경우
-  if (!resultData) {
+  // recordState === 'result'인 경우에만 결과 화면/없음 분기
+  if (recordState === 'result' && !resultData) {
     return (
       <div className="flex flex-col h-full items-center justify-center" style={{ backgroundColor: '#F2F0E6' }}>
         <p style={{ color: '#232323' }}>결과 데이터가 없습니다.</p>
@@ -1054,15 +1054,6 @@ function RecordScreen({
             onClick={async () => {
               // ✅ 여기가 통째로 교체되는 부분입니다.
               try {
-                // 0. 공통 유효성 (시술 날짜/시간)
-                if (!tempServiceDate || !tempServiceDate.trim()) {
-                  alert('시술 날짜 및 시간을 입력해주세요!');
-                  if (serviceDateInputRef.current) {
-                    serviceDateInputRef.current.focus();
-                  }
-                  return;
-                }
-
                 // 전화번호에서 숫자만 남기는 헬퍼
                 const normalizePhone = (phone) => {
                   if (!phone) return '';
@@ -1255,6 +1246,10 @@ function RecordScreen({
                 // ----------------------------
                 // 3) 방문 기록 공통 생성
                 // ----------------------------
+                // 예약/입력/파싱 어디서도 못 얻었을 때 기본값으로 보정
+                if (!serviceDate) serviceDate = dateStr;
+                if (!serviceTime) serviceTime = timeStr;
+
                 const cleanedTitle = cleanTitle(resultData.title, customerName);
 
                 const newVisit = createVisitRecord({

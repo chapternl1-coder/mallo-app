@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import useProfile from '../hooks/useProfile';
@@ -8,31 +8,59 @@ export default function ProfileEditScreen({ setCurrentScreen }) {
   const { user } = useAuth();
   const { profile, loading, saving, updateProfile } = useProfile();
 
+  const DRAFT_KEY = 'mallo_profile_edit_draft';
+  const loadDraft = () => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (!saved) return {};
+      return JSON.parse(saved) || {};
+    } catch (e) {
+      console.warn('[ProfileEdit] 드래프트 초기 로드 실패', e);
+      return {};
+    }
+  };
+
+  const draft = loadDraft();
   const [initialized, setInitialized] = useState(false);
-  const [ownerName, setOwnerName] = useState('');
-  const [shopName, setShopName] = useState('말로뷰티스튜디오');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [memo, setMemo] = useState('');
+  const lastProfileIdRef = useRef(null);
+  const [ownerName, setOwnerName] = useState(draft.ownerName || '');
+  const [shopName, setShopName] = useState(draft.shopName || '말로뷰티스튜디오');
+  const [phone, setPhone] = useState(draft.phone || '');
+  const [address, setAddress] = useState(draft.address || '');
+  const [memo, setMemo] = useState(draft.memo || '');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Supabase에서 가져온 프로필을 폼에 채워 넣기
+  // Supabase에서 가져온 프로필을 폼에 채워 넣기 (초기 1회, 프로필 변경 시만)
   useEffect(() => {
-    // 프로필을 처음 한 번만 폼에 세팅 (재렌더 시 깜빡임 방지)
-    if (!initialized && profile) {
-      setOwnerName(profile.owner_name || '');
-      const currentShopName = profile.shop_name || '';
-      if (currentShopName === '강민샵' || currentShopName === '' || !currentShopName.trim()) {
-        setShopName('말로뷰티스튜디오');
-      } else {
-        setShopName(currentShopName);
+    if (profile) {
+      const profileId = profile.id || 'no-id';
+      if (!initialized || lastProfileIdRef.current !== profileId) {
+        setOwnerName((prev) => prev || profile.owner_name || '');
+        setShopName((prev) => {
+          if (prev) return prev;
+          const currentShopName = profile.shop_name || '';
+          if (currentShopName === '강민샵' || currentShopName.trim() === '') {
+            return '말로뷰티스튜디오';
+          }
+          return currentShopName;
+        });
+        // phone/address/memo는 프로필에서 내려오는 값이 없으므로 덮어쓰지 않음
+        lastProfileIdRef.current = profileId;
+        setInitialized(true);
       }
-      setInitialized(true);
-    } else if (!initialized && !profile) {
-      setShopName('말로뷰티스튜디오');
-      setInitialized(true);
     }
   }, [profile, initialized]);
+
+  // 로컬 드래프트 로드 (전화/주소/메모 포함)
+  // 드래프트 저장 (사용자 입력 유지용)
+  useEffect(() => {
+    try {
+      const nextDraft = { ownerName, shopName, phone, address, memo };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(nextDraft));
+    } catch (e) {
+      console.warn('[ProfileEdit] 드래프트 저장 실패', e);
+    }
+  }, [ownerName, shopName, phone, address, memo]);
 
   const handleBack = () => {
     if (setCurrentScreen) {
@@ -51,6 +79,8 @@ export default function ProfileEditScreen({ setCurrentScreen }) {
         // 나중에 profiles 테이블에 phone/address/memo 컬럼 추가하면
         // phone, address, memo도 같이 넘기면 됨
       });
+
+      // phone/address/memo는 아직 서버에 저장하지 않으므로 드래프트를 지우지 않아 입력값을 유지
 
       if (setCurrentScreen) {
         setCurrentScreen(SCREENS.PROFILE);
@@ -196,7 +226,7 @@ export default function ProfileEditScreen({ setCurrentScreen }) {
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={saving || loading}
+            disabled={saving}
             className="w-full rounded-2xl bg-[#C9A27A] text-white text-sm font-medium py-3 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {saving ? '저장 중…' : '저장 완료'}

@@ -741,38 +741,17 @@ function HomeScreen({
                                   ''
                                 }
                                 onCompositionStart={() => {
-                                  // 한글 조합 시작
                                   isComposingRef.current = true;
                                 }}
                                 onCompositionEnd={(e) => {
-                                  // 한글 조합 종료
                                   isComposingRef.current = false;
-                                  const value = e.target.value;
-                                  // 조합 종료 후 길이 체크 및 강제 고정
-                                  if (value.length > maxMemoLength) {
-                                    const fixedValue = value.slice(0, maxMemoLength);
-                                    handleReservationMemoChange(reservation.id, fixedValue);
-                                    // 입력값 강제 업데이트
-                                    e.target.value = fixedValue;
-                                  }
                                 }}
                                 onChange={(e) => {
                                   const value = e.target.value;
-                                  
-                                  // 한글 조합 중이 아닐 때만 길이 체크
-                                  if (!isComposingRef.current) {
-                                    // 30자 초과 시 강제로 30자까지만 자르고 상태 업데이트
-                                    if (value.length > maxMemoLength) {
-                                      const fixedValue = value.slice(0, maxMemoLength);
-                                      handleReservationMemoChange(reservation.id, fixedValue);
-                                      // 입력값 강제 업데이트 (30자가 찬 상태에서 키보드를 눌러도 글자가 절대 바뀌지 않음)
-                                      e.target.value = fixedValue;
-                                      return;
-                                    }
-                                  }
-                                  
-                                  // 정상 범위 내에서는 상태 업데이트
-                                  handleReservationMemoChange(reservation.id, value);
+                                  const next = isComposingRef.current
+                                    ? value
+                                    : value.slice(0, maxMemoLength);
+                                  handleReservationMemoChange(reservation.id, next);
                                 }}
                                 onBlur={() => handleReservationMemoSave(reservation)}
                                 onKeyDown={(e) => {
