@@ -121,7 +121,8 @@ function CustomerRecordScreen({
   addReservationFromVisit,
   TagPickerModal,
   CustomerTagPickerModal,
-  refreshVisitLogs
+  refreshVisitLogs,
+  refreshCustomers  // ✅ Supabase에서 고객 목록 새로고침
 }) {
   const { user } = useAuth();
   

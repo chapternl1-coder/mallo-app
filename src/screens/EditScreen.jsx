@@ -74,7 +74,7 @@ function EditScreen({
         updated.sections[sectionIndex] &&
         Array.isArray(updated.sections[sectionIndex].content)
       ) {
-        updated.sections[sectionIndex].content.push('');
+      updated.sections[sectionIndex].content.push('');
       }
       return updated;
     });
@@ -220,7 +220,7 @@ function EditScreen({
       // 방문 리스트에 요약 + 태그 반영
       setVisits((prev) => {
         const updated = { ...prev };
-        
+
         // 1) 모든 customerId를 순회하면서 editingVisit.id로 방문 기록 찾기
         let foundCustomerId = null;
         let foundVisitIndex = -1;
@@ -290,9 +290,9 @@ function EditScreen({
                 ...v,
                 customerName: currentNormalizedVisit.customerName,
                 customerPhone: currentNormalizedVisit.customerPhone,
-                detail: {
+              detail: {
                   ...(v.detail || {}),
-                  sections: cleanedSections,
+                sections: cleanedSections,
                 },
                 title: cleanedData.title || v.title,
               };
@@ -313,7 +313,7 @@ function EditScreen({
                   ...base.detail,
                   tags: finalTagLabels,
                   tagIds: finalVisitTagIds,
-                },
+              },
                 summaryJson: {
                   ...(v.summaryJson || {}),
                   tags: finalTagLabels,
@@ -324,8 +324,8 @@ function EditScreen({
                   tags: finalTagLabels,
                   tagIds: finalVisitTagIds,
                 },
-              };
-            });
+            };
+          });
           }
         } else {
           // 방문 기록을 찾지 못했으면 새로 추가
@@ -410,7 +410,7 @@ function EditScreen({
               tags: finalTagLabels,
               supabaseResponse: data,
             });
-            
+
             // ✅ Supabase 업데이트 성공 후, 로컬 저장소도 Supabase 태그로 동기화
             const supabaseTags = data && data[0]?.tags ? data[0].tags : finalTagLabels;
             
@@ -493,7 +493,7 @@ function EditScreen({
                 // 추가 지연: React state 업데이트가 완료될 시간 확보
                 await new Promise(resolve => setTimeout(resolve, 300));
                 console.log('[편집 저장] state 업데이트 대기 완료');
-              } catch (e) {
+        } catch (e) {
                 console.error('[편집 저장] Supabase 데이터 새로고침 실패:', e);
               }
             }
@@ -503,7 +503,7 @@ function EditScreen({
         }
       } else if (editingVisit.id) {
         console.log('[편집 저장] 로컬 방문 기록이므로 Supabase 업데이트 생략:', editingVisit.id);
-      }
+    }
 
       // (5) 편집용 editingVisit / editingVisitTagIds 도 동일하게 맞춰두기
       setEditingVisit((prev) => {
@@ -569,7 +569,7 @@ function EditScreen({
       // 2단계: 즉시 다시 CUSTOMER_DETAIL로 전환 (새로운 props로 재마운트)
       setTimeout(() => {
         setSelectedCustomerId(currentCustomerId);
-        setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+      setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
         console.log('[편집 저장] 고객 상세 화면 재마운트 완료');
       }, 50);
     } else {

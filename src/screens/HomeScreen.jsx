@@ -219,6 +219,15 @@ function HomeScreen({
     return sorted;
   }, [customers, searchText, reservations]);
 
+  // 디버깅: 고객 목록 변경 로그
+  useEffect(() => {
+    console.log('[HomeScreen] customers prop 변경:', {
+      length: customers?.length,
+      first: customers?.[0]?.name,
+      last: customers?.[customers.length - 1]?.name,
+    });
+  }, [customers]);
+
 
   // 검색창 포커스 핸들러
   const handleSearchFocus = () => {

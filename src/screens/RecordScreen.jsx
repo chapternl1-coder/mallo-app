@@ -172,7 +172,8 @@ function RecordScreen({
   setReservations,
   TagPickerModal,
   CustomerTagPickerModal,
-  refreshVisitLogs
+  refreshVisitLogs,
+  refreshCustomers  // ✅ Supabase에서 고객 목록 새로고침
 }) {
   const { user } = useAuth();
   
@@ -1241,6 +1242,12 @@ function RecordScreen({
                       finalCustomerId = insertedCustomer.id;
                       // 로컬 customers 상태에도 추가
                       setCustomers((prev) => [...prev, insertedCustomer]);
+                      
+                      // 🔄 Supabase에서 최신 고객 목록 가져오기 (홈 화면 검색에서 즉시 표시)
+                      if (refreshCustomers) {
+                        console.log('[RecordScreen] 새 고객 추가 후 Supabase 데이터 새로고침');
+                        refreshCustomers();
+                      }
                     }
                   }
                 }

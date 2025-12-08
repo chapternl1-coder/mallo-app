@@ -193,70 +193,70 @@ export default function useVisitLogs() {
 
     try {
       if (shouldShowLoading) {
-        setLoading(true);
+    setLoading(true);
       }
-      setError(null);
+    setError(null);
 
-      const { data, error } = await supabase
-        .from('visit_logs')
-        .select(`
-          id,
-          owner_id,
-          customer_id,
-          reservation_id,
-          recorded_at,
-          service_date,
-          service_time,
-          title,
-          summary_json,
-          raw_text,
-          tags
-        `)
-        .eq('owner_id', user.id)
-        .order('recorded_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('visit_logs')
+      .select(`
+        id,
+        owner_id,
+        customer_id,
+        reservation_id,
+        recorded_at,
+        service_date,
+        service_time,
+        title,
+        summary_json,
+        raw_text,
+        tags
+      `)
+      .eq('owner_id', user.id)
+      .order('recorded_at', { ascending: false });
 
-      if (error) {
-        console.error('visit_logs 불러오기 오류', error);
-        setError(error);
-        setVisitLogsByCustomer({});
-        setAllVisitLogs([]);
+    if (error) {
+      console.error('visit_logs 불러오기 오류', error);
+      setError(error);
+      setVisitLogsByCustomer({});
+      setAllVisitLogs([]);
         if (shouldShowLoading) {
-          setLoading(false);
+      setLoading(false);
         }
-        return;
-      }
+      return;
+    }
 
-      const mappedVisitLogs = (data || []).map((row) => ({
-        id: row.id,
-        customerId: row.customer_id,           // uuid
-        reservationId: row.reservation_id,     // uuid 또는 null
-        serviceDate: row.service_date,         // 'YYYY-MM-DD' (date 컬럼)
-        serviceTime: row.service_time || '',   // 'HH:MM' (text 컬럼)
-        title: row.title || '',
-        summaryJson: row.summary_json || null,
-        rawText: row.raw_text || '',
-        tags: row.tags || [],                  // text[]
-        // 고객 이름/전화는 join 안 되어 있으면 나중에 customers랑 매칭해서 씀
-        // 하위 호환성을 위한 필드들
-        ownerId: row.owner_id,
-        recordedAt: row.recorded_at,
-        detail: row.summary_json || { sections: [] },
-      }));
+    const mappedVisitLogs = (data || []).map((row) => ({
+      id: row.id,
+      customerId: row.customer_id,           // uuid
+      reservationId: row.reservation_id,     // uuid 또는 null
+      serviceDate: row.service_date,         // 'YYYY-MM-DD' (date 컬럼)
+      serviceTime: row.service_time || '',   // 'HH:MM' (text 컬럼)
+      title: row.title || '',
+      summaryJson: row.summary_json || null,
+      rawText: row.raw_text || '',
+      tags: row.tags || [],                  // text[]
+      // 고객 이름/전화는 join 안 되어 있으면 나중에 customers랑 매칭해서 씀
+      // 하위 호환성을 위한 필드들
+      ownerId: row.owner_id,
+      recordedAt: row.recorded_at,
+      detail: row.summary_json || { sections: [] },
+    }));
 
-      // 고객별로 그룹핑 (CustomerDetailScreen, HomeScreen용)
-      const byCustomer = mappedVisitLogs.reduce((acc, visit) => {
-        const key =
-          visit.customerId !== null && visit.customerId !== undefined
-            ? String(visit.customerId)
-            : 'no_customer';
+    // 고객별로 그룹핑 (CustomerDetailScreen, HomeScreen용)
+    const byCustomer = mappedVisitLogs.reduce((acc, visit) => {
+      const key =
+        visit.customerId !== null && visit.customerId !== undefined
+          ? String(visit.customerId)
+          : 'no_customer';
 
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(visit);
-        return acc;
-      }, {});
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(visit);
+      return acc;
+    }, {});
 
-      setVisitLogsByCustomer(byCustomer);
-      setAllVisitLogs(mappedVisitLogs);
+    setVisitLogsByCustomer(byCustomer);
+    setAllVisitLogs(mappedVisitLogs);
 
       // ✅ 한 번이라도 성공적으로 데이터를 받았으면 플래그 세우기
       if (!hasLoadedOnce) {
@@ -264,7 +264,7 @@ export default function useVisitLogs() {
       }
     } finally {
       if (shouldShowLoading) {
-        setLoading(false);
+    setLoading(false);
       }
     }
   }, [user, hasLoadedOnce]);

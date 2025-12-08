@@ -13,11 +13,13 @@ function ReservationScreen({
   addReservation,
   deleteReservation,
   customers,
+  setCustomers,
   setCurrentScreen,
   setSelectedCustomerId,
   getTodayDateString,
   autoOpenForm = false, // 홈에서 + 버튼으로 진입 시 자동으로 폼 열기
   setShouldOpenReservationForm, // 플래그 리셋용
+  refreshCustomers,
   visitLogs = [],   // ✅ 추가
 }) {
   const [showForm, setShowForm] = useState(true); // 항상 예약 추가창 열어놓기
@@ -164,6 +166,16 @@ function ReservationScreen({
             console.error('[Supabase] customers insert 에러:', insertError);
           } else {
             customerRow = inserted;
+
+            // ✅ 로컬 customers 상태에도 즉시 추가 (검색용)
+            if (typeof setCustomers === 'function') {
+              setCustomers((prev) => [...prev, inserted]);
+            }
+            // ✅ Supabase 최신 고객 목록 다시 가져오기 (홈 검색에 즉시 반영)
+            if (typeof refreshCustomers === 'function') {
+              console.log('[ReservationScreen] 새 고객 추가 후 Supabase 데이터 새로고침');
+              refreshCustomers();
+            }
           }
         }
 

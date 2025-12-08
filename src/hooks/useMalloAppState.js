@@ -489,9 +489,9 @@ export default function useMalloAppState(user) {
       // detail 보존 (태그 포함)
       detail: {
         ...(visit.detail || {
-          sections: visit.summary ? [
-            { title: '시술 내용', content: [visit.summary] }
-          ] : []
+        sections: visit.summary ? [
+          { title: '시술 내용', content: [visit.summary] }
+        ] : []
         }),
         tags: visit.detail?.tags || primaryTags
       },
@@ -1220,7 +1220,7 @@ export default function useMalloAppState(user) {
       
       // 상태 초기화 후 화면 전환 (녹음 화면이 보이지 않도록)
       setTimeout(() => {
-        setCurrentScreen(targetScreen);
+      setCurrentScreen(targetScreen);
       }, 0);
     } else {
       console.log('[요약 처리] 고객 상세에서 온 경우, 화면 이동은 호출한 쪽에서 처리');
@@ -1306,7 +1306,7 @@ export default function useMalloAppState(user) {
         
         setTimeout(() => {
           alert('녹음 데이터가 충분하지 않습니다. 다시 시도해주세요.');
-          setCurrentScreen(SCREENS.HOME);
+        setCurrentScreen(SCREENS.HOME);
         }, 0);
         return;
       }
@@ -1365,7 +1365,7 @@ export default function useMalloAppState(user) {
         
         setTimeout(() => {
           alert('음성이 인식되지 않았습니다. 다시 시도해주세요.');
-          setCurrentScreen(SCREENS.HOME);
+        setCurrentScreen(SCREENS.HOME);
         }, 0);
         return;
       }
@@ -1457,8 +1457,8 @@ export default function useMalloAppState(user) {
       setRecordingTime(0);
       
       setTimeout(() => {
-        alert(`오류가 발생했습니다\n\n${errorMessage}\n\n콘솔을 확인해주세요.`);
-        setCurrentScreen(SCREENS.HOME);
+      alert(`오류가 발생했습니다\n\n${errorMessage}\n\n콘솔을 확인해주세요.`);
+      setCurrentScreen(SCREENS.HOME);
       }, 0);
     } finally {
       setIsProcessing(false);

@@ -64,7 +64,7 @@ export default function MalloApp() {
 
     error: reservationsError,
 
-    refresh: refreshReservations,
+    refresh: refreshSupabaseData,  // 고객/예약 모두 새로고침
 
   } = useSupabaseReservations();
 
@@ -254,6 +254,32 @@ export default function MalloApp() {
     !hasShownInitialAppLoading &&
     (reservationsLoading || visitLogsLoading);
 
+  // ✅ Supabase 고객(mergedCustomers) + 로컬 고객(screenRouterProps.customers)을 병합
+  const combinedCustomers = (() => {
+    const map = new Map();
+
+    const addList = (list) => {
+      (list || []).forEach((c) => {
+        const key =
+          c?.id !== undefined && c?.id !== null
+            ? String(c.id)
+            : c?.phone
+            ? `phone-${c.phone}`
+            : Math.random().toString(16);
+        if (!map.has(key)) {
+          map.set(key, c);
+        }
+      });
+    };
+
+    // 우선순위: 로컬 customers(즉시 반영) → mergedCustomers(=Supabase) → Supabase 기본 customers
+    addList(screenRouterProps.customers);
+    addList(mergedCustomers);
+    addList(customers);
+
+    return Array.from(map.values());
+  })();
+
 
   // 1) Auth 로딩 중 또는 앱 첫 로딩 중 로딩 화면
 
@@ -329,7 +355,7 @@ export default function MalloApp() {
 
           reservationsLoading={reservationsLoading}
 
-          customers={mergedCustomers.length > 0 ? mergedCustomers : customers}  // 병합된 customers 사용 (customerTags 보존)
+          customers={combinedCustomers}  // Supabase + 로컬 추가 고객 병합본
 
           reservations={reservations}
 
@@ -351,9 +377,9 @@ export default function MalloApp() {
 
           refetchVisitLogs={refetchVisitLogs}  // ✅ 태그 변경 후 Supabase 데이터 새로고침용
 
-          refreshReservations={refreshReservations}
+          refreshReservations={refreshSupabaseData}
 
-          refreshCustomers={refreshReservations}
+          refreshCustomers={refreshSupabaseData}  // ✅ 실제 Supabase 고객/예약 새로고침 함수 전달
 
         />
 

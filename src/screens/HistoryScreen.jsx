@@ -726,23 +726,23 @@ function HistoryScreen({
                               {serviceTags.map((tag, idx) => {
                                 const tagText = typeof tag === 'string' ? tag : (tag.label || String(tag));
                                 return (
-                                  <span 
-                                    key={idx}
+                              <span 
+                                key={idx}
                                     className="text-[11px] px-2 py-1 rounded-md whitespace-nowrap"
-                                    style={{ 
-                                      backgroundColor: '#F2F0E6',
+                                style={{ 
+                                  backgroundColor: '#F2F0E6',
                                       color: '#8C6D46',
                                       display: 'inline-block',
                                       visibility: 'visible',
                                       opacity: 1,
                                       flexShrink: 0
-                                    }}
-                                  >
+                                }}
+                              >
                                     {tagText}
-                                  </span>
+                              </span>
                                 );
                               })}
-                            </div>
+                          </div>
                           ) : null;
                         })()}
 

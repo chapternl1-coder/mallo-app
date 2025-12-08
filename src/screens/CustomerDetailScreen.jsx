@@ -839,7 +839,7 @@ function CustomerDetailScreen({
   }
 
   
-
+  
   // ========================================
 
   // selectedCustomerId === null 방어
@@ -887,11 +887,11 @@ function CustomerDetailScreen({
   }
 
   
-
+  
   // TODO: null customerId로 저장된 예전 방문 기록들을,
 
   //       전화번호/이름 기반으로 실제 고객에게 재할당하는 마이그레이션 도구가 필요하면 추후 추가.
-
+  
   
 
   // 예약과 연결된 방문 기록인지 확인하는 헬퍼 함수 (성능 최적화: useCallback으로 메모이제이션)
@@ -977,7 +977,7 @@ function CustomerDetailScreen({
   }, [reservations, customer]);
 
   
-
+  
   // 🔍 customerVisits 계산: customer_id 우선, 그다음 전화번호로 매칭
 
   // 이름은 매칭 기준에서 완전히 제외
@@ -1363,13 +1363,13 @@ function CustomerDetailScreen({
 
       // 날짜가 같으면 시간 기준으로 내림차순 정렬
 
-      const tA = (a.serviceTime || a.time || '').toString();
+    const tA = (a.serviceTime || a.time || '').toString();
 
-      const tB = (b.serviceTime || b.time || '').toString();
+    const tB = (b.serviceTime || b.time || '').toString();
 
       return tB.localeCompare(tA); // 내림차순
 
-    });
+  });
 
 
 
@@ -1695,7 +1695,7 @@ function CustomerDetailScreen({
   }, [visitLogs, customer, uniqueSortedCustomerVisits.length]);
 
   
-
+  
   // 고객별 방문 기록 개수 (Supabase visit_logs 기준)
 
   const visitCountFromLogs = Array.isArray(uniqueSortedCustomerVisits)
@@ -1703,7 +1703,7 @@ function CustomerDetailScreen({
     ? uniqueSortedCustomerVisits.length
 
     : 0;
-
+  
   
 
   // customers 배열에서 찾지 못했지만 방문 기록이 있는 경우
@@ -1721,7 +1721,7 @@ function CustomerDetailScreen({
     const customerInfo = summaryJson.customerInfo || summaryJson.customer || {};
 
     
-
+    
     // sections에서도 고객 정보 추출 시도
 
     let extractedName = customerInfo.name?.trim();
@@ -1729,7 +1729,7 @@ function CustomerDetailScreen({
     let extractedPhone = customerInfo.phone?.trim();
 
     
-
+    
     if (!extractedName && summaryJson.sections) {
 
       for (const section of summaryJson.sections) {
@@ -1767,7 +1767,7 @@ function CustomerDetailScreen({
     }
 
     
-
+    
     // 임시 고객 객체 생성
 
     if (extractedName) {
@@ -1805,11 +1805,11 @@ function CustomerDetailScreen({
     }
 
   }
-
+  
   
 
   
-
+  
   // ✅ 고객 태그를 화면용 칩 배열로 변환
 
   const customerTagChips = useMemo(() => {
@@ -1879,7 +1879,7 @@ function CustomerDetailScreen({
     return chips;
 
   }, [customer]);
-
+  
   
 
   // ✅ 선택된 고객의 방문 기록만 필터링해서 customerVisits로 사용 (내림차순 정렬)
@@ -2022,7 +2022,7 @@ function CustomerDetailScreen({
     ) || customer;
 
     
-
+    
     // 최신 고객 정보를 selectedCustomerForRecord에 저장
 
     setSelectedCustomerForRecord({
@@ -2032,11 +2032,11 @@ function CustomerDetailScreen({
       name: latestCustomer.name,
 
       phone: latestCustomer.phone,
-
+    
     });
 
     
-
+    
     // 현재 모드에 따라 고객 상세 전용 화면으로 이동
 
     if (isVoiceMode) {
@@ -2168,7 +2168,7 @@ function CustomerDetailScreen({
               setNewTag('');
 
               
-
+              
               // 고객 특징 태그를 ID 배열로 변환하여 로드
 
               const tagIds = convertCustomerTagsToIds(customer.customerTags || {}, allCustomerTags);
@@ -2176,7 +2176,7 @@ function CustomerDetailScreen({
               setEditCustomerTagIds(tagIds);
 
               
-
+              
               setCurrentScreen(SCREENS.EDIT_CUSTOMER);
 
             }}
@@ -2222,7 +2222,7 @@ function CustomerDetailScreen({
               </div>
 
               
-
+              
               {/* 첫 방문일 및 평균 방문 주기 요약 박스 */}
 
               {(() => {
@@ -2252,7 +2252,7 @@ function CustomerDetailScreen({
                   .map(date => new Date(date))
 
                   .filter(date => !isNaN(date.getTime())); // 유효한 Date 객체만
-
+                
                 
 
                 if (visitDates.length === 0) {
@@ -2262,13 +2262,13 @@ function CustomerDetailScreen({
                 }
 
                 
-
+                
                 // 날짜 정렬 (오름차순: 과거 -> 최근)
 
                 visitDates.sort((a, b) => a.getTime() - b.getTime());
 
                 
-
+                
                 // 첫 방문일
 
                 const firstVisitDate = visitDates[0];
@@ -2282,7 +2282,7 @@ function CustomerDetailScreen({
                 const firstVisitFormatted = `${firstVisitYear}.${firstVisitMonth}.${firstVisitDay}`;
 
                 
-
+                
                 // 평균 방문 주기 계산
 
                 let averageCycle = null;
@@ -2302,7 +2302,7 @@ function CustomerDetailScreen({
                 }
 
                 
-
+                
                 return (
 
                   <div className="w-full bg-gray-50 rounded-xl py-3 px-4 my-4 grid grid-cols-2 divide-x divide-gray-200">
@@ -2322,7 +2322,7 @@ function CustomerDetailScreen({
                     </div>
 
                     
-
+                    
                     {/* 우측 - 방문 주기 */}
 
                     <div className="flex flex-col items-center justify-center text-center px-2">
@@ -2352,7 +2352,7 @@ function CustomerDetailScreen({
               })()}
 
               
-
+              
               {/* customerTags 표시 (주의 태그가 맨 앞) */}
 
               {(() => {
@@ -2360,11 +2360,11 @@ function CustomerDetailScreen({
                 const allTags = formatCustomerTagsForDisplay(customer.customerTags || {}, visitCountFromLogs);
 
                 
-
+                
                 if (allTags.length === 0) return null;
 
                 
-
+                
                 return (
 
                   <div className="flex flex-wrap gap-2 mt-2">
@@ -2416,7 +2416,7 @@ function CustomerDetailScreen({
               
 
               
-
+              
               {/* 메모 */}
 
               {customer.memo && customer.memo.trim() && (
@@ -2526,7 +2526,7 @@ function CustomerDetailScreen({
           )}
 
           
-
+          
           {/* 이전 기록 더 보기 / 접기 버튼 */}
 
           {(uniqueSortedCustomerVisits.length > visibleVisitCount || visibleVisitCount > initialLoadCount) && (

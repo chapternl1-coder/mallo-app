@@ -65,9 +65,19 @@ export default function ScreenRouter(props) {
     case SCREENS.LOGIN:
       // Auth 앞단에서 로그인은 이미 처리하므로,
       // 여기서는 홈 화면을 대신 보여준다.
-      return <HomeScreen {...props} />;
+      return (
+        <HomeScreen
+          key={`home-${props.customers?.length || 0}-${props.customers?.[0]?.id || 'none'}`}
+          {...props}
+        />
+      );
     case SCREENS.HOME:
-      return <HomeScreen {...props} />;
+      return (
+        <HomeScreen
+          key={`home-${props.customers?.length || 0}-${props.customers?.[0]?.id || 'none'}`}
+          {...props}
+        />
+      );
     case SCREENS.RECORD:
       return <RecordScreen {...props} />;
     case SCREENS.HISTORY:
