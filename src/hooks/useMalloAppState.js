@@ -189,7 +189,7 @@ export default function useMalloAppState(user) {
     return migrateTagsToObjects({
       feature: [],
       trait: ['수다쟁이', '조용함', '친절함'],
-      pattern: ['단골', '신규', '비정기'],
+      pattern: ['단골', '비정기'],
       caution: ['글루알러지', '임산부', '눈물많음']
     });
   };
@@ -927,18 +927,7 @@ export default function useMalloAppState(user) {
       // console.log('[태그 자동 선택] allCustomerTags 개수:', allCustomerTags.length);
       // console.log('[태그 자동 선택] allCustomerTags 샘플 (처음 5개):', allCustomerTags.slice(0, 5).map(t => ({ id: t.id, label: t.label, category: t.category })));
       
-      const visitCount = selectedCustomerForRecord?.visitCount || 0;
-      const shouldExcludeNewTag = visitCount >= 2;
-      
-      const newTag = allCustomerTags.find(t => t.label === '신규');
-      const newTagId = newTag?.id;
-      
       let matchedCustomerTags = matchTagsFromSummary(sourceText, allCustomerTags);
-      
-      if (shouldExcludeNewTag && newTagId) {
-        matchedCustomerTags = matchedCustomerTags.filter(id => id !== newTagId);
-        // console.log('[태그 자동 선택] 방문 횟수 2 이상 - "신규" 태그 제외됨');
-      }
       
       // console.log('[태그 자동 선택] 원본 텍스트:', sourceText?.substring(0, 100));
       // console.log('[태그 자동 선택] 매칭된 태그 ID:', matchedCustomerTags);
@@ -965,26 +954,14 @@ export default function useMalloAppState(user) {
             }
           });
           
-          const existingTagIds = allCustomerTags
-            .filter(tag => existingTagLabels.includes(tag.label))
-            .map(tag => tag.id);
-          
-          let finalExistingTagIds = existingTagIds;
-          if (shouldExcludeNewTag) {
-            finalExistingTagIds = existingTagIds.filter(id => id !== newTagId);
-            
-            const existingTag = allCustomerTags.find(t => t.label === '기존');
-            const existingTagId = existingTag?.id;
-            if (existingTagId && !finalExistingTagIds.includes(existingTagId)) {
-              finalExistingTagIds = [...finalExistingTagIds, existingTagId];
-            }
-          }
-          
-          const newTagIds = matchedCustomerTags.filter(id => !finalExistingTagIds.includes(id));
-          
-          const mergedTagIds = [...new Set([...finalExistingTagIds, ...matchedCustomerTags])];
-          setSelectedCustomerTagIds(mergedTagIds);
-          setNewCustomerTagIds(newTagIds);
+        const existingTagIds = allCustomerTags
+          .filter(tag => existingTagLabels.includes(tag.label))
+          .map(tag => tag.id);
+        
+        const mergedTagIds = [...new Set([...existingTagIds, ...matchedCustomerTags])];
+        const newTagIds = matchedCustomerTags.filter(id => !existingTagIds.includes(id));
+        setSelectedCustomerTagIds(mergedTagIds);
+        setNewCustomerTagIds(newTagIds);
         } else {
           setSelectedCustomerTagIds(matchedCustomerTags);
           setNewCustomerTagIds(matchedCustomerTags);
@@ -1055,22 +1032,6 @@ export default function useMalloAppState(user) {
             updatedCustomerTags.caution = [...cautionTags, '눈물많음'];
             needsUpdate = true;
             // console.log('[고객 태그 자동 감지] "눈물많음" 태그 추가됨');
-          }
-        }
-        
-        const visitCount = customer.visitCount || 0;
-        if (visitCount >= 2) {
-          const patternTags = updatedCustomerTags.pattern || [];
-          const hasNewTag = patternTags.includes('신규');
-          const hasExistingTag = patternTags.includes('기존');
-          
-          if (hasNewTag || !hasExistingTag) {
-            updatedCustomerTags.pattern = patternTags.filter(tag => tag !== '신규');
-            if (!updatedCustomerTags.pattern.includes('기존')) {
-              updatedCustomerTags.pattern = [...updatedCustomerTags.pattern, '기존'];
-            }
-            needsUpdate = true;
-            // console.log('[고객 태그 자동 감지] 방문 횟수 2 이상 - "신규" → "기존" 태그 변경됨');
           }
         }
         

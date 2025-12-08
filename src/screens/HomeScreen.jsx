@@ -427,7 +427,8 @@ function HomeScreen({
     const reservationId = reservation.id;
     // 초안(draft) → 없으면 기존 memo 사용
     const draft = reservationMemoDrafts[reservationId];
-    const nextMemo = (draft ?? reservation.memo ?? '').trim();
+    const maxMemoLength = getMaxMemoLength();
+    const nextMemo = (draft ?? reservation.memo ?? '').trim().slice(0, maxMemoLength);
 
     // 메모 내용이 기존이랑 똑같으면 아무것도 안 함
     if ((reservation.memo || '') === nextMemo) return;
@@ -743,15 +744,13 @@ function HomeScreen({
                                 onCompositionStart={() => {
                                   isComposingRef.current = true;
                                 }}
-                                onCompositionEnd={(e) => {
+                                onCompositionEnd={() => {
                                   isComposingRef.current = false;
                                 }}
                                 onChange={(e) => {
                                   const value = e.target.value;
-                                  const next = isComposingRef.current
-                                    ? value
-                                    : value.slice(0, maxMemoLength);
-                                  handleReservationMemoChange(reservation.id, next);
+                                  // 브라우저 maxLength에 맡기고 값은 그대로 상태에 반영
+                                  handleReservationMemoChange(reservation.id, value);
                                 }}
                                 onBlur={() => handleReservationMemoSave(reservation)}
                                 onKeyDown={(e) => {
