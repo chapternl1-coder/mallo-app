@@ -241,6 +241,7 @@ export default function useMalloAppState(user, supabaseReservations = null) {
   const [selectedReservation, setSelectedReservation] = useState(null);
   const [tempName, setTempName] = useState('');
   const [tempPhone, setTempPhone] = useState('');
+  const [tempServiceDate, setTempServiceDate] = useState(null);  // 고객 상세 전용 날짜 입력
   const nameInputRef = useRef(null);
   const phoneInputRef = useRef(null);
   const [pendingReservationCustomerId, setPendingReservationCustomerId] = useState(null);
@@ -1996,6 +1997,7 @@ export default function useMalloAppState(user, supabaseReservations = null) {
     setSelectedCustomerForRecord(null);
     setTempName('');
     setTempPhone('');
+    setTempServiceDate(null);
   };
 
   const formatTime = (seconds) => {
@@ -2617,6 +2619,7 @@ export default function useMalloAppState(user, supabaseReservations = null) {
     isAutoTaggingEnabled,
     setIsAutoTaggingEnabled,
     recordState,
+    setRecordState,
     recordingTime,
     formatTime,
     stopRecording,
@@ -2633,6 +2636,8 @@ export default function useMalloAppState(user, supabaseReservations = null) {
     setTempName,
     tempPhone,
     setTempPhone,
+    tempServiceDate,
+    setTempServiceDate,
     nameInputRef,
     phoneInputRef,
     handlePhoneChange,

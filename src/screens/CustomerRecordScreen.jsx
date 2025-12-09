@@ -56,6 +56,7 @@ const SkeletonLoader = () => (
 
 function CustomerRecordScreen({
   recordState,
+  setRecordState,  // ✅ 녹음 상태 변경 함수 추가
   recordingTime,
   formatTime,
   stopRecording,
@@ -71,6 +72,8 @@ function CustomerRecordScreen({
   setTempName,
   tempPhone,
   setTempPhone,
+  tempServiceDate,  // ✅ 상위에서 관리하는 날짜 상태
+  setTempServiceDate,  // ✅ 상위에서 관리하는 날짜 상태
   nameInputRef,
   phoneInputRef,
   handlePhoneChange,
@@ -126,9 +129,16 @@ function CustomerRecordScreen({
 }) {
   const { user } = useAuth();
   
-  // 날짜 입력 state 추가 (고객 상세 전용: 초기값 null)
-  const [tempServiceDate, setTempServiceDate] = useState(null);
   const serviceDateInputRef = useRef(null);
+
+  // 요약 화면 진입 시 recordState를 'result'로 설정 (깜빡임 방지)
+  useEffect(() => {
+    if (resultData && recordState !== 'result') {
+      if (typeof setRecordState === 'function') {
+        setRecordState('result');
+      }
+    }
+  }, [resultData, recordState]);
 
   // 날짜 변경 핸들러
   const handleVisitDateChange = (e) => {
@@ -451,47 +461,23 @@ function CustomerRecordScreen({
           <span className="text-[32px]">&#x2039;</span>
         </button>
         <div className="flex flex-col items-center">
-          {/* 방문 날짜: 텍스트/녹음에서 추출한 날짜 우선, 없으면 선택한 날짜 표시 */}
+          {/* 방문 날짜: 사용자가 입력한 날짜 우선 표시 */}
           {(() => {
-            // 1순위: 텍스트/녹음에서 추출한 날짜/시간
-            let displayDate = null;
-            if (resultData && resultData.sections) {
-              const extractedDate = extractServiceDateFromSummary(resultData);
-              if (extractedDate) {
-                // 시간도 함께 추출
-                const visitSection = resultData.sections.find(
-                  section => section.title && section.title.includes('방문·예약 정보')
-                );
-                if (visitSection && visitSection.content && Array.isArray(visitSection.content)) {
-                  for (const line of visitSection.content) {
-                    if (!line || typeof line !== 'string') continue;
-                    const timeMatch = line.match(/(\d{1,2}):(\d{2})/);
-                    if (timeMatch) {
-                      const [, hour, minute] = timeMatch;
-                      const hh = String(parseInt(hour, 10)).padStart(2, '0');
-                      const mm = String(parseInt(minute, 10)).padStart(2, '0');
-                      displayDate = `${extractedDate}T${hh}:${mm}`;
-                      break;
-                    }
-                  }
-                }
-                // 시간이 없으면 날짜만 사용
-                if (!displayDate) {
-                  displayDate = `${extractedDate}T00:00`;
-                }
-              }
+            if (tempServiceDate) {
+              // 날짜를 입력한 경우
+              return (
+                <p className="text-[11px] text-[#A28E7A]">
+                  {formatVisitDateTime(tempServiceDate)}
+                </p>
+              );
+            } else {
+              // 날짜를 입력하지 않은 경우
+              return (
+                <p className="text-[11px] text-[#A28E7A]">
+                  --년 --월 --일 (--) --:--
+                </p>
+              );
             }
-            
-            // 2순위: 사용자가 선택한 날짜
-            if (!displayDate && tempServiceDate) {
-              displayDate = tempServiceDate;
-            }
-            
-            return displayDate ? (
-              <p className="text-[11px] text-[#A28E7A]">
-                {formatVisitDateTime(displayDate)}
-              </p>
-            ) : null;
           })()}
           {/* 이름 / 번호 */}
           {selectedCustomerForRecord && (
@@ -601,8 +587,13 @@ function CustomerRecordScreen({
                                            safeSectionTitle.includes('고객 정보') ||
                                            safeSectionTitle.toLowerCase().includes('customer');
               
+              // [방문·예약 정보] 섹션인지 확인
+              const isVisitInfoSection = safeSectionTitle.includes('방문·예약 정보') || 
+                                        safeSectionTitle.includes('방문예약 정보');
+              
               // 고객 기본 정보 섹션인 경우 content를 특정 형식으로 변환
               let formattedContent = section.content;
+              
               if (isCustomerInfoSection && resultData.customerInfo) {
                 const customerName = resultData.customerInfo.name || selectedCustomerForRecord?.name || tempName || '';
                 const customerPhone = resultData.customerInfo.phone || selectedCustomerForRecord?.phone || tempPhone || '';
@@ -622,6 +613,38 @@ function CustomerRecordScreen({
                       !itemStr.includes('전화번호:') &&
                       !itemStr.includes('name:') &&
                       !itemStr.includes('phone:')) {
+                    formattedContent.push(itemStr);
+                  }
+                });
+              } else if (isVisitInfoSection) {
+                // 방문·예약 정보 섹션: 사용자가 입력한 날짜를 우선 표시
+                formattedContent = [];
+                
+                if (tempServiceDate) {
+                  // 날짜를 입력한 경우
+                  const dateObj = new Date(tempServiceDate);
+                  if (!isNaN(dateObj.getTime())) {
+                    const year = dateObj.getFullYear();
+                    const month = dateObj.getMonth() + 1;
+                    const day = dateObj.getDate();
+                    const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+                    const weekday = weekdays[dateObj.getDay()];
+                    const hours = String(dateObj.getHours()).padStart(2, '0');
+                    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                    
+                    formattedContent.push(`${year}년 ${month}월 ${day}일 (${weekday}) ${hours}:${minutes}`);
+                  } else {
+                    formattedContent.push('--년 --월 --일 (--) --:--');
+                  }
+                } else {
+                  // 날짜를 입력하지 않은 경우
+                  formattedContent.push('--년 --월 --일 (--) --:--');
+                }
+                
+                // AI가 추출한 다른 정보는 날짜 패턴이 없는 것만 추가
+                section.content.forEach(item => {
+                  const itemStr = typeof item === 'string' ? item : String(item || '');
+                  if (itemStr && !itemStr.match(/\d{4}년\s*\d{1,2}월\s*\d{1,2}일/)) {
                     formattedContent.push(itemStr);
                   }
                 });

@@ -24,7 +24,12 @@ function EditScreen({
   isEditingVisitTagPickerOpen,
   setIsEditingVisitTagPickerOpen,
   TagPickerModal,
-  refetchVisitLogs  // ✅ Supabase 데이터 새로고침용
+  refetchVisitLogs,  // ✅ Supabase 데이터 새로고침용
+  selectedCustomerForRecord,  // 고객 상세에서 온 경우 판단용
+  previousScreen,  // 이전 화면 정보
+  tempServiceDate,  // 날짜 입력 상태
+  recordState,  // 녹음 상태
+  setRecordState  // 녹음 상태 변경
 }) {
   if (!tempResultData) {
     return (
@@ -226,10 +231,20 @@ function EditScreen({
   const handleComplete = async () => {
     if (!tempResultData) {
       // 편집 데이터 없으면 그냥 원래 화면으로
+      // recordState를 'result'로 설정하여 녹음 화면 깜빡임 방지
+      if (setRecordState) {
+        setRecordState('result');
+      }
+      
       if (editingVisit) {
         setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
       } else {
-        setCurrentScreen(SCREENS.RECORD);
+        // 새로 만든 요약 편집 → 이전 화면으로
+        if (previousScreen === SCREENS.CUSTOMER_RECORD) {
+          setCurrentScreen(SCREENS.CUSTOMER_RECORD);
+        } else {
+          setCurrentScreen(SCREENS.RECORD);
+        }
       }
       return;
     }
@@ -635,9 +650,19 @@ function EditScreen({
       setSelectedCustomerId(currentCustomerId);
       setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
     } else {
-      // 녹음/키보드 요약에서 온 경우 → 다시 요약 결과
-      console.log('[편집 저장] 기록 화면으로 이동');
-      setCurrentScreen(SCREENS.RECORD);
+      // 새로 만든 요약 편집 → 이전 화면으로
+      // recordState를 'result'로 설정하여 녹음 화면 깜빡임 방지
+      if (setRecordState) {
+        setRecordState('result');
+      }
+      
+      if (previousScreen === SCREENS.CUSTOMER_RECORD) {
+        console.log('[편집 저장] 고객 상세 요약 화면으로 이동');
+        setCurrentScreen(SCREENS.CUSTOMER_RECORD);
+      } else {
+        console.log('[편집 저장] 홈 요약 화면으로 이동');
+        setCurrentScreen(SCREENS.RECORD);
+      }
     }
   };
 
@@ -652,14 +677,27 @@ function EditScreen({
         <button
           type="button"
           onClick={() => {
+            // 편집 상태만 초기화 (resultData는 유지)
             setTempResultData(null);
-            setEditingVisit(null);
-            setEditingCustomer(null);
             setEditingVisitTagIds([]);
+            
             if (editingVisit) {
+              // 저장된 방문 기록 편집 → 고객 상세로
+              setEditingVisit(null);
+              setEditingCustomer(null);
               setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
             } else {
-              setCurrentScreen(SCREENS.RECORD);
+              // 새로 만든 요약 편집 → 이전 화면으로 (고객 상세 요약 또는 홈 요약)
+              // recordState를 'result'로 설정하여 녹음 화면 깜빡임 방지
+              if (setRecordState) {
+                setRecordState('result');
+              }
+              
+              if (previousScreen === SCREENS.CUSTOMER_RECORD) {
+                setCurrentScreen(SCREENS.CUSTOMER_RECORD);
+              } else {
+                setCurrentScreen(SCREENS.RECORD);
+              }
             }
           }}
           className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
@@ -809,13 +847,50 @@ function EditScreen({
             safeSectionTitle.includes('고객 기본 정보') ||
             safeSectionTitle.includes('고객 정보') ||
             safeSectionTitle.toLowerCase().includes('customer');
+          
+          const isVisitInfoSection =
+            safeSectionTitle.includes('방문·예약 정보') ||
+            safeSectionTitle.includes('방문예약 정보');
 
           let displayContent = section.content;
           let customerInfoIndexMap = null;
+          
           if (isCustomerInfoSection) {
             const { display, indexMap } = buildCustomerInfoDisplay(section);
             displayContent = display;
             customerInfoIndexMap = indexMap;
+          } else if (isVisitInfoSection && !editingVisit && selectedCustomerForRecord) {
+            // 고객 상세에서 새로 만든 요약의 방문·예약 정보 섹션: tempServiceDate 기반으로 표시
+            displayContent = [];
+            
+            if (tempServiceDate) {
+              // 날짜를 입력한 경우
+              const dateObj = new Date(tempServiceDate);
+              if (!isNaN(dateObj.getTime())) {
+                const year = dateObj.getFullYear();
+                const month = dateObj.getMonth() + 1;
+                const day = dateObj.getDate();
+                const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+                const weekday = weekdays[dateObj.getDay()];
+                const hours = String(dateObj.getHours()).padStart(2, '0');
+                const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                
+                displayContent.push(`${year}년 ${month}월 ${day}일 (${weekday}) ${hours}:${minutes}`);
+              } else {
+                displayContent.push('--년 --월 --일 (--) --:--');
+              }
+            } else {
+              // 날짜를 입력하지 않은 경우
+              displayContent.push('--년 --월 --일 (--) --:--');
+            }
+            
+            // AI가 추출한 다른 정보는 날짜 패턴이 없는 것만 추가
+            section.content.forEach(item => {
+              const itemStr = typeof item === 'string' ? item : String(item || '');
+              if (itemStr && !itemStr.match(/\d{4}년\s*\d{1,2}월\s*\d{1,2}일/)) {
+                displayContent.push(itemStr);
+              }
+            });
           }
 
           return (
