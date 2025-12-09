@@ -81,7 +81,12 @@ function EditScreen({
   };
 
   // 섹션 항목 삭제 (고객 기본 정보 섹션 보정 포함)
-  const removeSectionItem = (sectionIndex, displayContentIndex, isCustomerInfoSection) => {
+  const removeSectionItem = (
+    sectionIndex,
+    displayContentIndex,
+    isCustomerInfoSection,
+    displayToOriginalIndexMap = null
+  ) => {
     setTempResultData(prev => {
       const updated = JSON.parse(JSON.stringify(prev));
 
@@ -95,7 +100,13 @@ function EditScreen({
       if (isCustomerInfoSection) {
         // 고객 기본 정보 섹션: displayContentIndex >= 2 일 때만 실제 content 삭제
         if (displayContentIndex >= 2) {
-          const originalIndex = displayContentIndex - 2;
+          let originalIndex = displayContentIndex - 2;
+          if (
+            Array.isArray(displayToOriginalIndexMap) &&
+            typeof displayToOriginalIndexMap[displayContentIndex] === 'number'
+          ) {
+            originalIndex = displayToOriginalIndexMap[displayContentIndex];
+          }
           if (
             originalIndex >= 0 &&
             originalIndex < section.content.length
@@ -139,6 +150,67 @@ function EditScreen({
 
     cleaned = cleaned.replace(/\s+/g, ' ').trim();
     return cleaned;
+  };
+
+  // 고객 기본 정보 섹션을 이름/전화번호가 분리된 형태로 표시하기 위한 헬퍼
+  const buildCustomerInfoDisplay = section => {
+    const safeContentArray = Array.isArray(section.content)
+      ? section.content
+      : [];
+
+    const normalizedStrings = safeContentArray.map(item =>
+      typeof item === 'string' ? item : String(item || '')
+    );
+
+    let name =
+      editingCustomer?.name && editingCustomer.name !== '이름 미입력'
+        ? editingCustomer.name
+        : '';
+    let phone =
+      editingCustomer?.phone && editingCustomer.phone !== '전화번호 미기재'
+        ? editingCustomer.phone
+        : '';
+
+    // 요약에서 함께 적힌 "이름: ○○○ / 전화번호: 010-0000-0000" 문자열을 분리
+    normalizedStrings.forEach(str => {
+      if (!str) return;
+      if (!name) {
+        const nameMatch = str.match(/이름\s*:\s*([^/]+)/i);
+        if (nameMatch?.[1]) {
+          name = nameMatch[1].trim();
+        }
+      }
+      if (!phone) {
+        const phoneMatch = str.match(/전화번호\s*:\s*([^/]+)/i);
+        if (phoneMatch?.[1]) {
+          phone = phoneMatch[1].trim();
+        }
+      }
+    });
+
+    const display = [
+      `이름: ${name || '미기재'}`,
+      `전화번호: ${phone || '미기재'}`
+    ];
+    const indexMap = [null, null]; // display -> 원본 content 인덱스 매핑 (이름/전화번호는 synthetic)
+
+    normalizedStrings.forEach((str, idx) => {
+      if (!str) return;
+      const lower = str.toLowerCase();
+      if (
+        str.includes('이름:') ||
+        str.includes('전화번호:') ||
+        lower.includes('name') ||
+        lower.includes('phone')
+      ) {
+        // 이름/전화번호가 함께 적힌 기존 줄은 스킵 (이미 분리됨)
+        return;
+      }
+      display.push(str);
+      indexMap.push(idx);
+    });
+
+    return { display, indexMap };
   };
 
   // 제목 업데이트
@@ -739,30 +811,11 @@ function EditScreen({
             safeSectionTitle.toLowerCase().includes('customer');
 
           let displayContent = section.content;
-          if (isCustomerInfoSection && editingCustomer) {
-            const customerName = editingCustomer.name || '';
-            const customerPhone = editingCustomer.phone || '';
-
-            displayContent = [];
-            if (customerName && customerName !== '이름 미입력') {
-              displayContent.push(`이름: ${customerName}`);
-            }
-            if (customerPhone && customerPhone !== '전화번호 미기재') {
-              displayContent.push(`전화번호: ${customerPhone}`);
-            }
-            (section.content || []).forEach(item => {
-              const itemStr =
-                typeof item === 'string' ? item : String(item || '');
-              if (
-                itemStr &&
-                !itemStr.includes('이름:') &&
-                !itemStr.includes('전화번호:') &&
-                !itemStr.includes('name:') &&
-                !itemStr.includes('phone:')
-              ) {
-                displayContent.push(itemStr);
-              }
-            });
+          let customerInfoIndexMap = null;
+          if (isCustomerInfoSection) {
+            const { display, indexMap } = buildCustomerInfoDisplay(section);
+            displayContent = display;
+            customerInfoIndexMap = indexMap;
           }
 
           return (
@@ -825,8 +878,14 @@ function EditScreen({
 
                           if (isCustomerInfoSection) {
                             if (contentIndex >= 2) {
-                              const originalIndex = contentIndex - 2;
+                              let originalIndex =
+                                Array.isArray(customerInfoIndexMap) &&
+                                typeof customerInfoIndexMap[contentIndex] ===
+                                  'number'
+                                  ? customerInfoIndexMap[contentIndex]
+                                  : contentIndex - 2;
                               if (
+                                originalIndex >= 0 &&
                                 originalIndex <
                                 (section.content || []).length
                               ) {
@@ -907,7 +966,10 @@ function EditScreen({
                             removeSectionItem(
                               sectionIndex,
                               contentIndex,
-                              isCustomerInfoSection
+                                  isCustomerInfoSection,
+                                  isCustomerInfoSection
+                                    ? customerInfoIndexMap
+                                    : null
                             )
                           }
                           className="absolute top-2 right-2 bg-red-100 text-red-500 p-1.5 rounded-full hover:bg-red-200 transition-colors flex items-center justify-center z-10"
