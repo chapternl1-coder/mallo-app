@@ -57,7 +57,7 @@ function getLocalTodayKey() {
   return `${year}-${month}-${day}`;
 }
 
-export default function useMalloAppState(user) {
+export default function useMalloAppState(user, supabaseReservations = null) {
   const [currentScreen, setCurrentScreenState] = useState(SCREENS.LOGIN);
   const [previousScreen, setPreviousScreen] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -276,11 +276,22 @@ export default function useMalloAppState(user) {
     return normalizedVisits;
   });
 
-  // 예약 관리 상태 (localStorage 연동)
+  // 예약 관리 상태 (Supabase 우선, 없으면 localStorage)
   const [reservations, setReservations] = useState(() => {
+    if (supabaseReservations && supabaseReservations.length > 0) {
+      return supabaseReservations;
+    }
     const loadedReservations = loadFromLocalStorage('mallo_reservations', []);
     return loadedReservations || [];
   });
+  
+  // Supabase reservations가 업데이트되면 로컬 상태도 업데이트
+  useEffect(() => {
+    if (supabaseReservations) {
+      setReservations(supabaseReservations);
+      console.log('[useMalloAppState] Supabase reservations 동기화:', supabaseReservations.length, '개');
+    }
+  }, [supabaseReservations]);
   
   const [tempResultData, setTempResultData] = useState(null);
 
@@ -1700,6 +1711,75 @@ export default function useMalloAppState(user) {
           })),
         };
         
+        // 🎯 예약으로 들어온 경우: "방문·예약 정보" 섹션 맨 앞에 예약 날짜 강제 삽입
+        try {
+          const reservationId = selectedCustomerForRecord?.reservationId;
+          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+          console.log('🎯 [음성 녹음 - 예약 날짜 주입 시작]');
+          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+          console.log('reservationId:', reservationId);
+          console.log('selectedCustomerForRecord:', selectedCustomerForRecord);
+          console.log('reservations 배열 길이:', reservations?.length);
+          console.log('reservations 배열 내용:', reservations);
+          
+          if (reservationId && reservations && reservations.length > 0) {
+            const reservation = reservations.find(r => r.id === reservationId);
+            console.log('[음성 녹음 - 예약 날짜 주입] 찾은 예약:', reservation);
+            
+            if (reservation && reservation.date && reservation.time) {
+              // "방문·예약 정보" 섹션 찾기
+              const visitSectionIndex = cleanedResult.sections.findIndex(
+                section => section.title && section.title.includes('방문·예약 정보')
+              );
+              
+              console.log('[음성 녹음 - 예약 날짜 주입] 방문·예약 정보 섹션 인덱스:', visitSectionIndex);
+              console.log('[음성 녹음 - 예약 날짜 주입] 전체 섹션 제목:', cleanedResult.sections.map(s => s.title));
+              
+              if (visitSectionIndex !== -1) {
+                // 예약 날짜를 한국어 형식으로 변환
+                const dateParts = reservation.date.split('-');
+                console.log('[음성 녹음 - 예약 날짜 주입] 날짜 분리:', dateParts);
+                
+                if (dateParts.length === 3) {
+                  const [year, month, day] = dateParts.map(Number);
+                  const dateObj = new Date(year, month - 1, day);
+                  const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+                  const weekday = weekdays[dateObj.getDay()];
+                  const reservationDateLine = `${year}년 ${month}월 ${day}일 (${weekday}) ${reservation.time} 예약`;
+                  
+                  console.log('[음성 녹음 - 예약 날짜 주입] 생성된 예약 날짜 라인:', reservationDateLine);
+                  console.log('[음성 녹음 - 예약 날짜 주입] 기존 content:', cleanedResult.sections[visitSectionIndex].content);
+                  
+                  // 기존 content에서 날짜 패턴이 있는 줄은 제거하고, 예약 날짜만 사용
+                  const existingContent = cleanedResult.sections[visitSectionIndex].content || [];
+                  const filteredContent = existingContent.filter(line => {
+                    if (!line || typeof line !== 'string') return true;
+                    // "YYYY년 MM월 DD일" 패턴이 있는 줄은 제거 (AI가 추출한 날짜)
+                    return !line.match(/\d{4}년\s*\d{1,2}월\s*\d{1,2}일/);
+                  });
+                  
+                  cleanedResult.sections[visitSectionIndex].content = [
+                    reservationDateLine,
+                    ...filteredContent
+                  ];
+                  
+                  console.log('[음성 녹음 - 예약 날짜 주입] ✅ 성공! 새 content (AI 날짜 제거됨):', cleanedResult.sections[visitSectionIndex].content);
+                } else {
+                  console.warn('[음성 녹음 - 예약 날짜 주입] ⚠️ 예약 날짜 형식이 올바르지 않습니다:', reservation.date);
+                }
+              } else {
+                console.log('[음성 녹음 - 예약 날짜 주입] ⚠️ 방문·예약 정보 섹션을 찾을 수 없습니다.');
+              }
+            } else {
+              console.log('[음성 녹음 - 예약 날짜 주입] ⚠️ 예약 정보가 불완전합니다. date:', reservation?.date, 'time:', reservation?.time);
+            }
+          } else {
+            console.log('[음성 녹음 - 예약 날짜 주입] ⚠️ 예약 ID가 없거나 예약 배열이 비어있습니다.');
+          }
+        } catch (error) {
+          console.error('[음성 녹음 - 예약 날짜 주입] ❌ 에러 (무시하고 계속):', error);
+        }
+        
         // 공통 헬퍼 함수 호출
         // 고객 상세에서 온 경우 CUSTOMER_RECORD로 이동
         const isFromCustomerDetailVoice = currentScreen === SCREENS.CUSTOMER_RECORD;
@@ -1831,6 +1911,53 @@ export default function useMalloAppState(user) {
             }] : [])
           ]
         };
+      }
+      
+      // 🎯 예약으로 들어온 경우: "방문·예약 정보" 섹션 맨 앞에 예약 날짜 강제 삽입
+      try {
+        const reservationId = selectedCustomerForRecord?.reservationId;
+        if (reservationId && reservations && reservations.length > 0) {
+          const reservation = reservations.find(r => r.id === reservationId);
+          if (reservation && reservation.date && reservation.time) {
+            // "방문·예약 정보" 섹션 찾기
+            const visitSectionIndex = cleanedResult.sections.findIndex(
+              section => section.title && section.title.includes('방문·예약 정보')
+            );
+            
+            if (visitSectionIndex !== -1) {
+              // 예약 날짜를 한국어 형식으로 변환
+              const dateParts = reservation.date.split('-');
+              if (dateParts.length === 3) {
+                const [year, month, day] = dateParts.map(Number);
+                const dateObj = new Date(year, month - 1, day);
+                const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+                const weekday = weekdays[dateObj.getDay()];
+                const reservationDateLine = `${year}년 ${month}월 ${day}일 (${weekday}) ${reservation.time} 예약`;
+                
+                // 기존 content에서 날짜 패턴이 있는 줄은 제거하고, 예약 날짜만 사용
+                const existingContent = cleanedResult.sections[visitSectionIndex].content || [];
+                const filteredContent = existingContent.filter(line => {
+                  if (!line || typeof line !== 'string') return true;
+                  // "YYYY년 MM월 DD일" 패턴이 있는 줄은 제거 (AI가 추출한 날짜)
+                  return !line.match(/\d{4}년\s*\d{1,2}월\s*\d{1,2}일/);
+                });
+                
+                cleanedResult.sections[visitSectionIndex].content = [
+                  reservationDateLine,
+                  ...filteredContent
+                ];
+                
+                console.log('[테스트 요약] ✅ 성공! 새 content (AI 날짜 제거됨):', reservationDateLine);
+              } else {
+                console.warn('[테스트 요약] 예약 날짜 형식이 올바르지 않습니다:', reservation.date);
+              }
+            } else {
+              console.log('[테스트 요약] 방문·예약 정보 섹션을 찾을 수 없어 예약 날짜를 추가하지 않습니다.');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[테스트 요약] 예약 날짜 주입 중 에러 (무시하고 계속):', error);
       }
       
       handleSummaryResult(cleanedResult);
@@ -2278,6 +2405,73 @@ export default function useMalloAppState(user) {
             }] : [])
           ]
         };
+      }
+
+      // 🎯 예약으로 들어온 경우: "방문·예약 정보" 섹션 맨 앞에 예약 날짜 강제 삽입
+      try {
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('🎯 [텍스트 기록 - 예약 날짜 주입 시작]');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('reservationId:', reservationId);
+        console.log('reservations 배열 길이:', reservations?.length);
+        console.log('reservations 배열 내용:', reservations);
+        
+        if (reservationId && reservations && reservations.length > 0) {
+          const reservation = reservations.find(r => r.id === reservationId);
+          console.log('찾은 예약:', reservation);
+          
+          if (reservation && reservation.date && reservation.time) {
+            // "방문·예약 정보" 섹션 찾기
+            const visitSectionIndex = cleanedResult.sections.findIndex(
+              section => section.title && section.title.includes('방문·예약 정보')
+            );
+            
+            console.log('방문·예약 정보 섹션 인덱스:', visitSectionIndex);
+            console.log('전체 섹션 제목:', cleanedResult.sections.map(s => s.title));
+            
+            if (visitSectionIndex !== -1) {
+              // 예약 날짜를 한국어 형식으로 변환
+              const dateParts = reservation.date.split('-');
+              console.log('날짜 분리:', dateParts);
+              
+              if (dateParts.length === 3) {
+                const [year, month, day] = dateParts.map(Number);
+                const dateObj = new Date(year, month - 1, day);
+                const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+                const weekday = weekdays[dateObj.getDay()];
+                const reservationDateLine = `${year}년 ${month}월 ${day}일 (${weekday}) ${reservation.time} 예약`;
+                
+                console.log('생성된 예약 날짜 라인:', reservationDateLine);
+                console.log('기존 content:', cleanedResult.sections[visitSectionIndex].content);
+                
+                // 기존 content에서 날짜 패턴이 있는 줄은 제거하고, 예약 날짜만 사용
+                const existingContent = cleanedResult.sections[visitSectionIndex].content || [];
+                const filteredContent = existingContent.filter(line => {
+                  if (!line || typeof line !== 'string') return true;
+                  // "YYYY년 MM월 DD일" 패턴이 있는 줄은 제거 (AI가 추출한 날짜)
+                  return !line.match(/\d{4}년\s*\d{1,2}월\s*\d{1,2}일/);
+                });
+                
+                cleanedResult.sections[visitSectionIndex].content = [
+                  reservationDateLine,
+                  ...filteredContent
+                ];
+                
+                console.log('✅ 성공! 새 content (AI 날짜 제거됨):', cleanedResult.sections[visitSectionIndex].content);
+              } else {
+                console.warn('⚠️ 예약 날짜 형식이 올바르지 않습니다:', reservation.date);
+              }
+            } else {
+              console.log('⚠️ 방문·예약 정보 섹션을 찾을 수 없습니다.');
+            }
+          } else {
+            console.log('⚠️ 예약 정보가 불완전합니다. date:', reservation?.date, 'time:', reservation?.time);
+          }
+        } else {
+          console.log('⚠️ 예약 ID가 없거나 예약 배열이 비어있습니다.');
+        }
+      } catch (error) {
+        console.error('❌ 예약 날짜 주입 중 에러 (무시하고 계속):', error);
       }
 
       // 고객 정보 설정

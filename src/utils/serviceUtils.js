@@ -25,16 +25,14 @@ export function extractServiceDateFromSummary(resultData) {
   console.log('[extractServiceDateFromSummary] 방문·예약 정보 섹션 찾음:', visitSection);
 
   // 섹션의 content 배열에서 날짜 패턴 찾기
-  // 여러 날짜가 있을 수 있으므로, 가장 최근 날짜(가장 나중 날짜)를 사용
-  let foundDates = [];
-  
+  // 🎯 예약 날짜가 맨 앞에 있으므로 첫 번째로 발견되는 날짜를 사용 (예약 우선)
   for (const line of visitSection.content) {
     if (!line || typeof line !== 'string') continue;
 
     console.log('[extractServiceDateFromSummary] 검사 중인 줄:', line);
 
     // "2025년 12월 27일" 패턴 찾기 (앞에 "- " 또는 다른 문자가 있어도 매칭)
-    // 예: "- 2025년 12월 27일 (금) 17:30 예약 후 제시간 방문"
+    // 예: "2025년 12월 27일 (금) 17:30 예약"
     const match = line.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
     if (match) {
       const [, year, month, day] = match;
@@ -42,21 +40,9 @@ export function extractServiceDateFromSummary(resultData) {
       const dd = String(day).padStart(2, '0');
       
       const serviceDate = `${year}-${mm}-${dd}`;
-      const dateObj = new Date(`${year}-${mm}-${dd}`);
-      foundDates.push({ date: serviceDate, dateObj: dateObj, line: line });
-      console.log('[extractServiceDateFromSummary] 날짜 발견:', serviceDate, '줄:', line);
+      console.log('[extractServiceDateFromSummary] 첫 번째 날짜 발견 (예약 우선):', serviceDate, '줄:', line);
+      return serviceDate;
     }
-  }
-
-  // 날짜가 여러 개 있으면, 가장 최근 날짜(가장 나중 날짜)를 사용
-  if (foundDates.length > 0) {
-    // 날짜 객체 기준으로 정렬 (최신 날짜가 마지막)
-    foundDates.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
-    
-    // 가장 최근 날짜 선택
-    const latestDate = foundDates[foundDates.length - 1];
-    console.log('[extractServiceDateFromSummary] 가장 최근 날짜 선택:', latestDate.date, '전체 발견된 날짜:', foundDates.map(d => d.date));
-    return latestDate.date;
   }
 
   console.log('[extractServiceDateFromSummary] 날짜 패턴을 찾지 못함');

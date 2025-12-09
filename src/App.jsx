@@ -38,20 +38,6 @@ export default function MalloApp() {
 
   // Supabase 연동을 위해 user를 훅에 넘겨줌
 
-  const {
-
-    screenRouterProps,
-
-    currentScreen,
-
-    activeTab,
-
-    handleTabClick,
-
-  } = useMalloAppState(user);
-
-
-
   // Supabase 데이터 로딩 + 콘솔 출력용
 
   const {
@@ -67,6 +53,20 @@ export default function MalloApp() {
     refresh: refreshSupabaseData,  // 고객/예약 모두 새로고침
 
   } = useSupabaseReservations();
+
+  
+
+  const {
+
+    screenRouterProps,
+
+    currentScreen,
+
+    activeTab,
+
+    handleTabClick,
+
+  } = useMalloAppState(user, supabaseReservations);
 
 
 
