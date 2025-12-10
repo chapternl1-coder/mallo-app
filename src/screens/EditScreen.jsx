@@ -190,17 +190,18 @@ function EditScreen({
 
     // 요약에서 함께 적힌 "이름: ○○○ / 전화번호: 010-0000-0000" 문자열을 분리
     normalizedStrings.forEach(str => {
-      if (!str) return;
-      if (!name) {
-        const nameMatch = str.match(/이름\s*:\s*([^/]+)/i);
-        if (nameMatch?.[1]) {
-          name = nameMatch[1].trim();
+      if (str) {
+        if (!name) {
+          const nameMatch = str.match(/이름\s*:\s*([^/]+)/i);
+          if (nameMatch?.[1]) {
+            name = nameMatch[1].trim();
+          }
         }
-      }
-      if (!phone) {
-        const phoneMatch = str.match(/전화번호\s*:\s*([^/]+)/i);
-        if (phoneMatch?.[1]) {
-          phone = phoneMatch[1].trim();
+        if (!phone) {
+          const phoneMatch = str.match(/전화번호\s*:\s*([^/]+)/i);
+          if (phoneMatch?.[1]) {
+            phone = phoneMatch[1].trim();
+          }
         }
       }
     });
@@ -213,18 +214,18 @@ function EditScreen({
     const indexMap = [null, null];
 
     normalizedStrings.forEach((str, idx) => {
-      if (!str) return;
-      const lower = str.toLowerCase();
+      const lower = (str || '').toLowerCase();
       if (
-        str.includes('이름:') ||
-        str.includes('전화번호:') ||
+        (str && str.includes('이름:')) ||
+        (str && str.includes('전화번호:')) ||
         lower.includes('name') ||
         lower.includes('phone')
       ) {
         // 이름/전화번호가 함께 적힌 기존 줄은 스킵 (이미 분리됨)
         return;
       }
-      display.push(str);
+      // 비어 있어도 표시하여 새 항목을 편집 가능하도록 함
+      display.push(str ?? '');
       indexMap.push(idx); // 원본 content의 idx를 매핑 (삭제 시 정확히 원본 항목만 제거)
     });
 
@@ -934,7 +935,12 @@ function EditScreen({
             // AI가 추출한 다른 정보는 날짜 패턴이 없는 것만 추가
             section.content.forEach(item => {
               const itemStr = typeof item === 'string' ? item : String(item || '');
-              if (itemStr && !itemStr.match(/\d{4}년\s*\d{1,2}월\s*\d{1,2}일/)) {
+              // 비어 있는 새 항목도 표시해서 편집 가능하도록 처리
+              if (!itemStr) {
+                displayContent.push('');
+                return;
+              }
+              if (!itemStr.match(/\d{4}년\s*\d{1,2}월\s*\d{1,2}일/)) {
                 displayContent.push(itemStr);
               }
             });
@@ -1104,15 +1110,13 @@ function EditScreen({
                   );
                 })}
               </div>
-              {!isCustomerInfoSection && (
-                <button
-                  onClick={() => addSectionItem(sectionIndex)}
-                  className="w-full py-3 rounded-xl text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors mt-4"
-                  style={{ color: '#232323' }}
-                >
-                  + 항목 추가
-                </button>
-              )}
+              <button
+                onClick={() => addSectionItem(sectionIndex)}
+                className="w-full py-3 rounded-xl text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-colors mt-4"
+                style={{ color: '#232323' }}
+              >
+                + 항목 추가
+              </button>
             </div>
           );
         })}
