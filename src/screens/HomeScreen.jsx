@@ -717,13 +717,24 @@ function HomeScreen({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
+
+                                // 방문 기록이 이미 있는 경우 녹음/키보드 예약 막기
+                                if (hasVisitLog) {
+                                  alert('이미 방문 기록이 있습니다.\n오늘의 예약은 완료되었습니다.');
+                                  return;
+                                }
+
                                 if (inputMode === 'voice') {
                                   handleStartVoiceRecord(reservation);
                                 } else {
                                   handleStartTextRecord(reservation);
                                 }
                               }}
-                              className="w-10 h-10 rounded-full bg-[#C9A27A] text-white shadow-md hover:bg-[#B8926A] active:scale-95 transition-all flex items-center justify-center"
+                              className={`w-10 h-10 rounded-full text-white shadow-md active:scale-95 transition-all flex items-center justify-center ${
+                                hasVisitLog
+                                  ? 'bg-gray-400 cursor-not-allowed opacity-50' // 방문 기록 있으면 비활성화 스타일
+                                  : 'bg-[#C9A27A] hover:bg-[#B8926A] cursor-pointer' // 없으면 정상 스타일
+                              }`}
                             >
                               {inputMode === 'voice' ? (
                                 <Mic size={18} />
