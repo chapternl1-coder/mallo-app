@@ -22,6 +22,12 @@ import useVisitLogs from './hooks/useVisitLogs';
 
 import { supabase } from './lib/supabaseClient';
 
+// 콘솔 디버그 토글 (과도한 로그 방지)
+const ENABLE_APP_DEBUG_LOG = false;
+const appLog = (...args) => {
+  if (ENABLE_APP_DEBUG_LOG) console.log(...args);
+};
+
 
 
 export default function MalloApp() {
@@ -78,11 +84,36 @@ export default function MalloApp() {
 
 
   useEffect(() => {
+    if (!Array.isArray(supabaseReservations)) {
+      setReservations([]);
+      return;
+    }
 
-    // Supabase에서 새로 가져오면 로컬 state를 덮어씀
+    // Supabase 데이터를 우선 적용하되, 아직 Supabase에 반영되지 않은
+    // 로컬 임시 예약(예: reserved_at 없는 항목)은 보존하여 즉시 UI에 반영
+    setReservations((prev) => {
+      const merged = new Map();
 
-    setReservations(supabaseReservations || []);
+      // 1) Supabase에서 내려온 최신 데이터를 먼저 채운다.
+      supabaseReservations.forEach((res) => {
+        if (res && res.id) {
+          merged.set(res.id, res);
+        }
+      });
 
+      // 2) Supabase에 아직 없는 로컬 예약(주로 새로 추가된 항목)만 추가한다.
+      prev.forEach((res) => {
+        if (!res) return;
+        const hasSupabaseRow = res.id && merged.has(res.id);
+        const isLocalOnly = !res.reserved_at; // Supabase row에는 reserved_at이 항상 존재
+
+        if (!hasSupabaseRow && isLocalOnly) {
+          merged.set(res.id || `local-${merged.size}`, res);
+        }
+      });
+
+      return Array.from(merged.values());
+    });
   }, [supabaseReservations]);
 
   // Supabase customers를 localStorage와 병합하여 실제 사용할 customers 생성
@@ -123,7 +154,7 @@ export default function MalloApp() {
         
         // localStorage에도 저장 (다음 로드 시 사용)
         localStorage.setItem('mallo_customers', JSON.stringify(merged));
-        console.log('[App] Supabase customers를 localStorage와 병합:', merged.length, '명');
+        appLog('[App] Supabase customers를 localStorage와 병합:', merged.length, '명');
       } catch (e) {
         console.error('[App] localStorage 동기화 실패:', e);
         // 에러 발생 시 Supabase 데이터라도 사용
@@ -228,13 +259,10 @@ export default function MalloApp() {
 
   // 필요하면 아래처럼 콘솔에 다시 한 번 찍을 수도 있음
 
-  console.log('[MalloApp] Supabase customers 길이:', customers.length);
-
-  console.log('[MalloApp] Supabase reservations 길이:', supabaseReservations.length);
-
-  console.log('[MalloApp] 로컬 reservations 길이:', reservations.length);
-
-  console.log('[MalloApp] Supabase visit_logs 길이:', allVisitLogs.length);
+  appLog('[MalloApp] Supabase customers 길이:', customers.length);
+  appLog('[MalloApp] Supabase reservations 길이:', supabaseReservations.length);
+  appLog('[MalloApp] 로컬 reservations 길이:', reservations.length);
+  appLog('[MalloApp] Supabase visit_logs 길이:', allVisitLogs.length);
 
   // ✅ 전체 앱 로딩 상태: 처음 한 번만 표시
   const [hasShownInitialAppLoading, setHasShownInitialAppLoading] = useState(false);

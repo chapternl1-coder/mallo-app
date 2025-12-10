@@ -99,7 +99,7 @@ export default function ScreenRouter(props) {
     case SCREENS.PROFILE:
       return <ProfileScreen {...props} />;
     case SCREENS.PROFILE_EDIT:
-      return <ProfileEditScreen {...props} />;
+      return <ProfileEditScreen {...props} refetchProfile={props.refetchProfile} />;
     case SCREENS.TAG_SETTINGS:
       return <TagSettingsScreen {...props} />;
     case SCREENS.RESERVATION:

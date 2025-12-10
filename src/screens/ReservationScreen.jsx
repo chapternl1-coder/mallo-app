@@ -20,6 +20,7 @@ function ReservationScreen({
   autoOpenForm = false, // 홈에서 + 버튼으로 진입 시 자동으로 폼 열기
   setShouldOpenReservationForm, // 플래그 리셋용
   refreshCustomers,
+  refreshReservations,
   visitLogs = [],   // ✅ 추가
 }) {
   const [showForm, setShowForm] = useState(true); // 항상 예약 추가창 열어놓기
@@ -50,6 +51,19 @@ function ReservationScreen({
       setShouldOpenReservationForm(false);
     }
   }, [setShouldOpenReservationForm]);
+
+  // 15초마다 예약/고객 데이터를 다시 가져와 예약 화면을 최신 상태로 유지
+  useEffect(() => {
+    if (typeof refreshReservations !== 'function') return undefined;
+    const id = setInterval(() => {
+      refreshReservations();
+      // 고객 목록도 최신화가 필요하면 함께 호출
+      if (typeof refreshCustomers === 'function') {
+        refreshCustomers();
+      }
+    }, 15000);
+    return () => clearInterval(id);
+  }, [refreshReservations, refreshCustomers]);
 
   // 선택된 날짜 문자열 (YYYY-MM-DD 형식)
   const selectedDateStr = useMemo(() => {
@@ -221,6 +235,10 @@ function ReservationScreen({
         } else {
           supabaseReservationId = reservationRow.id;
           console.log('[Supabase] reservations insert 성공:', reservationRow);
+          // Supabase 최신 상태를 즉시 반영 (다른 기기/화면에서도 새로고침 없이 보이도록)
+          if (typeof refreshReservations === 'function') {
+            refreshReservations();
+          }
         }
       } catch (e) {
         console.error('[Supabase] reservations 처리 중 예외:', e);
@@ -260,6 +278,11 @@ function ReservationScreen({
       console.log('[예약 추가 결과]', result);
     } else {
       console.error('[예약 추가 실패] addReservation 함수가 없습니다.');
+    }
+
+    // 로컬 추가 이후에도 Supabase 최신 데이터를 한 번 더 가져와 동기화
+    if (typeof refreshReservations === 'function') {
+      refreshReservations();
     }
 
     // 5) 폼 리셋 (예약 화면에 그대로 머무름)

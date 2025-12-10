@@ -72,6 +72,28 @@ export default function useProfile() {
     fetchProfile();
   }, [fetchProfile]);
 
+  // 15초마다, 그리고 포커스/가시성 변경 시 최신 프로필을 다시 가져와 기기 간 동기화
+  useEffect(() => {
+    if (!user) return undefined;
+
+    const handleFocus = () => {
+      fetchProfile();
+    };
+
+    const intervalId = setInterval(() => {
+      fetchProfile();
+    }, 15000); // 15초 폴링
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+    };
+  }, [user, fetchProfile]);
+
   const updateProfile = useCallback(
     async (updates) => {
       if (!user) return null;
@@ -80,15 +102,17 @@ export default function useProfile() {
       setError(null);
 
       try {
+        // 스키마에 있는 필드들을 모두 보냄 (profiles 컬럼 추가됨)
+        const payload = { id: user.id };
+        ['owner_name', 'shop_name', 'phone', 'address', 'memo'].forEach((key) => {
+          if (updates[key] !== undefined) {
+            payload[key] = updates[key];
+          }
+        });
+
         const { data, error: upsertError } = await supabase
           .from('profiles')
-          .upsert(
-            {
-              id: user.id,
-              ...updates,
-            },
-            { onConflict: 'id' }
-          )
+          .upsert(payload, { onConflict: 'id' })
           .select('*')
           .single();
 

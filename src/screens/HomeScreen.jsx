@@ -74,6 +74,15 @@ function HomeScreen({
     return saved === 'voice' || saved === 'text' ? saved : 'voice';
   });
 
+  // 15초마다 예약/고객 데이터를 다시 가져와 홈 화면을 최신 상태로 유지
+  useEffect(() => {
+    if (typeof refreshReservations !== 'function') return undefined;
+    const id = setInterval(() => {
+      refreshReservations();
+    }, 15000);
+    return () => clearInterval(id);
+  }, [refreshReservations]);
+
   // 선택된 날짜를 YYYY-MM-DD 형식으로 변환
   const selectedDateKey = useMemo(() => {
     const year = selectedDate.getFullYear();

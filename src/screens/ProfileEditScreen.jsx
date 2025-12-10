@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import useProfile from '../hooks/useProfile';
 import { SCREENS } from '../constants/screens';
 
-export default function ProfileEditScreen({ setCurrentScreen }) {
+export default function ProfileEditScreen({ setCurrentScreen, refetchProfile }) {
   const { user } = useAuth();
   const { profile, loading, saving, updateProfile } = useProfile();
 
@@ -30,24 +30,30 @@ export default function ProfileEditScreen({ setCurrentScreen }) {
   const [memo, setMemo] = useState(draft.memo || '');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Supabase에서 가져온 프로필을 폼에 채워 넣기 (초기 1회, 프로필 변경 시만)
+  // Supabase에서 가져온 프로필을 폼에 채워 넣기 (프로필이 바뀌면 항상 덮어씀)
   useEffect(() => {
     if (profile) {
       const profileId = profile.id || 'no-id';
-      if (!initialized || lastProfileIdRef.current !== profileId) {
-        setOwnerName((prev) => prev || profile.owner_name || '');
-        setShopName((prev) => {
-          if (prev) return prev;
-          const currentShopName = profile.shop_name || '';
-          if (currentShopName === '강민샵' || currentShopName.trim() === '') {
-            return '말로뷰티스튜디오';
-          }
-          return currentShopName;
-        });
-        // phone/address/memo는 프로필에서 내려오는 값이 없으므로 덮어쓰지 않음
-        lastProfileIdRef.current = profileId;
-        setInitialized(true);
+      // 서버 값으로 항상 덮어써서 다른 기기 변경사항을 확실히 반영
+      setOwnerName(profile.owner_name || '');
+      const currentShopName = profile.shop_name || '';
+      setShopName(
+        currentShopName === '강민샵' || currentShopName.trim() === ''
+          ? '말로뷰티스튜디오'
+          : currentShopName
+      );
+      // phone/address/memo는 테이블에 컬럼이 있을 때만 덮어씀
+      if (Object.prototype.hasOwnProperty.call(profile, 'phone')) {
+        setPhone(profile.phone || '');
       }
+      if (Object.prototype.hasOwnProperty.call(profile, 'address')) {
+        setAddress(profile.address || '');
+      }
+      if (Object.prototype.hasOwnProperty.call(profile, 'memo')) {
+        setMemo(profile.memo || '');
+      }
+      lastProfileIdRef.current = profileId;
+      setInitialized(true);
     }
   }, [profile, initialized]);
 
@@ -73,14 +79,48 @@ export default function ProfileEditScreen({ setCurrentScreen }) {
     setErrorMessage('');
 
     try {
-      await updateProfile({
+      const updated = await updateProfile({
         owner_name: ownerName.trim(),
         shop_name: shopName.trim(),
-        // 나중에 profiles 테이블에 phone/address/memo 컬럼 추가하면
-        // phone, address, memo도 같이 넘기면 됨
+        phone: phone.trim(),
+        address: address.trim(),
+        memo: memo.trim(),
       });
 
-      // phone/address/memo는 아직 서버에 저장하지 않으므로 드래프트를 지우지 않아 입력값을 유지
+      // 앱 전역 프로필도 최신화 (다른 화면/기기 반영)
+      if (typeof refetchProfile === 'function') {
+        try {
+          await refetchProfile();
+        } catch (e) {
+          console.warn('[ProfileEdit] refetchProfile 실패 (무시):', e);
+        }
+      }
+
+      // 성공 시 서버 값으로 폼/드래프트를 재설정
+      try {
+        const nextDraft = {
+          ownerName: updated?.owner_name || ownerName,
+          shopName: updated?.shop_name || shopName,
+          phone: updated?.phone || '',
+          address: updated?.address || '',
+          memo: updated?.memo || '',
+        };
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(nextDraft));
+        setOwnerName(nextDraft.ownerName);
+        setShopName(nextDraft.shopName);
+        setPhone(nextDraft.phone);
+        setAddress(nextDraft.address);
+        setMemo(nextDraft.memo);
+      } catch (e) {
+        console.warn('[ProfileEdit] 드래프트 저장 실패', e);
+      }
+      setOwnerName(updated?.owner_name || '');
+      setShopName(
+        updated?.shop_name
+          ? updated.shop_name
+          : '말로뷰티스튜디오'
+      );
+      // phone/address/memo는 서버에 저장되지 않으므로 기존 입력 그대로 둔다
 
       if (setCurrentScreen) {
         setCurrentScreen(SCREENS.PROFILE);

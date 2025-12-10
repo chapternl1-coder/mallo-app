@@ -2,6 +2,12 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
+// 과도한 콘솔 로그를 막기 위한 토글
+const ENABLE_RESERVATION_DEBUG = false;
+const resLog = (...args) => {
+  if (ENABLE_RESERVATION_DEBUG) console.log(...args);
+};
+
 function formatLocalDate(dateString) {
   if (!dateString) return '';
 
@@ -188,7 +194,7 @@ export default function useSupabaseReservations() {
         setCustomers(mappedCustomers);
         setReservations(mappedReservations);
 
-        console.log(
+        resLog(
           '[SupabaseHook] customers:',
           mappedCustomers.length,
           'reservations:',
@@ -211,6 +217,17 @@ export default function useSupabaseReservations() {
       cancelled = true;
     };
   }, [user, refreshTrigger]);
+
+  // 15초 주기로 폴링하여 고객/예약을 자동 새로고침
+  useEffect(() => {
+    if (!user || !user.id) return undefined;
+
+    const intervalId = setInterval(() => {
+      setRefreshTrigger((prev) => prev + 1);
+    }, 15000);
+
+    return () => clearInterval(intervalId);
+  }, [user?.id]);
 
   // 수동으로 데이터를 다시 불러오는 함수
   const refresh = () => {
