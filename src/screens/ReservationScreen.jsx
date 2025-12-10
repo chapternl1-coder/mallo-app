@@ -155,10 +155,10 @@ function ReservationScreen({
 
     let customerId = null;
 
-    // 2) customers 테이블에서 (owner_id + phone) 으로 고객 찾기, 없으면 새로 생성
+    // 2) 중복 전화번호 확인 - 같은 번호가 이미 있으면 예약 추가 막기
     if (isSupabaseReady) {
       try {
-        // 기존 고객 조회
+        // 기존 고객 조회 (전화번호로)
         const { data: existing, error: selectError } = await supabase
           .from('customers')
           .select('*')
@@ -170,7 +170,15 @@ function ReservationScreen({
           console.error('[Supabase] customers 조회 에러:', selectError);
         }
 
-        let customerRow = existing?.[0] ?? null;
+        const existingCustomer = existing?.[0];
+
+        // ✅ 전화번호가 이미 등록된 고객이 있고, 자동완성으로 선택하지 않은 경우 예약 추가 막기
+        if (existingCustomer && !selectedExistingCustomerId) {
+          alert(`이미 등록된 전화번호입니다.\n기존 고객: ${existingCustomer.name}\n이름 입력란에서 기존 고객을 선택해 주세요.`);
+          return;
+        }
+
+        let customerRow = existingCustomer ?? null;
 
         // 없으면 새로 insert
         if (!customerRow) {
