@@ -737,8 +737,17 @@ function RecordScreen({
               // 고객 기본 정보 섹션인 경우 content를 특정 형식으로 변환
               let formattedContent = section.content;
               if (isCustomerInfoSection && resultData.customerInfo) {
-                const customerName = resultData.customerInfo.name || selectedCustomerForRecord?.name || tempName || '';
-                const customerPhone = resultData.customerInfo.phone || selectedCustomerForRecord?.phone || tempPhone || '';
+                // 우선순위: 선택된 프로필 > 사용자가 입력한 값 > AI 추출값
+                const customerName =
+                  selectedCustomerForRecord?.name ||
+                  tempName ||
+                  resultData.customerInfo.name ||
+                  '';
+                const customerPhone =
+                  selectedCustomerForRecord?.phone ||
+                  tempPhone ||
+                  resultData.customerInfo.phone ||
+                  '';
                 
                 formattedContent = [];
                 if (customerName) {

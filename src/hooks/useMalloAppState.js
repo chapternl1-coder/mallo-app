@@ -1537,14 +1537,25 @@ export default function useMalloAppState(user, supabaseReservations = null) {
     
     setResultData(cleanedData);
     
+    // 고객 정보 적용: 이미 선택한 프로필/입력값이 있으면 덮어쓰지 않음
     if (summaryData.customerInfo) {
       const extractedName = summaryData.customerInfo.name;
       const extractedPhone = summaryData.customerInfo.phone;
       
-      if (extractedName && extractedName !== 'null' && extractedName.trim() !== '') {
+      if (
+        extractedName &&
+        extractedName !== 'null' &&
+        extractedName.trim() !== '' &&
+        !tempName
+      ) {
         setTempName(extractedName.trim());
       }
-      if (extractedPhone && extractedPhone !== 'null' && extractedPhone.trim() !== '') {
+      if (
+        extractedPhone &&
+        extractedPhone !== 'null' &&
+        extractedPhone.trim() !== '' &&
+        !tempPhone
+      ) {
         setTempPhone(extractedPhone.trim());
       }
     }

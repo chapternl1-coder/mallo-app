@@ -167,14 +167,24 @@ function EditScreen({
       typeof item === 'string' ? item : String(item || '')
     );
 
+    // 우선순위: 선택된 프로필 > 입력값(temp) > 편집 중 고객 > 요약 추출
     let name =
-      editingCustomer?.name && editingCustomer.name !== '이름 미입력'
+      (selectedCustomerForRecord?.name && selectedCustomerForRecord.name !== '이름 미입력'
+        ? selectedCustomerForRecord.name
+        : '') ||
+      (tempName || '') ||
+      (editingCustomer?.name && editingCustomer.name !== '이름 미입력'
         ? editingCustomer.name
-        : '';
+        : '');
+
     let phone =
-      editingCustomer?.phone && editingCustomer.phone !== '전화번호 미기재'
+      (selectedCustomerForRecord?.phone && selectedCustomerForRecord.phone !== '전화번호 미기재'
+        ? selectedCustomerForRecord.phone
+        : '') ||
+      (tempPhone || '') ||
+      (editingCustomer?.phone && editingCustomer.phone !== '전화번호 미기재'
         ? editingCustomer.phone
-        : '';
+        : '');
 
     // 요약에서 함께 적힌 "이름: ○○○ / 전화번호: 010-0000-0000" 문자열을 분리
     normalizedStrings.forEach(str => {
@@ -859,12 +869,32 @@ function EditScreen({
             const { display, indexMap } = buildCustomerInfoDisplay(section);
             displayContent = display;
             customerInfoIndexMap = indexMap;
-          } else if (isVisitInfoSection && !editingVisit && selectedCustomerForRecord) {
-            // 고객 상세에서 새로 만든 요약의 방문·예약 정보 섹션: tempServiceDate 기반으로 표시
+          } else if (isVisitInfoSection) {
+            // 방문·예약 정보 섹션: 예약(홈) → 입력 날짜 → 섹션 내 추출 → 미정
             displayContent = [];
-            
-            if (tempServiceDate) {
-              // 날짜를 입력한 경우
+
+            const buildLabel = (dateStr, timeStr) => {
+              if (!dateStr || !timeStr) return null;
+              const dateObj = new Date(`${dateStr}T${timeStr}`);
+              if (isNaN(dateObj.getTime())) return null;
+              const year = dateObj.getFullYear();
+              const month = dateObj.getMonth() + 1;
+              const day = dateObj.getDate();
+              const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+              const weekday = weekdays[dateObj.getDay()];
+              const hours = String(dateObj.getHours()).padStart(2, '0');
+              const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+              return `${year}년 ${month}월 ${day}일 (${weekday}) ${hours}:${minutes}`;
+            };
+
+            // 1) 예약에서 넘어온 날짜/시간
+            let pickedLabel = buildLabel(
+              selectedCustomerForRecord?.date,
+              selectedCustomerForRecord?.time
+            );
+
+            // 2) 사용자가 입력한 날짜
+            if (!pickedLabel && tempServiceDate) {
               const dateObj = new Date(tempServiceDate);
               if (!isNaN(dateObj.getTime())) {
                 const year = dateObj.getFullYear();
@@ -874,16 +904,30 @@ function EditScreen({
                 const weekday = weekdays[dateObj.getDay()];
                 const hours = String(dateObj.getHours()).padStart(2, '0');
                 const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-                
-                displayContent.push(`${year}년 ${month}월 ${day}일 (${weekday}) ${hours}:${minutes}`);
-              } else {
-                displayContent.push('--년 --월 --일 (--) --:--');
+                pickedLabel = `${year}년 ${month}월 ${day}일 (${weekday}) ${hours}:${minutes}`;
               }
-            } else {
-              // 날짜를 입력하지 않은 경우
-              displayContent.push('--년 --월 --일 (--) --:--');
             }
-            
+
+            // 3) 섹션 내 기존 내용에서 날짜 패턴 추출
+            if (!pickedLabel && Array.isArray(section.content)) {
+              for (const item of section.content) {
+                const itemStr = typeof item === 'string' ? item : String(item || '');
+                const match = itemStr.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+                const timeMatch = itemStr.match(/(\d{1,2}):(\d{2})/);
+                if (match) {
+                  const [, y, m, d] = match;
+                  const mm = String(m).padStart(2, '0');
+                  const dd = String(d).padStart(2, '0');
+                  const hh = timeMatch ? String(timeMatch[1]).padStart(2, '0') : '00';
+                  const mi = timeMatch ? String(timeMatch[2]).padStart(2, '0') : '00';
+                  pickedLabel = `${y}년 ${m}월 ${d}일 (${['일','월','화','수','목','금','토'][new Date(`${y}-${mm}-${dd}`).getDay()]}) ${hh}:${mi}`;
+                  break;
+                }
+              }
+            }
+
+            displayContent.push(pickedLabel || '--년 --월 --일 (--) --:--');
+
             // AI가 추출한 다른 정보는 날짜 패턴이 없는 것만 추가
             section.content.forEach(item => {
               const itemStr = typeof item === 'string' ? item : String(item || '');
