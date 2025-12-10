@@ -3,7 +3,14 @@ import React from 'react';
 import { ArrowLeft, X, Minus } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
 import { supabase } from '../lib/supabaseClient'; // 🔥 새로 추가
+import { useAuth } from '../contexts/AuthContext';
 // ⛔ runAutoTagMatchingForVisit는 더 이상 사용하지 않으니까 삭제
+
+// UUID 검증 함수
+const isValidUuid = (value) => {
+  if (typeof value !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+};
 
 function EditScreen({
   tempResultData,
@@ -18,6 +25,7 @@ function EditScreen({
   normalizeRecordWithCustomer,
   setResultData,
   setVisits,
+  visits,  // ✅ 다른 방문 기록 확인용
   setCustomers,
   setCurrentScreen,
   setSelectedCustomerId,
@@ -25,14 +33,20 @@ function EditScreen({
   setIsEditingVisitTagPickerOpen,
   TagPickerModal,
   refetchVisitLogs,  // ✅ Supabase 데이터 새로고침용
+  refreshCustomers,  // ✅ Supabase 고객 목록 새로고침용
   selectedCustomerForRecord,  // 고객 상세에서 온 경우 판단용
   previousScreen,  // 이전 화면 정보
   tempServiceDate,  // 날짜 입력 상태
   recordState,  // 녹음 상태
   setRecordState,  // 녹음 상태 변경
   tempName = '',
-  tempPhone = ''
+  tempPhone = '',
+  reservations = [],  // ✅ 다른 예약 확인용
+  setReservations,  // ✅ 예약 삭제용
+  visitLogs = []  // ✅ Supabase 방문 기록 확인용
 }) {
+  const { user } = useAuth();
+
   if (!tempResultData) {
     return (
       <div
@@ -1125,7 +1139,7 @@ function EditScreen({
         {editingVisit && editingCustomer && (
           <div className="flex justify-center p-6 mt-5">
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (
                   window.confirm(
                     '이 방문 기록을 삭제하시겠습니까?\n삭제된 기록은 복구할 수 없습니다.'
@@ -1134,14 +1148,91 @@ function EditScreen({
                   const customerId = editingCustomer.id;
                   const visitId = editingVisit.id;
 
+                  // ✅ 0) 삭제하려는 방문 기록의 예약 ID 확인
+                  const linkedReservationId = editingVisit?.reservationId || editingVisit?.reservation_id;
+                  
+                  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                  console.log('[EditScreen 삭제 디버그] 시작');
+                  console.log('방문 기록 ID:', visitId);
+                  console.log('고객 ID:', customerId);
+                  console.log('연결된 예약 ID:', linkedReservationId);
+
+                  // ✅ 1) 먼저 연결된 예약도 함께 삭제
+                  if (linkedReservationId) {
+                    console.log('🗑️ 연결된 예약 삭제 시작:', linkedReservationId);
+                    
+                    // 로컬 reservations에서 삭제
+                    if (typeof setReservations === 'function') {
+                      setReservations((prev) =>
+                        (prev || []).filter((r) => r.id !== linkedReservationId)
+                      );
+                    }
+                    
+                    // Supabase에서도 예약 삭제
+                    if (user && isValidUuid(linkedReservationId)) {
+                      try {
+                        const { error: deleteReservationError } = await supabase
+                          .from('reservations')
+                          .delete()
+                          .eq('id', linkedReservationId)
+                          .eq('owner_id', user.id);
+                        
+                        if (deleteReservationError) {
+                          console.warn('[EditScreen] 예약 삭제 실패:', deleteReservationError.message);
+                        } else {
+                          console.log('[EditScreen] ✅ 예약 삭제 성공:', linkedReservationId);
+                        }
+                      } catch (e) {
+                        console.warn('[EditScreen] 예약 삭제 예외:', e);
+                      }
+                    }
+                  }
+
+                  // ✅ 2) 이제 다른 방문 기록/예약이 있는지 확인 (방금 삭제한 것 제외)
+                  const customerVisits = visits && customerId ? (visits[customerId] || []) : [];
+                  console.log('고객의 로컬 방문 기록:', customerVisits.length, '개');
+                  const otherVisitsCount = customerVisits.filter(v => v.id !== visitId).length;
+                  const hasOtherLocalVisits = otherVisitsCount > 0;
+                  console.log('다른 로컬 방문 기록이 있나?', hasOtherLocalVisits, `(${otherVisitsCount}개)`);
+
+                  // Supabase visit_logs에서 다른 방문 기록이 있는지 확인
+                  const otherSupabaseVisitLogs = (visitLogs || []).filter(
+                    (v) =>
+                      v &&
+                      (v.customerId === customerId || v.customer_id === customerId) &&
+                      v.id !== visitId
+                  );
+                  const hasOtherSupabaseVisitLogs = otherSupabaseVisitLogs.length > 0;
+                  console.log('다른 Supabase 방문 기록이 있나?', hasOtherSupabaseVisitLogs, `(${otherSupabaseVisitLogs.length}개)`);
+
+                  // 다른 예약이 있는지 확인 (방금 삭제한 예약 제외)
+                  const hasOtherReservations = (reservations || []).some(
+                    (r) =>
+                      r &&
+                      r.id !== linkedReservationId &&
+                      (r.customerId === customerId || r.customer_id === customerId)
+                  );
+                  console.log('다른 예약이 있나?', hasOtherReservations);
+
+                  // 신규 고객 판단: 다른 방문 기록도 없고, 다른 예약도 없는 경우
+                  const isNewCustomer = !hasOtherLocalVisits && !hasOtherSupabaseVisitLogs && !hasOtherReservations;
+                  console.log('🔍 신규 고객인가?', isNewCustomer);
+                  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+                  // ✅ 2) 로컬 visits 업데이트
                   setVisits(prev => {
                     const updated = { ...prev };
                     if (updated[customerId]) {
                       const remainingVisits = updated[customerId].filter(
                         v => v.id !== visitId
                       );
-                      updated[customerId] =
-                        remainingVisits.length > 0 ? remainingVisits : [];
+                      
+                      // 남은 방문이 없으면 키 자체를 삭제 (히스토리/고객상세 카드 제거)
+                      if (remainingVisits.length === 0) {
+                        delete updated[customerId];
+                      } else {
+                        updated[customerId] = remainingVisits;
+                      }
 
                       setCustomers(prevCustomers =>
                         prevCustomers.map(c => {
@@ -1173,13 +1264,78 @@ function EditScreen({
                     return updated;
                   });
 
+                  // ✅ 3) Supabase visit_logs에서도 삭제 (UUID인 경우만)
+                  if (user && isValidUuid(visitId)) {
+                    try {
+                      const { error } = await supabase
+                        .from('visit_logs')
+                        .delete()
+                        .eq('id', visitId)
+                        .eq('owner_id', user.id);
+                      
+                      if (error) {
+                        console.warn('[EditScreen] visit_logs 삭제 실패:', error.message);
+                      } else {
+                        console.log('[EditScreen] visit_logs 삭제 성공:', visitId);
+                      }
+                    } catch (e) {
+                      console.warn('[EditScreen] visit_logs 삭제 예외:', e);
+                    }
+                  }
+
+                  // ✅ 4) Supabase visit_logs 새로고침
+                  if (typeof refetchVisitLogs === 'function') {
+                    refetchVisitLogs();
+                  }
+
+                  // ✅ 5) 신규 고객이면 프로필까지 완전히 삭제
+                  if (isNewCustomer && customerId) {
+                    console.log('[EditScreen] 🔥 신규 고객 프로필 삭제 시작:', customerId);
+                    
+                    // 로컬 고객 목록에서 제거
+                    if (typeof setCustomers === 'function') {
+                      setCustomers((prev) =>
+                        prev.filter((c) => String(c.id) !== String(customerId))
+                      );
+                    }
+
+                    // Supabase에서도 고객 삭제 (UUID인 경우만 시도)
+                    if (user && isValidUuid(customerId)) {
+                      try {
+                        const { error: deleteCustomerError } = await supabase
+                          .from('customers')
+                          .delete()
+                          .eq('id', customerId)
+                          .eq('owner_id', user.id);
+                        
+                        if (deleteCustomerError) {
+                          console.warn('[EditScreen] 고객 삭제 실패:', deleteCustomerError.message);
+                        } else {
+                          console.log('[EditScreen] ✅ 고객 삭제 성공:', customerId);
+                        }
+                      } catch (e) {
+                        console.warn('[EditScreen] 고객 삭제 예외:', e);
+                      }
+                    }
+
+                    // ✅ Supabase customers 새로고침 (삭제된 고객이 목록에서 사라지도록)
+                    if (typeof refreshCustomers === 'function') {
+                      refreshCustomers();
+                    }
+                  }
+
                   setTempResultData(null);
                   setEditingVisit(null);
                   setEditingCustomer(null);
                   setEditingVisitTagIds([]);
 
-                  setSelectedCustomerId(customerId);
-                  setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+                  // ✅ 6) 신규 고객이면 히스토리 페이지로, 기존 고객이면 고객 상세로
+                  if (isNewCustomer) {
+                    setCurrentScreen(SCREENS.HISTORY);
+                  } else {
+                    setSelectedCustomerId(customerId);
+                    setCurrentScreen(SCREENS.CUSTOMER_DETAIL);
+                  }
                 }
               }}
               className="px-6 py-2.5 rounded-xl text-sm font-medium text-white shadow-sm hover:shadow-md hover:opacity-90 transition-all"
