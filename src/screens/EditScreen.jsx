@@ -29,7 +29,9 @@ function EditScreen({
   previousScreen,  // 이전 화면 정보
   tempServiceDate,  // 날짜 입력 상태
   recordState,  // 녹음 상태
-  setRecordState  // 녹음 상태 변경
+  setRecordState,  // 녹음 상태 변경
+  tempName = '',
+  tempPhone = ''
 }) {
   if (!tempResultData) {
     return (
