@@ -8,6 +8,12 @@ import { format } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 
+// 간단한 UUID 형식 검사 (Supabase row 삭제 시 사용)
+const isValidUuid = (value) => {
+  if (typeof value !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+};
+
 function ReservationScreen({
   reservations,
   addReservation,
@@ -305,10 +311,47 @@ function ReservationScreen({
   const handleRemoveReservation = (id) => {
     const ok = window.confirm('이 예약을 삭제하시겠습니까?');
     if (!ok) return;
+    
+    // 삭제 대상 예약 정보 찾기
+    const target = reservations.find((r) => r.id === id);
+    const targetCustomerId = target?.customerId ?? target?.customer_id ?? null;
+
     if (deleteReservation) {
       deleteReservation(id);
-      alert('예약을 삭제했습니다.');
     }
+
+    // 해당 고객의 다른 예약이 없는 경우 → 신규 프로필로 간주하고 제거 시도
+    const hasOtherReservations = (reservations || []).some(
+      (r) =>
+        r.id !== id &&
+        (r.customerId === targetCustomerId || r.customer_id === targetCustomerId)
+    );
+
+    if (targetCustomerId && !hasOtherReservations) {
+      // 로컬 고객 목록에서 제거
+      if (typeof setCustomers === 'function') {
+        setCustomers((prev) =>
+          prev.filter((c) => String(c.id) !== String(targetCustomerId))
+        );
+      }
+
+      // Supabase에서도 고객 삭제 (UUID인 경우만 시도)
+      if (user && isValidUuid(targetCustomerId)) {
+        supabase
+          .from('customers')
+          .delete()
+          .eq('id', targetCustomerId)
+          .eq('owner_id', user.id)
+          .then(({ error }) => {
+            if (error) {
+              console.warn('[ReservationScreen] 고객 삭제 실패:', error.message);
+            }
+          })
+          .catch((e) => console.warn('[ReservationScreen] 고객 삭제 예외:', e));
+      }
+    }
+
+    alert('예약을 삭제했습니다.');
   };
 
   return (
