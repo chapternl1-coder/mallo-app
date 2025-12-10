@@ -276,6 +276,7 @@ function ReservationScreen({
     if (addReservation) {
       const result = addReservation(localReservation);
       console.log('[예약 추가 결과]', result);
+      alert('예약을 추가했습니다.');
     } else {
       console.error('[예약 추가 실패] addReservation 함수가 없습니다.');
     }
@@ -302,8 +303,11 @@ function ReservationScreen({
 
   // 예약 삭제
   const handleRemoveReservation = (id) => {
+    const ok = window.confirm('이 예약을 삭제하시겠습니까?');
+    if (!ok) return;
     if (deleteReservation) {
       deleteReservation(id);
+      alert('예약을 삭제했습니다.');
     }
   };
 
