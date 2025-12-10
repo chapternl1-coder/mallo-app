@@ -209,7 +209,8 @@ function EditScreen({
       `이름: ${name || '미기재'}`,
       `전화번호: ${phone || '미기재'}`
     ];
-    const indexMap = [null, null]; // display -> 원본 content 인덱스 매핑 (이름/전화번호는 synthetic)
+    // display -> 원본 content 인덱스 매핑 (이름/전화번호는 synthetic)
+    const indexMap = [null, null];
 
     normalizedStrings.forEach((str, idx) => {
       if (!str) return;
@@ -224,7 +225,7 @@ function EditScreen({
         return;
       }
       display.push(str);
-      indexMap.push(idx);
+      indexMap.push(idx); // 원본 content의 idx를 매핑 (삭제 시 정확히 원본 항목만 제거)
     });
 
     return { display, indexMap };
