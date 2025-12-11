@@ -27,6 +27,8 @@ function ReservationScreen({
   getTodayDateString,
   autoOpenForm = false, // 홈에서 + 버튼으로 진입 시 자동으로 폼 열기
   setShouldOpenReservationForm, // 플래그 리셋용
+  reservationPrefill = null,    // 고객 상세에서 전달받은 이름/전화 프리필
+  setReservationPrefill,        // 프리필 소진 후 초기화
   refreshCustomers,
   refreshReservations,
   visitLogs = [],   // ✅ 추가
@@ -60,6 +62,29 @@ function ReservationScreen({
       setShouldOpenReservationForm(false);
     }
   }, [setShouldOpenReservationForm]);
+
+  // 고객 상세에서 넘어온 프리필이 있을 때 이름/전화 자동 입력
+  useEffect(() => {
+    if (!reservationPrefill) return;
+    const { name, phone } = reservationPrefill;
+    if (name) setNameInput(name);
+    if (phone) setPhoneInput(phone);
+
+    // 전화번호가 일치하는 기존 고객이면 자동 선택
+    if (customers && phone) {
+      const matched = customers.find(
+        (c) => c.phone && c.phone.replace(/\D/g, '') === phone.replace(/\D/g, '')
+      );
+      if (matched) {
+        setSelectedExistingCustomerId(matched.id);
+      }
+    }
+
+    setShowForm(true);
+    if (setReservationPrefill) {
+      setReservationPrefill(null);
+    }
+  }, [reservationPrefill, customers, setReservationPrefill]);
 
   // 15초마다 예약/고객 데이터를 다시 가져와 예약 화면을 최신 상태로 유지
   useEffect(() => {

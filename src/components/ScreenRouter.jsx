@@ -11,8 +11,6 @@ import TagSettingsScreen from "../screens/TagSettingsScreen";
 import ReservationScreen from "../screens/ReservationScreen";
 import ContactImportScreen from "../screens/ContactImportScreen";
 import TextRecordScreen from "../screens/TextRecordScreen";
-import CustomerRecordScreen from "../screens/CustomerRecordScreen";
-import CustomerTextRecordScreen from "../screens/CustomerTextRecordScreen";
 
 export default function ScreenRouter(props) {
   const { currentScreen } = props;
@@ -103,7 +101,13 @@ export default function ScreenRouter(props) {
     case SCREENS.TAG_SETTINGS:
       return <TagSettingsScreen {...props} />;
     case SCREENS.RESERVATION:
-      return <ReservationScreen {...props} autoOpenForm={props.shouldOpenReservationForm || false} visitLogs={props.visitLogs} />;
+      return (
+        <ReservationScreen
+          {...props}
+          autoOpenForm={props.shouldOpenReservationForm || false}
+          visitLogs={props.visitLogs}
+        />
+      );
     case SCREENS.CONTACT_IMPORT:
       return <ContactImportScreen {...props} />;
     case SCREENS.TEXT_RECORD:
@@ -111,17 +115,6 @@ export default function ScreenRouter(props) {
         <TextRecordScreen
           reservation={props.selectedReservation || null}
           onBack={() => props.setCurrentScreen(SCREENS.HOME)}
-          onSubmitTextLog={props.createVisitLogFromText}
-          isSummarizing={props.isTextSummarizing || false}
-        />
-      );
-    case SCREENS.CUSTOMER_RECORD:
-      return <CustomerRecordScreen {...props} />;
-    case SCREENS.CUSTOMER_TEXT_RECORD:
-      return (
-        <CustomerTextRecordScreen
-          selectedCustomerForRecord={props.selectedCustomerForRecord || null}
-          onBack={() => props.setCurrentScreen(SCREENS.CUSTOMER_DETAIL)}
           onSubmitTextLog={props.createVisitLogFromText}
           isSummarizing={props.isTextSummarizing || false}
         />

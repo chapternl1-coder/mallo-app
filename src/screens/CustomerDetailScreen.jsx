@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 
-import { ArrowLeft, MoreHorizontal, Phone, Edit, Mic, ChevronUp, ChevronDown, Calendar, Repeat, Keyboard, ChevronLeft } from 'lucide-react';
+import { ArrowLeft, MoreHorizontal, Phone, Edit, ChevronUp, ChevronDown, Calendar, Repeat, ChevronLeft, Plus } from 'lucide-react';
 
 import { formatRecordDateTime, formatServiceDateTimeLabel } from '../utils/date';
 
@@ -700,9 +700,8 @@ function CustomerDetailScreen({
 
   setEditingVisitTagIds,
 
-  setSelectedCustomerForRecord,
-
-  startRecording,
+  setShouldOpenReservationForm,
+  setReservationPrefill,
 
   setSelectedReservation,
 
@@ -1856,81 +1855,7 @@ function CustomerDetailScreen({
 
 
 
-  // inputMode 가져오기 (localStorage에서)
-
-  const [inputMode, setInputMode] = useState(() => {
-
-    if (typeof window === 'undefined') return 'voice';
-
-    const saved = window.localStorage.getItem('mallo_input_mode');
-
-    return saved === 'voice' || saved === 'text' ? saved : 'voice';
-
-  });
-
-  const isVoiceMode = inputMode === 'voice';
-
-
-
-  // 이 고객에 대한 새 기록 남기기 핸들러 (고객 상세 전용 화면으로 이동)
-
-  const handleCreateRecordForCustomer = () => {
-
-    // customers 배열에서 최신 고객 정보를 다시 찾아서 사용
-
-    const latestCustomer = customers.find(c => 
-
-      c.id === customer.id || 
-
-      String(c.id) === String(customer.id) ||
-
-      (c.name?.trim() === customer.name?.trim() && 
-
-       c.phone?.trim() === customer.phone?.trim())
-
-    ) || customer;
-
-    
-    
-    // 최신 고객 정보를 selectedCustomerForRecord에 저장
-
-    setSelectedCustomerForRecord({
-
-      id: latestCustomer.id,
-
-      name: latestCustomer.name,
-
-      phone: latestCustomer.phone,
-    
-    });
-
-    
-    
-    // 현재 모드에 따라 고객 상세 전용 화면으로 이동
-
-    if (isVoiceMode) {
-
-      // 음성 모드: 고객 상세 전용 녹음 화면으로 이동하고 녹음 시작
-
-      setCurrentScreen(SCREENS.CUSTOMER_RECORD);
-
-      // 화면 이동 후 녹음 시작 (약간의 지연을 두어 화면 전환이 완료된 후 녹음 시작)
-
-      setTimeout(() => {
-
-        startRecording();
-
-      }, 100);
-
-    } else {
-
-      // 텍스트 모드: 고객 상세 전용 텍스트 기록 화면으로 이동
-
-      setCurrentScreen(SCREENS.CUSTOMER_TEXT_RECORD);
-
-    }
-
-  };
+  // 기존 고객 상세에서 직접 녹음/텍스트 기록 진입은 제거됨
 
 
 
@@ -1942,6 +1867,17 @@ function CustomerDetailScreen({
 
     setCurrentScreen(targetScreen);
 
+  };
+
+  // 고객 이름/전화번호를 예약 추가 폼에 미리 채워서 예약 화면으로 이동
+  const handleQuickReservation = () => {
+    if (!customer) return;
+    setReservationPrefill({
+      name: customer.name || '',
+      phone: customer.phone || '',
+    });
+    setShouldOpenReservationForm(true);
+    setCurrentScreen(SCREENS.RESERVATION);
   };
 
 
@@ -1984,30 +1920,15 @@ function CustomerDetailScreen({
 
 
 
-        {/* 오른쪽: 이 고객에 대한 새 기록 남기기 (녹음/텍스트 모드에 따라 아이콘 변경) */}
-
+        {/* 오른쪽: 새 예약 추가(이름/전화 자동 채움) */}
         <button
-
           type="button"
-
-          onClick={handleCreateRecordForCustomer}
-
           className="ml-2 w-9 h-9 rounded-full shadow-sm flex items-center justify-center"
-
           style={{ backgroundColor: '#C9A27A' }}
-
+          onClick={handleQuickReservation}
+          aria-label="새 예약 추가"
         >
-
-          {isVoiceMode ? (
-
-            <Mic className="w-4 h-4 text-white" />
-
-          ) : (
-
-            <Keyboard className="w-4 h-4 text-white" />
-
-          )}
-
+          <Plus className="w-4 h-4 text-white" />
         </button>
 
       </header>
