@@ -36,18 +36,20 @@ function LoginScreen() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-6"
+      className="min-h-screen flex items-start justify-center px-6 pt-16"
       style={{ backgroundColor: '#F2F0E6' }}
     >
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full border border-[#E4D9CC] bg-white mb-3">
-            <span className="text-xs font-semibold tracking-widest" style={{ color: '#C9A27A' }}>
-              MALLO
-            </span>
+          <div className="flex justify-center -mb-16">
+            <img 
+              src="/logo.png" 
+              alt="Mallo 로고" 
+              className="w-72 h-72 object-contain"
+            />
           </div>
-          <h1 className="text-lg font-semibold text-neutral-900 mb-1">말로해</h1>
-          <p className="text-xs text-neutral-500">
+          <h1 className="text-3xl font-semibold text-neutral-900 mb-1">mallo</h1>
+          <p className="text-sm text-neutral-500">
             오늘의 시술일지, 말로 남기고 한 번에 정리하세요.
           </p>
         </div>

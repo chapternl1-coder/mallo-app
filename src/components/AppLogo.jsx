@@ -1,7 +1,7 @@
 import React from 'react';
 
 function AppLogo({ size = 'md', src, alt = 'Mallo' }) {
-  const circleSize = size === 'sm' ? 'w-8 h-8' : 'w-9 h-9';
+  const circleSize = size === 'sm' ? 'w-8 h-8' : size === 'lg' ? 'w-16 h-16' : 'w-9 h-9';
 
   return (
     <div
