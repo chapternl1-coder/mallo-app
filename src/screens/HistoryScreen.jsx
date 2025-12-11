@@ -541,9 +541,6 @@ function HistoryScreen({
 
           {/* 전체 시술 기록 */}
           <div className="space-y-4">
-            <h3 className="text-base font-bold flex items-center gap-2" style={{ color: textColor }}>
-              <span>{selectedDate ? formatDate(selectedDate) + ' 기록' : '전체 시술 기록'}</span>
-            </h3>
             
             {displayRecords.length === 0 ? (
               <div className="text-center py-16 bg-white rounded-xl border border-[#E8DFD3] shadow-sm">
