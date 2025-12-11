@@ -63,10 +63,16 @@ export function AuthProvider({ children }) {
   };
 
   // ✅ 회원가입: 계정 만들고 곧바로 로그인된 상태로 취급
-  const signUp = async ({ email, password }) => {
+  const signUp = async ({ email, password, shopName, phone }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          shop_name: shopName,
+          phone: phone || null,
+        }
+      }
     });
 
     if (error) {
@@ -83,6 +89,18 @@ export function AuthProvider({ children }) {
     const simpleUser = { id: supaUser.id, email: supaUser.email };
     setUser(simpleUser);
     saveUserToStorage(simpleUser);
+
+    // ✅ 프로필 테이블에 추가 정보 저장 (profiles 테이블이 있다면)
+    try {
+      await supabase.from('profiles').upsert({
+        id: supaUser.id,
+        email: supaUser.email,
+        shop_name: shopName,
+        phone: phone || null,
+      });
+    } catch (profileError) {
+      console.warn('[Auth] 프로필 저장 실패 (테이블이 없을 수 있음):', profileError);
+    }
 
     return simpleUser;
   };

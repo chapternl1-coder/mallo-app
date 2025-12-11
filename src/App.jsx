@@ -13,6 +13,7 @@ import useMalloAppState from './hooks/useMalloAppState';
 import { useAuth } from './contexts/AuthContext';
 
 import LoginScreen from './screens/LoginScreen';
+import SignUpScreen from './screens/SignUpScreen';
 
 import useSupabaseDebug from './hooks/useSupabaseDebug';
 
@@ -33,6 +34,7 @@ const appLog = (...args) => {
 export default function MalloApp() {
 
   const { user, loading } = useAuth();
+  const [authScreen, setAuthScreen] = useState('login'); // 'login' | 'signup'
 
 
 
@@ -347,11 +349,15 @@ export default function MalloApp() {
 
 
 
-  // 2) 로그인 안 된 상태면 → 로그인 화면
+  // 2) 로그인 안 된 상태면 → 로그인/회원가입 화면
 
   if (!user) {
 
-    return <LoginScreen />;
+    if (authScreen === 'signup') {
+      return <SignUpScreen onBackToLogin={() => setAuthScreen('login')} />;
+    }
+
+    return <LoginScreen onGoToSignUp={() => setAuthScreen('signup')} />;
 
   }
 

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
-function LoginScreen() {
-  const { signIn, signUp } = useAuth();
+function LoginScreen({ onGoToSignUp }) {
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -25,30 +25,6 @@ function LoginScreen() {
     }
   };
 
-  const handleSignUp = async () => {
-    if (!email || !password) {
-      setMessage('이메일과 비밀번호를 입력해주세요.');
-      return;
-    }
-    if (password.length < 6) {
-      setMessage('비밀번호는 6자 이상이어야 합니다.');
-      return;
-    }
-
-    setMessage('');
-    setSubmitting(true);
-
-    try {
-      await signUp({ email, password });
-      setMessage('회원가입 완료! 잠시만 기다려 주세요.');
-    } catch (error) {
-      console.error(error);
-      setMessage(error.message || '오류가 발생했습니다. 다시 시도해주세요.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   return (
     <div
       className="min-h-screen flex items-start justify-center px-6 pt-8"
@@ -56,15 +32,14 @@ function LoginScreen() {
     >
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <div className="flex justify-center -mb-16">
+          <div className="flex justify-center -mb-6">
             <img 
               src="/logo.png" 
               alt="Mallo 로고" 
               className="w-72 h-72 object-contain"
             />
           </div>
-          <h1 className="text-3xl font-semibold text-neutral-900 mb-1">mallo</h1>
-          <p className="text-sm text-neutral-500">
+          <p className="text-sm text-neutral-500 mt-2">
             오늘의 시술일지, 말로 남기고 한 번에 정리하세요.
           </p>
         </div>
@@ -118,9 +93,8 @@ function LoginScreen() {
 
           <button
             type="button"
-            onClick={handleSignUp}
-            disabled={submitting}
-            className="mt-3 w-full rounded-full py-2.5 text-sm font-semibold border-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            onClick={onGoToSignUp}
+            className="mt-3 w-full rounded-full py-2.5 text-sm font-semibold border-2"
             style={{ borderColor: '#C9A27A', color: '#C9A27A' }}
           >
             회원가입
