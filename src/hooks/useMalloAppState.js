@@ -222,6 +222,7 @@ export default function useMalloAppState(user, supabaseReservations = null) {
   const lastLocalTagUpdateAtRef = useRef(0);     // 로컬에서 마지막으로 태그를 변경한 시각
   const lastServerTagUpdateAtRef = useRef(0);    // 서버/다른 클라이언트로부터 받은 최신 시각
   const applyingServerTagsRef = useRef(false);   // 서버 태그를 적용 중일 때 로컬 타임스탬프 증가 방지
+  const isInitialLoadRef = useRef(true);  // 앱 초기 로드인지 확인 (초기 로드 시에는 로컬 타임스탬프 업데이트 안 함)
   // Supabase 정책과 동일한 공용 owner_id (테스트/비로그인용)
   const TAG_SYNC_PUBLIC_OWNER_ID = '0b788d1e-b1cf-4a94-aab9-4c57a09cca28';
   const effectiveOwnerId = useMemo(() => user?.id || TAG_SYNC_PUBLIC_OWNER_ID, [user?.id]);
@@ -479,6 +480,18 @@ export default function useMalloAppState(user, supabaseReservations = null) {
           lastServerVisitTagsRef.current = visitStr;
           lastServerCustomerTagsRef.current = customerStr;
           lastServerTagUpdateAtRef.current = serverUpdatedAt || Date.now();
+          
+          // 서버 데이터를 성공적으로 가져왔으므로 초기 로드 완료
+          if (isInitialLoadRef.current) {
+            console.log('[태그 동기화] 서버 데이터 로드 완료, 이제부터 로컬 변경 추적 시작');
+            isInitialLoadRef.current = false;
+          }
+        } else {
+          // 서버에 데이터가 없어도 초기 로드는 완료된 것으로 간주
+          if (isInitialLoadRef.current) {
+            console.log('[태그 동기화] 서버에 데이터 없음, 초기 로드 완료로 표시');
+            isInitialLoadRef.current = false;
+          }
         }
       } catch (e) {
         markSyncFailure(`[태그 동기화] Supabase 로드 예외(${reason}):`, e);
@@ -541,6 +554,15 @@ export default function useMalloAppState(user, supabaseReservations = null) {
     [effectiveOwnerId]
   );
 
+  // effectiveOwnerId 변경 시 초기 로드 플래그 리셋
+  useEffect(() => {
+    if (effectiveOwnerId) {
+      console.log('[태그 동기화] effectiveOwnerId 변경됨, 초기 로드 플래그 리셋');
+      isInitialLoadRef.current = true;
+      lastLocalTagUpdateAtRef.current = 0;
+    }
+  }, [effectiveOwnerId]);
+
   // 폴링 및 포커스 시 서버에서 최신 태그 가져오기
   useEffect(() => {
     if (!effectiveOwnerId) return undefined;
@@ -591,15 +613,19 @@ export default function useMalloAppState(user, supabaseReservations = null) {
 
   useEffect(() => {
     latestVisitTagsRef.current = visitTags;
-    if (!applyingServerTagsRef.current) {
+    // 초기 로드나 서버 데이터 적용 중에는 로컬 타임스탬프 업데이트 안 함
+    if (!applyingServerTagsRef.current && !isInitialLoadRef.current) {
       lastLocalTagUpdateAtRef.current = Date.now();
+      console.log('[태그 동기화] visitTags 로컬 변경 감지, 타임스탬프 업데이트:', Date.now());
     }
   }, [visitTags]);
 
   useEffect(() => {
     latestCustomerTagsRef.current = customerTags;
-    if (!applyingServerTagsRef.current) {
+    // 초기 로드나 서버 데이터 적용 중에는 로컬 타임스탬프 업데이트 안 함
+    if (!applyingServerTagsRef.current && !isInitialLoadRef.current) {
       lastLocalTagUpdateAtRef.current = Date.now();
+      console.log('[태그 동기화] customerTags 로컬 변경 감지, 타임스탬프 업데이트:', Date.now());
     }
   }, [customerTags]);
 
