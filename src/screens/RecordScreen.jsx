@@ -1034,7 +1034,7 @@ function RecordScreen({
         {recordingDate && (
           <div className="p-8 pt-0 text-center">
             <p className="text-sm font-light" style={{ color: '#232323', opacity: 0.6 }}>
-              {formatRecordingDate(recordingDate)}
+              기록 {formatRecordingDate(recordingDate)}
             </p>
           </div>
         )}

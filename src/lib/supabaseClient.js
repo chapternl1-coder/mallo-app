@@ -11,3 +11,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// 디버깅을 위해 window 객체에도 노출
+if (typeof window !== 'undefined') {
+  window.supabase = supabase;
+  console.log('[Supabase] 클라이언트 초기화 완료');
+}
+

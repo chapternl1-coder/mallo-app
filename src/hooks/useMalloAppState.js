@@ -170,7 +170,12 @@ export default function useMalloAppState(user, supabaseReservations = null) {
       console.error('[초기값] visitTags 로드 실패:', error);
     }
     return migrateTagsToObjects({
-      procedure: ['속눈썹연장', '젤네일', '페디큐어'],
+      procedure: [
+        { label: '속눈썹연장', keywords: ['속눈썹연장', '속눈썹 연장'] },
+        { label: '속눈썹펌', keywords: ['속눈썹펌', '속눈썹 펌'] },
+        '젤네일',
+        '페디큐어'
+      ],
       design: ['D컬', 'C컬', '이달의아트', '그라데이션'],
       care: ['영양', '랩핑', '제거'],
       payment: ['회원권', '현금결제', '카드결제']
@@ -997,11 +1002,40 @@ export default function useMalloAppState(user, supabaseReservations = null) {
     setServiceTags(extractedTags);
     
     if (allVisitTags.length > 0) {
-      const matched = matchTagsFromSummary(sourceText, allVisitTags);
-      // console.log('[방문 태그 자동 선택] 원본 텍스트:', sourceText?.substring(0, 100));
-      // console.log('[방문 태그 자동 선택] 매칭된 태그 ID:', matched);
+      // 🎯 AI 추천 태그가 있으면 우선 사용
+      let allMatchedTagIds = [];
       
-      // extractTagsFromContent로 추출한 태그도 ID로 변환하여 추가
+      console.log('[태그 추천 디버깅] resultData:', resultData);
+      console.log('[태그 추천 디버깅] resultData?.recommendedTags:', resultData?.recommendedTags);
+      
+      // 1️⃣ AI 추천 태그 처리
+      let aiRecommendedIds = [];
+      if (resultData?.recommendedTags && Array.isArray(resultData.recommendedTags) && resultData.recommendedTags.length > 0) {
+        console.log('[AI 태그 추천] AI가 추천한 태그 (원본):', resultData.recommendedTags);
+        const normalizedSourceText = sourceText.toLowerCase().replace(/\s+/g, '');
+        
+        const verifiedTags = resultData.recommendedTags.filter(tagLabel => {
+          const normalizedTag = tagLabel.toLowerCase().replace(/\s+/g, '');
+          const isExplicitlyMentioned = normalizedSourceText.includes(normalizedTag);
+          console.log(`[AI 태그 검증] "${tagLabel}" → 원본에 명시: ${isExplicitlyMentioned ? '✅' : '❌'}`);
+          return isExplicitlyMentioned;
+        });
+        
+        console.log('[AI 태그 추천] ✅ 검증된 태그:', verifiedTags);
+        
+        aiRecommendedIds = verifiedTags
+          .map(tagLabel => {
+            const tag = allVisitTags.find(t => t.label === tagLabel || t.label.toLowerCase() === tagLabel.toLowerCase());
+            console.log(`[AI 태그 추천] "${tagLabel}" → ${tag ? tag.label + ' (ID: ' + tag.id + ')' : '매칭 실패'}`);
+            return tag ? tag.id : null;
+          })
+          .filter(id => id !== null);
+        console.log('[AI 태그 추천] ✅ AI 추천 태그 ID:', aiRecommendedIds);
+      }
+      
+      // 2️⃣ 키워드 매칭 (AI가 놓친 태그 보완)
+      console.log('[키워드 매칭] 추가 태그 검색 시작');
+      const matched = matchTagsFromSummary(sourceText, allVisitTags);
       const extractedTagIds = extractedTags
         .map(tagLabel => {
           const tag = allVisitTags.find(t => t.label === tagLabel);
@@ -1009,18 +1043,50 @@ export default function useMalloAppState(user, supabaseReservations = null) {
         })
         .filter(id => id !== null);
       
-      // 두 방법으로 찾은 태그 ID를 합침
-      const allMatchedTagIds = [...new Set([...matched, ...extractedTagIds])];
+      const keywordMatchedIds = [...new Set([...matched, ...extractedTagIds])];
+      console.log('[키워드 매칭] ✅ 키워드로 찾은 태그 ID:', keywordMatchedIds);
       
-      const matchedTagLabels = allMatchedTagIds.map(id => {
+      // 3️⃣ AI 추천 + 키워드 매칭 합치기
+      allMatchedTagIds = [...new Set([...aiRecommendedIds, ...keywordMatchedIds])];
+      console.log('[태그 선택 최종] ✅ AI + 키워드 합산:', allMatchedTagIds);
+      
+      // 4️⃣ 긴 태그 우선 (중복 제거)
+      // 예: "애쉬브라운", "브라운" → "애쉬브라운"만 선택
+      const tagLabelsMap = new Map();
+      allMatchedTagIds.forEach(id => {
+        const tag = allVisitTags.find(t => t.id === id);
+        if (tag) {
+          tagLabelsMap.set(id, tag.label);
+        }
+      });
+      
+      const filteredTagIds = allMatchedTagIds.filter(id => {
+        const currentLabel = tagLabelsMap.get(id);
+        if (!currentLabel) return true;
+        
+        // 다른 태그 중에 현재 태그를 포함하는 더 긴 태그가 있는지 확인
+        const hasLongerTag = Array.from(tagLabelsMap.entries()).some(([otherId, otherLabel]) => {
+          if (otherId === id) return false; // 자기 자신은 제외
+          const normalizedCurrent = currentLabel.toLowerCase().replace(/\s+/g, '');
+          const normalizedOther = otherLabel.toLowerCase().replace(/\s+/g, '');
+          // 다른 태그가 더 길고, 현재 태그를 포함하면 true
+          return normalizedOther.length > normalizedCurrent.length && normalizedOther.includes(normalizedCurrent);
+        });
+        
+        if (hasLongerTag) {
+          console.log(`[태그 중복 제거] "${currentLabel}" → 더 긴 태그에 포함되어 제외됨`);
+        }
+        
+        return !hasLongerTag;
+      });
+      
+      const matchedTagLabels = filteredTagIds.map(id => {
         const tag = allVisitTags.find(t => t.id === id);
         return tag ? tag.label : id;
       });
-      // console.log('[방문 태그 자동 선택] 매칭된 태그 라벨:', matchedTagLabels);
-      // console.log('[방문 태그 자동 선택] extractTagsFromContent로 추출한 태그:', extractedTags);
-      // console.log('[방문 태그 자동 선택] 최종 태그 ID:', allMatchedTagIds);
-      setRecommendedTagIds(allMatchedTagIds);
-      setSelectedTagIds(allMatchedTagIds);
+      console.log('[태그 선택 최종] ✅ 중복 제거 후:', matchedTagLabels);
+      setRecommendedTagIds(filteredTagIds);
+      setSelectedTagIds(filteredTagIds);
     }
     
     if (allCustomerTags.length > 0) {
@@ -1031,16 +1097,85 @@ export default function useMalloAppState(user, supabaseReservations = null) {
       
       let matchedCustomerTags = matchTagsFromSummary(sourceText, allCustomerTags);
       
-      // console.log('[태그 자동 선택] 원본 텍스트:', sourceText?.substring(0, 100));
-      // console.log('[태그 자동 선택] 매칭된 태그 ID:', matchedCustomerTags);
-      const matchedTagLabels = matchedCustomerTags.map(id => {
+      console.log('[고객 태그 자동 선택] 원본 매칭 결과:', matchedCustomerTags);
+      
+      // 🎯 검증: 원본 텍스트에 유사 표현이 있는지 확인 (고객 태그는 유연하게)
+      const normalizedSourceText = sourceText.toLowerCase().replace(/\s+/g, '');
+      const verifiedCustomerTags = matchedCustomerTags.filter(tagId => {
+        const tag = allCustomerTags.find(t => t.id === tagId);
+        if (!tag) return false;
+        
+        // 고객 태그는 부분 매칭 허용 (예: "모발얇음" → "모발", "얇")
+        const normalizedTag = tag.label.toLowerCase().replace(/\s+/g, '');
+        
+        // 1) 완전 일치
+        if (normalizedSourceText.includes(normalizedTag)) {
+          console.log(`[고객 태그 검증] "${tag.label}" → 완전 일치 ✅`);
+          return true;
+        }
+        
+        // 2) 부분 일치 (태그의 핵심 단어가 포함되어 있는지)
+        // 예: "모발얇음" → "모발", "얇" 모두 포함되어 있으면 매칭
+        let tagWords = [];
+        
+        if (normalizedTag.length >= 4) {
+          // "모발얇음" (4글자) → ["모발", "얇"] (2글자 + 나머지에서 1-2글자)
+          tagWords = [normalizedTag.substring(0, 2), normalizedTag.substring(2, 3)];
+        } else if (normalizedTag.length >= 2) {
+          // 2-3글자면 앞 1-2글자만
+          tagWords = [normalizedTag.substring(0, 2)];
+        } else {
+          tagWords = [normalizedTag];
+        }
+        
+        const hasPartialMatch = tagWords.filter(w => w.length > 0).every(word => normalizedSourceText.includes(word));
+        
+        if (hasPartialMatch && tagWords.length > 0) {
+          console.log(`[고객 태그 검증] "${tag.label}" → 부분 일치 ✅ (${tagWords.join(', ')})`);
+          return true;
+        }
+        
+        console.log(`[고객 태그 검증] "${tag.label}" → 불일치 ❌`);
+        return false;
+      });
+      
+      console.log('[고객 태그 자동 선택] 검증된 태그 ID:', verifiedCustomerTags);
+      
+      // 긴 태그 우선 (중복 제거)
+      const customerTagLabelsMap = new Map();
+      verifiedCustomerTags.forEach(id => {
+        const tag = allCustomerTags.find(t => t.id === id);
+        if (tag) {
+          customerTagLabelsMap.set(id, tag.label);
+        }
+      });
+      
+      const filteredCustomerTagIds = verifiedCustomerTags.filter(id => {
+        const currentLabel = customerTagLabelsMap.get(id);
+        if (!currentLabel) return true;
+        
+        const hasLongerTag = Array.from(customerTagLabelsMap.entries()).some(([otherId, otherLabel]) => {
+          if (otherId === id) return false;
+          const normalizedCurrent = currentLabel.toLowerCase().replace(/\s+/g, '');
+          const normalizedOther = otherLabel.toLowerCase().replace(/\s+/g, '');
+          return normalizedOther.length > normalizedCurrent.length && normalizedOther.includes(normalizedCurrent);
+        });
+        
+        if (hasLongerTag) {
+          console.log(`[고객 태그 중복 제거] "${currentLabel}" → 더 긴 태그에 포함되어 제외됨`);
+        }
+        
+        return !hasLongerTag;
+      });
+      
+      const matchedTagLabels = filteredCustomerTagIds.map(id => {
         const tag = allCustomerTags.find(t => t.id === id);
         return tag ? tag.label : id;
       });
-      // console.log('[태그 자동 선택] 매칭된 태그 라벨:', matchedTagLabels);
-      setRecommendedCustomerTagIds(matchedCustomerTags);
+      console.log('[고객 태그 자동 선택] ✅ 중복 제거 후:', matchedTagLabels);
+      setRecommendedCustomerTagIds(filteredCustomerTagIds);
       
-      if (matchedCustomerTags.length === 0) {
+      if (filteredCustomerTagIds.length === 0) {
         setSelectedCustomerTagIds([]);
         setNewCustomerTagIds([]);
       } else {
@@ -1060,13 +1195,13 @@ export default function useMalloAppState(user, supabaseReservations = null) {
           .filter(tag => existingTagLabels.includes(tag.label))
           .map(tag => tag.id);
         
-        const mergedTagIds = [...new Set([...existingTagIds, ...matchedCustomerTags])];
-        const newTagIds = matchedCustomerTags.filter(id => !existingTagIds.includes(id));
+        const mergedTagIds = [...new Set([...existingTagIds, ...filteredCustomerTagIds])];
+        const newTagIds = filteredCustomerTagIds.filter(id => !existingTagIds.includes(id));
         setSelectedCustomerTagIds(mergedTagIds);
         setNewCustomerTagIds(newTagIds);
         } else {
-          setSelectedCustomerTagIds(matchedCustomerTags);
-          setNewCustomerTagIds(matchedCustomerTags);
+          setSelectedCustomerTagIds(filteredCustomerTagIds);
+          setNewCustomerTagIds(filteredCustomerTagIds);
         }
       }
     }
