@@ -3,18 +3,48 @@
 @tailwind utilities;
 
 :root {
+  /* 말로 앱 색상 변수 */
   --bg-app: #F5F1EB;       /* 앱 전체 바탕 (연한 크림) */
   --bg-surface: #E7DFD4;   /* 메인 화면 컨테이너 (연한 브라운/그레이지) */
   --bg-card: #FFFFFF;      /* 카드/박스 배경 (화이트) */
   --text-primary: #232323; /* 기본 텍스트 (진한 차콜) */
   --accent: #C9A27A;       /* 포인트 컬러 (우아한 골드 브라운) */
+  
+  /* 말로 앱 폰트 변수 */
+  --font-primary: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  
+  /* 말로 앱 텍스트 크기 */
+  --text-xs: 0.75rem;      /* 12px - 아주 작은 라벨 */
+  --text-sm: 0.875rem;     /* 14px - 작은 텍스트 */
+  --text-base: 1rem;       /* 16px - 기본 본문 */
+  --text-lg: 1.125rem;     /* 18px - 큰 본문 */
+  --text-xl: 1.25rem;      /* 20px - 작은 제목 */
+  --text-2xl: 1.5rem;      /* 24px - 중간 제목 */
+  --text-3xl: 1.875rem;    /* 30px - 큰 제목 */
+  
+  /* 말로 앱 라인 높이 */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+  
+  /* 말로 앱 폰트 굵기 */
+  --font-light: 300;
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
 }
 
 body {
   margin: 0;
   background-color: var(--bg-app);
   color: var(--text-primary);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-primary);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  font-weight: var(--font-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* 녹음 페이지 Breathing 스타일 */
