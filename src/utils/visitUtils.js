@@ -132,27 +132,8 @@ export function formatCustomerTagsForDisplay(customerTags = {}, visitCount = 0) 
   }
   if (customerTags.pattern && customerTags.pattern.length > 0) {
     customerTags.pattern.forEach(tag => {
-      // 방문 횟수가 2 이상이면 "신규" 태그는 제외하고 "기존" 태그 추가
-      if (shouldReplaceNewWithExisting && tag === '신규') {
-        // "신규" 태그는 건너뛰고 "기존" 태그가 없으면 추가
-        if (!customerTags.pattern.includes('기존')) {
-          allTags.push({ tag: '기존', type: 'pattern' });
-        }
-      } else {
-        allTags.push({ tag, type: 'pattern' });
-      }
+      allTags.push({ tag, type: 'pattern' });
     });
-  }
-  
-  // 방문 횟수가 2 이상이고 "기존" 태그가 없으면 추가
-  if (shouldReplaceNewWithExisting && (!customerTags.pattern || !customerTags.pattern.includes('기존'))) {
-    // "신규" 태그가 이미 필터링되었는지 확인
-    const hasNewTag = customerTags.pattern && customerTags.pattern.includes('신규');
-    if (!hasNewTag || allTags.find(t => t.tag === '기존')) {
-      // 이미 "기존" 태그가 추가되었거나 "신규" 태그가 없으면 추가하지 않음
-    } else {
-      allTags.push({ tag: '기존', type: 'pattern' });
-    }
   }
   
   return allTags;

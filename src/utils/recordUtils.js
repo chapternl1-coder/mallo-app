@@ -175,18 +175,9 @@ export function updateCustomerTags({
     }
   });
   
-  // 방문 횟수에 따른 패턴 태그 업데이트
-  if (visitCount >= 2) {
-    const patternTags = updatedCustomerTags.pattern || [];
-    updatedCustomerTags.pattern = patternTags.filter(tag => tag !== '신규');
-    if (!updatedCustomerTags.pattern.includes('기존')) {
-      updatedCustomerTags.pattern = [...updatedCustomerTags.pattern, '기존'];
-    }
-  } else {
-    const patternTags = updatedCustomerTags.pattern || [];
-    if (!patternTags.includes('신규')) {
-      updatedCustomerTags.pattern = [...patternTags, '신규'];
-    }
+  // 패턴 태그(신규/기존) 자동 추가/교체 로직 제거: 사용자가 저장한 값만 유지
+  if (Array.isArray(updatedCustomerTags.pattern)) {
+    updatedCustomerTags.pattern = [...updatedCustomerTags.pattern];
   }
   
   // 내용 분석으로 주의사항 태그 자동 추가
