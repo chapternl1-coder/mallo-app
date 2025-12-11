@@ -862,7 +862,7 @@ function HomeScreen({
       {/* Safe Area Bottom */}
       <div className="pb-[env(safe-area-inset-bottom)]" />
 
-      {/* 플로팅 + 버튼 (우측 하단) - 예약 추가 */}
+      {/* 플로팅 + 버튼 (왼쪽 하단) - 예약 추가 */}
       <button
         onClick={() => {
           setShouldOpenReservationForm(true); // 예약 폼 자동 열기 플래그 설정
@@ -871,8 +871,8 @@ function HomeScreen({
         className="fixed w-12 h-12 rounded-full bg-[#C9A27A] flex items-center justify-center shadow-xl hover:scale-110 active:scale-95 transition-transform z-50"
         style={{ 
           boxShadow: '0 10px 25px rgba(201, 162, 122, 0.3)',
-          bottom: 'calc(60px + env(safe-area-inset-bottom) + 8px)',
-          right: '16px'
+          bottom: 'calc(60px + env(safe-area-inset-bottom) + 16px)',
+          left: '20px'
         }}
       >
         <Plus size={24} className="text-white" strokeWidth={3} />

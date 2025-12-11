@@ -415,7 +415,7 @@ export default function MalloApp() {
 
         {/* 스크롤이 일정 이상 내려갔을 때 공통으로 보이는 '맨 위로' 버튼 */}
 
-        <ScrollToTopButton />
+        <ScrollToTopButton currentScreen={currentScreen} />
 
 
 
