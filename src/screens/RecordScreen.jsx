@@ -746,6 +746,9 @@ function RecordScreen({
               // 고객 기본 정보 섹션인 경우 content를 특정 형식으로 변환
               let formattedContent = section.content;
               if (isCustomerInfoSection && resultData.customerInfo) {
+                // 성별 추출을 위해 원본 content를 먼저 저장 (특징줄 처리 전)
+                const originalContentForGender = JSON.stringify(section.content || []);
+                
                 const shouldHideLine = (line) => {
                   if (!line) return false;
                   const str = typeof line === 'string' ? line : String(line);
@@ -778,24 +781,68 @@ function RecordScreen({
                   ? section.content.some((line) => typeof line === 'string' && line.includes('(성별삭제됨)'))
                   : false;
                 if (!genderDeleted) {
+                  // 원본 content를 사용하여 성별 추출 (특징줄 처리 전)
                   const genderGuess = inferGender(
-                    `${JSON.stringify(section.content || [])} ${resultData?.title || ''} ${rawTranscript || transcript || ''}`
+                    `${originalContentForGender} ${resultData?.title || ''} ${rawTranscript || transcript || ''}`
                   );
                   const genderLabel = genderGuess
                     ? (genderGuess.startsWith('여') ? '여' : genderGuess.startsWith('남') ? '남' : '미기재')
                     : '미기재';
                   formattedContent.push(`성별: ${genderLabel}`);
+                  
+                  // 추출된 성별을 customerInfo에 저장 (기록히스토리/고객상세에서 사용)
+                  if (genderGuess) {
+                    if (!resultData.customerInfo) {
+                      resultData.customerInfo = {};
+                    }
+                    resultData.customerInfo.gender = genderLabel;
+                    
+                    // section.content에도 성별 정보 추가 (저장용)
+                    // 기존에 성별 줄이 없으면 추가
+                    const hasGenderLine = section.content.some(line =>
+                      typeof line === 'string' && /^\s*성별\s*:/.test(line)
+                    );
+                    if (!hasGenderLine) {
+                      section.content.push(`성별: ${genderLabel}`);
+                    }
+                  }
                 }
 
                 // 기존 content가 있으면 추가 (이름/전화번호/성별/구분이 아닌 다른 정보)
                 section.content.forEach(item => {
                   const itemStr = typeof item === 'string' ? item : String(item || '');
-                  if (itemStr && 
-                      !itemStr.includes('이름:') && 
+                  if (itemStr &&
+                      !itemStr.includes('이름:') &&
                       !itemStr.includes('전화번호:') &&
+                      !itemStr.includes('성별:') &&  // 성별 줄 제외
                       !itemStr.includes('name:') &&
                       !itemStr.includes('phone:')) {
-                    formattedContent.push(itemStr);
+                    // 고객 특징 줄에서 성별 관련 내용 제거
+                    let processedItem = itemStr;
+                    if (itemStr.includes('고객 특징:')) {
+                      // 성별 관련 키워드 제거 (여성, 남성, 여, 남, 여자, 남자, 손님 등)
+                      processedItem = itemStr
+                        .replace(/,\s*여성분?/g, '')
+                        .replace(/,\s*남성분?/g, '')
+                        .replace(/여성분?\s*,/g, '')
+                        .replace(/남성분?\s*,/g, '')
+                        .replace(/,\s*여자?손님/g, '')
+                        .replace(/,\s*남자?손님/g, '')
+                        .replace(/여자?손님\s*,/g, '')
+                        .replace(/남자?손님\s*,/g, '')
+                        .replace(/,\s*여자?/g, '')
+                        .replace(/,\s*남자?/g, '')
+                        .replace(/여자?\s*,/g, '')
+                        .replace(/남자?\s*,/g, '')
+                        .replace(/,\s*여\b/g, '')
+                        .replace(/,\s*남\b/g, '')
+                        .replace(/여\s*,/g, '')
+                        .replace(/남\s*,/g, '')
+                        .replace(/^\s*고객 특징:\s*,/, '고객 특징:')
+                        .replace(/,\s*$/, '')
+                        .trim();
+                    }
+                    formattedContent.push(processedItem);
                   }
                 });
 
