@@ -30,6 +30,9 @@ const TRANSCRIBE_API_URL =
     ? 'https://mallo-app.vercel.app/api/transcribe'
     : '/api/transcribe';
 
+// 태그 동기화 시 로컬 변경 직후 서버/타 클라이언트 스냅샷을 무시할 쿨다운(밀리초)
+const TAG_SYNC_LOCAL_COOLDOWN_MS = 5000;
+
 // Mallo localStorage 전체 초기화 헬퍼 함수
 function clearMalloStorage() {
   try {
@@ -210,6 +213,9 @@ export default function useMalloAppState(user, supabaseReservations = null) {
   const syncCooldownUntilRef = useRef(0);
   const lastWarnAtRef = useRef(0);
   const customerTagsFetchInFlightRef = useRef(false);
+  const lastLocalTagUpdateAtRef = useRef(0);     // 로컬에서 마지막으로 태그를 변경한 시각
+  const lastServerTagUpdateAtRef = useRef(0);    // 서버/다른 클라이언트로부터 받은 최신 시각
+  const applyingServerTagsRef = useRef(false);   // 서버 태그를 적용 중일 때 로컬 타임스탬프 증가 방지
   // Supabase 정책과 동일한 공용 owner_id (테스트/비로그인용)
   const TAG_SYNC_PUBLIC_OWNER_ID = '0b788d1e-b1cf-4a94-aab9-4c57a09cca28';
   const effectiveOwnerId = useMemo(() => user?.id || TAG_SYNC_PUBLIC_OWNER_ID, [user?.id]);
@@ -376,6 +382,7 @@ export default function useMalloAppState(user, supabaseReservations = null) {
         } else {
           lastServerVisitTagsRef.current = visitStr;
           lastServerCustomerTagsRef.current = customerStr;
+          lastServerTagUpdateAtRef.current = Date.now();
         }
       } catch (e) {
         markSyncFailure('[태그 동기화] Supabase 저장 예외:', e);
@@ -393,6 +400,16 @@ export default function useMalloAppState(user, supabaseReservations = null) {
       if (fetchInFlightRef.current) return;
       fetchInFlightRef.current = true;
       try {
+        const now = Date.now();
+        const isLocalCooling =
+          lastLocalTagUpdateAtRef.current > 0 &&
+          now - lastLocalTagUpdateAtRef.current < TAG_SYNC_LOCAL_COOLDOWN_MS;
+
+        if (isLocalCooling) {
+          fetchInFlightRef.current = false;
+          return;
+        }
+
         const { data, error } = await supabase
           .from('tag_settings')
           .select('visit_tags, customer_tags, updated_at')
@@ -405,22 +422,57 @@ export default function useMalloAppState(user, supabaseReservations = null) {
         }
 
         if (data) {
+          const serverUpdatedAt = data.updated_at ? new Date(data.updated_at).getTime() : 0;
+          const effectiveServerStamp = serverUpdatedAt || lastServerTagUpdateAtRef.current || 0;
+          const isServerStale =
+            lastLocalTagUpdateAtRef.current > 0 &&
+            effectiveServerStamp > 0 &&
+            effectiveServerStamp < lastLocalTagUpdateAtRef.current;
+          const isOlderThanLastServer =
+            lastLocalTagUpdateAtRef.current > lastServerTagUpdateAtRef.current &&
+            effectiveServerStamp > 0 &&
+            effectiveServerStamp <= lastServerTagUpdateAtRef.current;
+
+          if (isServerStale || isOlderThanLastServer) {
+            console.log('[태그 동기화] 서버 데이터가 로컬보다 오래되어 무시합니다.', {
+              reason,
+              serverUpdatedAt,
+              lastServerTagUpdateAt: lastServerTagUpdateAtRef.current,
+              lastLocal: lastLocalTagUpdateAtRef.current,
+              isServerStale,
+              isOlderThanLastServer,
+            });
+            fetchInFlightRef.current = false;
+            return;
+          }
+
           const incomingVisit = migrateTagsToObjects(data.visit_tags || {});
           const incomingCustomer = migrateTagsToObjects(data.customer_tags || {});
 
           const visitStr = JSON.stringify(incomingVisit);
           const customerStr = JSON.stringify(incomingCustomer);
 
+          let appliedFromServer = false;
           if (visitStr !== JSON.stringify(latestVisitTagsRef.current)) {
+            applyingServerTagsRef.current = true;
             setVisitTags(incomingVisit);
+            appliedFromServer = true;
           }
           if (customerStr !== JSON.stringify(latestCustomerTagsRef.current)) {
+            applyingServerTagsRef.current = true;
             setCustomerTags(incomingCustomer);
+            appliedFromServer = true;
+          }
+          if (appliedFromServer) {
+            setTimeout(() => {
+              applyingServerTagsRef.current = false;
+            }, 0);
           }
 
           // 서버에서 가져온 값으로 동기화 기준 업데이트
           lastServerVisitTagsRef.current = visitStr;
           lastServerCustomerTagsRef.current = customerStr;
+          lastServerTagUpdateAtRef.current = serverUpdatedAt || Date.now();
         }
       } catch (e) {
         markSyncFailure(`[태그 동기화] Supabase 로드 예외(${reason}):`, e);
@@ -533,10 +585,16 @@ export default function useMalloAppState(user, supabaseReservations = null) {
 
   useEffect(() => {
     latestVisitTagsRef.current = visitTags;
+    if (!applyingServerTagsRef.current) {
+      lastLocalTagUpdateAtRef.current = Date.now();
+    }
   }, [visitTags]);
 
   useEffect(() => {
     latestCustomerTagsRef.current = customerTags;
+    if (!applyingServerTagsRef.current) {
+      lastLocalTagUpdateAtRef.current = Date.now();
+    }
   }, [customerTags]);
 
   const canSync = () => {
@@ -798,15 +856,46 @@ export default function useMalloAppState(user, supabaseReservations = null) {
 
     channel
       .on('broadcast', { event: 'tags-updated' }, (payload) => {
-        const { sender, visitTags: incomingVisitTags, customerTags: incomingCustomerTags } = payload?.payload || {};
+        const { sender, visitTags: incomingVisitTags, customerTags: incomingCustomerTags, updatedAt } = payload?.payload || {};
         if (!payload || sender === tagSyncClientIdRef.current) return; // 내 이벤트 무시
 
+        const incomingUpdatedAt = typeof updatedAt === 'number' ? updatedAt : 0;
+        const now = Date.now();
+        const isLocalCooling =
+          lastLocalTagUpdateAtRef.current > 0 &&
+          now - lastLocalTagUpdateAtRef.current < TAG_SYNC_LOCAL_COOLDOWN_MS;
+        const isStale =
+          incomingUpdatedAt > 0 &&
+          lastLocalTagUpdateAtRef.current > 0 &&
+          incomingUpdatedAt < lastLocalTagUpdateAtRef.current;
+
+        if (isLocalCooling || isStale) {
+          console.log('[태그 동기화] Realtime 수신 데이터가 로컬보다 오래되어 무시합니다.', {
+            incomingUpdatedAt,
+            lastLocal: lastLocalTagUpdateAtRef.current,
+            isLocalCooling,
+          });
+          return;
+        }
+
+        let appliedFromServer = false;
         if (incomingVisitTags) {
+          applyingServerTagsRef.current = true;
           setVisitTags(migrateTagsToObjects(incomingVisitTags));
+          appliedFromServer = true;
         }
         if (incomingCustomerTags) {
+          applyingServerTagsRef.current = true;
           setCustomerTags(migrateTagsToObjects(incomingCustomerTags));
+          appliedFromServer = true;
         }
+        if (appliedFromServer) {
+          setTimeout(() => {
+            applyingServerTagsRef.current = false;
+          }, 0);
+        }
+
+        lastServerTagUpdateAtRef.current = incomingUpdatedAt || Date.now();
       })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
