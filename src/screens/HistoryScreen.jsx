@@ -92,7 +92,8 @@ function HistoryScreen({
   reservations,
   visits,  // 기존 로컬 visits (하위 호환성)
   isVisitLogsLoading = false,  // Supabase visit_logs 로딩 상태
-  isCustomersLoading = false  // Supabase customers 로딩 상태
+  isCustomersLoading = false,  // Supabase customers 로딩 상태
+  user  // 로그인 사용자 정보
 }) {
   const [hasShownInitialVisitLogsLoading, setHasShownInitialVisitLogsLoading] = useState(false);
 
@@ -240,55 +241,14 @@ function HistoryScreen({
   const recordsForSelectedDate = useMemo(() => {
     const dateKey = selectedDateKey; // 'YYYY-MM-DD'
 
-    // 로컬 visits를 Map으로 변환하여 빠른 조회 가능하도록 함
-    const localVisitsArray = visits ? Object.values(visits).flat() : [];
-    const localVisitsMap = new Map();
-    localVisitsArray.forEach((visit) => {
-      if (visit && visit.id) {
-        localVisitsMap.set(visit.id, visit);
-      }
-    });
-
-    // Supabase 데이터가 있으면 그걸 우선 사용하고 로컬 태그 정보 병합
+    // 🔒 로그인한 사용자는 Supabase 데이터만 사용 (보안)
     let source = [];
-    if (visitLogs && visitLogs.length > 0) {
-      // Supabase visit_logs에 로컬 visits의 태그 정보 병합
-      source = visitLogs.map((supabaseVisit) => {
-        const localVisit = localVisitsMap.get(supabaseVisit.id);
-        if (!localVisit) return supabaseVisit;
-
-        // 로컬 visit에 태그가 있으면 Supabase visit에 병합
-        const localTags = 
-          (Array.isArray(localVisit.tags) && localVisit.tags.length > 0 && localVisit.tags) ||
-          (Array.isArray(localVisit.visitTags) && localVisit.visitTags.length > 0 && localVisit.visitTags) ||
-          (Array.isArray(localVisit.detail?.tags) && localVisit.detail.tags.length > 0 && localVisit.detail.tags) ||
-          (Array.isArray(localVisit.summaryJson?.tags) && localVisit.summaryJson.tags.length > 0 && localVisit.summaryJson.tags) ||
-          null;
-
-        if (localTags) {
-          return {
-            ...supabaseVisit,
-            tags: localTags,
-            visitTags: localTags,
-            detail: {
-              ...supabaseVisit.detail,
-              tags: localTags,
-            },
-            summaryJson: {
-              ...supabaseVisit.summaryJson,
-              tags: localTags,
-            },
-            summary_json: {
-              ...supabaseVisit.summary_json,
-              tags: localTags,
-            },
-          };
-        }
-
-        return supabaseVisit;
-      });
+    if (user) {
+      // 로그인 사용자: Supabase visit_logs만 사용
+      source = visitLogs || [];
     } else {
-      // Supabase 데이터가 없으면 로컬 visits 사용
+      // 비로그인 사용자: 로컬 visits 사용 (하위 호환성)
+      const localVisitsArray = visits ? Object.values(visits).flat() : [];
       source = localVisitsArray;
     }
 
@@ -359,7 +319,7 @@ function HistoryScreen({
         // 시간 문자열 비교 (내림차순)
         return timeB.localeCompare(timeA);
       });
-  }, [visitLogs, visits, selectedDateKey, customers, reservations, extractServiceDateTimeLabel]);
+  }, [visitLogs, visits, selectedDateKey, customers, reservations, extractServiceDateTimeLabel, user]);
 
   // 🔹 깜빡임 방지용: 마지막으로 성공적으로 표시된 기록을 캐시
   const [lastNonEmptyRecords, setLastNonEmptyRecords] = useState([]);

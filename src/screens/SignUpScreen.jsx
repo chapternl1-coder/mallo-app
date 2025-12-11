@@ -6,6 +6,7 @@ function SignUpScreen({ onBackToLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [name, setName] = useState('');
   const [shopName, setShopName] = useState('');
   const [phone, setPhone] = useState('');
 
@@ -27,6 +28,11 @@ function SignUpScreen({ onBackToLogin }) {
       return;
     }
 
+    if (!name.trim()) {
+      setMessage('이름을 입력해주세요.');
+      return;
+    }
+
     if (!shopName.trim()) {
       setMessage('샵/매장 이름을 입력해주세요.');
       return;
@@ -35,7 +41,7 @@ function SignUpScreen({ onBackToLogin }) {
     setSubmitting(true);
 
     try {
-      await signUp({ email, password, shopName, phone });
+      await signUp({ email, password, name, shopName, phone });
       setMessage('회원가입 완료! 잠시만 기다려 주세요.');
     } catch (error) {
       console.error(error);
@@ -107,6 +113,20 @@ function SignUpScreen({ onBackToLogin }) {
                 placeholder="비밀번호 재입력"
                 value={passwordConfirm}
                 onChange={(e) => setPasswordConfirm(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-medium text-neutral-600 mb-1.5">
+                이름
+              </label>
+              <input
+                type="text"
+                required
+                className="w-full rounded-lg border border-[#E4D9CC] bg-neutral-50 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#C9A27A]"
+                placeholder="홍길동"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
               />
             </div>
 

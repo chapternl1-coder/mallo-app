@@ -223,9 +223,8 @@ export default function useMalloAppState(user, supabaseReservations = null) {
   const lastServerTagUpdateAtRef = useRef(0);    // 서버/다른 클라이언트로부터 받은 최신 시각
   const applyingServerTagsRef = useRef(false);   // 서버 태그를 적용 중일 때 로컬 타임스탬프 증가 방지
   const isInitialLoadRef = useRef(true);  // 앱 초기 로드인지 확인 (초기 로드 시에는 로컬 타임스탬프 업데이트 안 함)
-  // Supabase 정책과 동일한 공용 owner_id (테스트/비로그인용)
-  const TAG_SYNC_PUBLIC_OWNER_ID = '0b788d1e-b1cf-4a94-aab9-4c57a09cca28';
-  const effectiveOwnerId = useMemo(() => user?.id || TAG_SYNC_PUBLIC_OWNER_ID, [user?.id]);
+  // 프로덕션에서는 로그인된 사용자만 태그 설정 사용 가능
+  const effectiveOwnerId = useMemo(() => user?.id, [user?.id]);
   
   const DEV_MODE = true; // 개발용 요약 테스트 박스 표시 여부
   const [testSummaryInput, setTestSummaryInput] = useState('');
@@ -421,7 +420,7 @@ export default function useMalloAppState(user, supabaseReservations = null) {
           .from('tag_settings')
           .select('visit_tags, customer_tags, updated_at')
           .eq('owner_id', effectiveOwnerId)
-          .single();
+          .maybeSingle();
 
         if (error) {
           markSyncFailure(`[태그 동기화] Supabase 로드 실패(${reason}):`, error);
@@ -2801,6 +2800,7 @@ export default function useMalloAppState(user, supabaseReservations = null) {
   };
 
   const screenRouterProps = {
+    user,
     currentScreen,
     setCurrentScreen,
     previousScreen,

@@ -62,6 +62,7 @@ const convertCustomerTagsToArray = (tags) => {
 };
 
 function TagSettingsScreen({
+  user,
   currentScreen,
   setCurrentScreen,
   visitTags,
@@ -215,6 +216,47 @@ function TagSettingsScreen({
       }));
     }
   };
+
+  // 로그인하지 않은 경우 태그 설정 사용 불가
+  if (!user) {
+    return (
+      <div className="flex flex-col h-full bg-[#F2F0E6]">
+        {/* 헤더 */}
+        <header className="bg-[#F2F0E6] px-5 pt-4 pb-2 sticky top-0 z-20 flex items-center justify-between">
+          <button
+            onClick={() => setCurrentScreen(SCREENS.PROFILE)}
+            className="p-2 hover:bg-gray-100 rounded-2xl transition-colors"
+            style={{ color: '#232323' }}
+          >
+            <span className="text-[32px]">&#x2039;</span>
+          </button>
+          <h2 className="font-bold text-base" style={{ color: '#232323' }}>태그/키워드 관리</h2>
+          <div className="w-8"></div> {/* Spacer for centering */}
+        </header>
+
+        {/* 로그인 필요 메시지 */}
+        <main className="flex-1 flex items-center justify-center px-5">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center max-w-sm">
+            <div className="text-4xl mb-4">🔒</div>
+            <h3 className="text-lg font-bold mb-2" style={{ color: '#232323' }}>
+              로그인이 필요합니다
+            </h3>
+            <p className="text-sm font-light leading-relaxed mb-6" style={{ color: '#232323', opacity: 0.7 }}>
+              태그/키워드 관리를 사용하려면<br/>
+              로그인을 먼저 해주세요.
+            </p>
+            <button
+              onClick={() => setCurrentScreen(SCREENS.LOGIN)}
+              className="w-full px-6 py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90"
+              style={{ backgroundColor: '#C9A27A' }}
+            >
+              로그인하기
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-[#F2F0E6]">

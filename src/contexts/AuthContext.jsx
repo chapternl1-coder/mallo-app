@@ -63,12 +63,13 @@ export function AuthProvider({ children }) {
   };
 
   // ✅ 회원가입: 계정 만들고 곧바로 로그인된 상태로 취급
-  const signUp = async ({ email, password, shopName, phone }) => {
+  const signUp = async ({ email, password, name, shopName, phone }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
+          name: name,
           shop_name: shopName,
           phone: phone || null,
         }
@@ -90,16 +91,19 @@ export function AuthProvider({ children }) {
     setUser(simpleUser);
     saveUserToStorage(simpleUser);
 
-    // ✅ 프로필 테이블에 추가 정보 저장 (profiles 테이블이 있다면)
-    try {
-      await supabase.from('profiles').upsert({
-        id: supaUser.id,
-        email: supaUser.email,
-        shop_name: shopName,
-        phone: phone || null,
-      });
-    } catch (profileError) {
-      console.warn('[Auth] 프로필 저장 실패 (테이블이 없을 수 있음):', profileError);
+    // ✅ 프로필 테이블에 추가 정보 저장
+    const { error: profileError } = await supabase.from('profiles').insert({
+      id: supaUser.id,
+      owner_name: name,
+      shop_name: shopName,
+      phone: phone || null,
+    });
+
+    if (profileError) {
+      console.error('[Auth] 프로필 저장 실패:', profileError);
+      // profiles 저장 실패 시 사용자 계정도 정리하는 것이 좋지만,
+      // 일단 에러만 던져서 사용자에게 알림
+      throw new Error('프로필 생성에 실패했습니다. 다시 시도해주세요.');
     }
 
     return simpleUser;

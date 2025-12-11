@@ -169,8 +169,8 @@ export async function ensureCustomerForVisit({
 
 export default function useVisitLogs() {
   const { user } = useAuth();
-  const TAG_SYNC_PUBLIC_OWNER_ID = '0b788d1e-b1cf-4a94-aab9-4c57a09cca28'; // 공용/비로그인용 (테스트)
-  const effectiveOwnerId = useMemo(() => user?.id || TAG_SYNC_PUBLIC_OWNER_ID, [user?.id]);
+  // 프로덕션에서는 로그인된 사용자만 방문 기록 사용 가능
+  const effectiveOwnerId = useMemo(() => user?.id, [user?.id]);
   const [visitLogsByCustomer, setVisitLogsByCustomer] = useState({});
   const [allVisitLogs, setAllVisitLogs] = useState([]);
   const [loading, setLoading] = useState(true);
