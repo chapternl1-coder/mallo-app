@@ -502,7 +502,7 @@ function HomeScreen({
           />
           <div className="flex flex-col">
             <span className="text-[11px] text-[#A59B90]">{userProfile?.shopName || '말로 뷰티'}</span>
-            <span className="text-[14px] font-semibold text-[#3E2E20]">
+            <span className="text-[16px] font-semibold text-[#3E2E20]">
               오늘 방문 예정 손님
             </span>
           </div>

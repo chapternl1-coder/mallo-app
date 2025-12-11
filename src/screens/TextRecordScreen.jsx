@@ -103,7 +103,7 @@ function TextRecordScreen({
             placeholder={
               '예) 3시 김민지 언니 리터치.\n저번 C컬이 살짝 처져서 오늘은 D컬 11·12mm 섞어서 진행.\n눈물 많아서 순한 글루 사용, 오른쪽 눈 테이핑 특히 주의.\n기존 회원권에서 5만 원 차감.'
             }
-            className="flex-1 w-full resize-none border border-[#E3DDD3] rounded-xl px-3 py-2 text-[12px] text-[#3E2E20] leading-[1.6] bg-[#FBF8F2] placeholder:text-[#C0B7AB] focus:outline-none focus:border-[#C9A27A]"
+            className="flex-1 w-full resize-none border border-[#E3DDD3] rounded-xl px-3 py-2 text-[14px] text-[#3E2E20] leading-[1.6] bg-[#FBF8F2] placeholder:text-[#C0B7AB] focus:outline-none focus:border-[#C9A27A]"
           />
           <div className="mt-2 flex items-center justify-between text-[10px] text-[#A59B90]">
             <span>최소 5자 이상 입력하면 시술일지로 정리할 수 있어요.</span>

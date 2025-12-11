@@ -30,7 +30,7 @@ export default function BottomNavigation({ activeTab, onTabChange }) {
                 }}
               />
               <span
-                className="text-[10px] mt-1 font-medium"
+                className="text-[12px] mt-1 font-medium"
                 style={{
                   color: isActive ? '#232323' : '#D1D5DB',
                   transition: 'color 0.2s',
