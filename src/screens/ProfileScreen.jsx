@@ -57,31 +57,6 @@ function ProfileScreen({
           />
         </div>
 
-        {/* 데모 모드 카드 */}
-        <div className="mt-5 bg-white border border-[#E4D9CC] rounded-2xl px-5 py-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-semibold text-neutral-900">데모 모드</p>
-            <span className="text-[10px] text-neutral-400 border border-[#E4D9CC] rounded-full px-2 py-0.5">
-              개발 사용용
-            </span>
-          </div>
-          <p className="text-[11px] text-neutral-500 leading-relaxed mb-3">
-            데모/테스트 사용용으로 샘플 고객·예약·운영 데이터를 한 번에 채우거나, 모든 데이터를 초기 상태로 되돌릴 수 있어요.
-          </p>
-          <button
-            type="button"
-            className="w-full rounded-full py-2 text-xs font-medium text-white mb-2"
-            style={{ backgroundColor: '#C9A27A' }}
-          >
-            데모 데이터 채우기
-          </button>
-          <button
-            type="button"
-            className="w-full rounded-full py-2 text-xs font-medium text-neutral-500 bg-neutral-50 border border-[#E4D9CC]"
-          >
-            데이터 초기화하기
-          </button>
-        </div>
 
         {/* 도움말 / 로그아웃 카드 */}
         <div className="mt-5 space-y-3 mb-8">
