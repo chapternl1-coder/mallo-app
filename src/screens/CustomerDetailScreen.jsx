@@ -135,44 +135,13 @@ const VisitHistoryItem = React.memo(({
 
     e.stopPropagation();
 
+    // 원본 sections 사용 (수정하지 않음)
     const sections = normalizedVisit.detail?.sections || [];
 
-    const basicInfoSectionIndex = sections.findIndex(
-
-      section => section.title && section.title.includes('고객 기본 정보')
-
-    );
-
-    
-
-    if (basicInfoSectionIndex !== -1 && sections[basicInfoSectionIndex].content.length > 0) {
-
-      const firstLine = `이름: ${safeName} / 전화번호: ${safePhone}`;
-
-      sections[basicInfoSectionIndex] = {
-
-        ...sections[basicInfoSectionIndex],
-
-        content: [
-
-          firstLine,
-
-          ...sections[basicInfoSectionIndex].content.slice(1)
-
-        ]
-
-      };
-
-    }
-
-    
-
     const editData = {
-
       title: normalizedVisit.title,
-
-      sections: sections
-
+      sections: sections,
+      customerInfo: normalizedVisit.detail?.customerInfo
     };
 
     setTempResultData(editData);
@@ -534,12 +503,38 @@ const VisitHistoryItem = React.memo(({
               
 
               const baseContent = Array.isArray(section.content)
-                ? section.content.filter((line) => line != null && line !== '')
+                ? section.content.filter((line) => {
+                    if (line == null || line === '') return false;
+                    if (typeof line === 'string' && line.includes('(성별삭제됨)')) return false;
+                    return true;
+                  })
                 : [];
 
-              const genderGuess = inferGender(
-                `${JSON.stringify(section.content || [])} ${normalizedVisit.detail?.title || ''} ${normalizedVisit.detail?.transcript || ''}`
+              // 성별 삭제 플래그 확인 (원본 section.content에서 확인)
+              const genderDeleted = Array.isArray(section.content) && section.content.some(
+                (line) => typeof line === 'string' && line.includes('(성별삭제됨)')
               );
+
+              let genderGuess = null;
+
+              // 성별 삭제 플래그가 없으면 성별 추정
+              if (!genderDeleted) {
+                // 기존 성별 라인 찾기
+                const existingGenderLine = baseContent.find(
+                  (line) => typeof line === 'string' && /^\s*성별\s*:/.test(line)
+                );
+                const existingGender = existingGenderLine
+                  ? (existingGenderLine.split(':')[1] || '').trim()
+                  : '';
+
+                // customerInfo에서 성별 찾기
+                const customerInfoGender = normalizedVisit.detail?.customerInfo?.gender ||
+                                          normalizedVisit.detail?.customer?.gender ||
+                                          customer?.gender || '';
+
+                // 성별 추정 (customerInfo > 기존 라인 > 없음)
+                genderGuess = customerInfoGender || existingGender || null;
+              }
 
               formattedContent = [];
 
@@ -551,10 +546,13 @@ const VisitHistoryItem = React.memo(({
                 formattedContent.push(`전화번호: ${customerPhone}`);
               }
 
-              const genderLabel = genderGuess
-                ? (genderGuess.startsWith('여') ? '여' : genderGuess.startsWith('남') ? '남' : '미기재')
-                : '미기재';
-              formattedContent.push(`성별: ${genderLabel}`);
+              // 성별 삭제 플래그가 없으면 성별 추가 (정보가 없어도 미기재로 표시)
+              if (!genderDeleted) {
+                const genderLabel = genderGuess
+                  ? (genderGuess.startsWith('여') ? '여' : genderGuess.startsWith('남') ? '남' : '미기재')
+                  : '미기재';
+                formattedContent.push(`성별: ${genderLabel}`);
+              }
 
               baseContent.forEach(item => {
                 const itemStr = typeof item === 'string' ? item : String(item || '');

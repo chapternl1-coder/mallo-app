@@ -209,8 +209,8 @@ function EditScreen({
       typeof item === 'string' ? item : String(item || '')
     );
 
-    // 성별 삭제 플래그 확인
-    const genderDeleted = normalizedStrings.some(str => str && str.includes('(성별삭제됨)'));
+    // 성별 삭제 플래그 확인 (정확히 '(성별삭제됨)'만 찾기)
+    const genderDeleted = normalizedStrings.some(str => str && str.trim() === '(성별삭제됨)');
 
     // 우선순위: 선택된 프로필 > 입력값(temp) > 편집 중 고객 > 요약 추출
     let name =
@@ -244,11 +244,14 @@ function EditScreen({
         }
       });
     }
+
+    // customerInfo에서 성별 찾기
+    const customerInfoGender = tempResultData?.customerInfo?.gender || '';
+
     const genderGuess =
       genderDeleted
         ? null
-        : genderFromContent ||
-          inferGender(`${normalizedStrings.join(' ')} ${tempResultData?.title || ''}`);
+        : customerInfoGender || genderFromContent || null;
     const genderLabel = genderGuess || '미기재';
 
     // 요약에서 함께 적힌 "이름: ○○○ / 전화번호: 010-0000-0000" 문자열을 분리
@@ -275,6 +278,8 @@ function EditScreen({
     ];
     // display -> 원본 content 인덱스 매핑
     const indexMap = [null, null];
+
+    // 성별 삭제된 경우에는 표시하지 않음
     if (!genderDeleted) {
       display.push(`성별: ${genderLabel}`);
       indexMap.push(genderIndex);
@@ -571,7 +576,10 @@ function EditScreen({
 
           const { error, data } = await supabase
             .from('visit_logs')
-            .update({ tags: finalTagLabels })
+            .update({
+              tags: finalTagLabels,
+              summary_json: cleanedData  // 요약 내용도 함께 업데이트
+            })
             .eq('id', editingVisit.id)
             .select();
 
@@ -666,11 +674,11 @@ function EditScreen({
               try {
                 await refetchVisitLogs();
                 console.log('[편집 저장] Supabase 데이터 새로고침 완료');
-                
+
                 // 추가 지연: React state 업데이트가 완료될 시간 확보
-                await new Promise(resolve => setTimeout(resolve, 300));
+                await new Promise(resolve => setTimeout(resolve, 500));
                 console.log('[편집 저장] state 업데이트 대기 완료');
-        } catch (e) {
+              } catch (e) {
                 console.error('[편집 저장] Supabase 데이터 새로고침 실패:', e);
               }
             }
