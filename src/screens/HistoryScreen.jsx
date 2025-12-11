@@ -4,6 +4,15 @@ import { ArrowLeft, Calendar, ChevronDown, ChevronUp, Clock, ChevronLeft, Chevro
 import { formatRecordDateTime } from '../utils/date';
 import { SCREENS } from '../constants/screens';
 
+// 성별 추정 헬퍼
+const inferGender = (text) => {
+  if (!text || typeof text !== 'string') return null;
+  const lower = text.toLowerCase();
+  if (lower.includes('여성') || lower.includes('여자')) return '여';
+  if (lower.includes('남성') || lower.includes('남자')) return '남';
+  return null;
+};
+
 // UUID 검증 헬퍼 함수
 const isValidUuid = (value) => {
   if (typeof value !== 'string') return false;
@@ -795,6 +804,68 @@ function HistoryScreen({
                             // 고객 기본 정보 섹션인 경우 content를 특정 형식으로 변환
                             let formattedContent = section.content;
                             if (isCustomerInfoSection) {
+                              const shouldHideLine = (line) => {
+                                if (!line) return false;
+                                const str = typeof line === 'string' ? line : String(line);
+                                if (/^\s*구분\s*[:：]/.test(str)) return true;
+                                  if (str.includes('(성별삭제됨)')) return true;
+                                return false;
+                              };
+
+                              const items = Array.isArray(section.content)
+                                ? section.content.filter((line) => line != null && line !== '')
+                                : [];
+                              // 기존 성별 라인/고객 gender 우선 사용
+                              const existingGenderLine = items.find(
+                                (line) => typeof line === 'string' && /^\s*성별\s*:/.test(line)
+                              );
+                              const genderFromContent = existingGenderLine
+                                ? (existingGenderLine.split(':')[1] || '').trim()
+                                : '';
+                              // 요약 결과에서 성별 추출 헬퍼 함수
+                              const extractGenderFromRecord = (record) => {
+                                // 1. customerInfo에서 직접 찾기
+                                if (record.summaryJson?.customerInfo?.gender) {
+                                  return record.summaryJson.customerInfo.gender;
+                                }
+                                if (record.detail?.customerInfo?.gender) {
+                                  return record.detail.customerInfo.gender;
+                                }
+
+                                // 2. 고객 프로필에서 찾기
+                                if (record.customer?.gender) {
+                                  return record.customer.gender;
+                                }
+                                if (customer?.gender) {
+                                  return customer.gender;
+                                }
+                                if (customerInfoForOverride?.gender) {
+                                  return customerInfoForOverride.gender;
+                                }
+
+                                // 3. 요약 섹션에서 고객 기본 정보 찾기
+                                const customerSection = record.summaryJson?.sections?.find(section =>
+                                  section.title?.includes('고객 기본 정보') ||
+                                  section.title?.includes('고객 정보') ||
+                                  section.title?.toLowerCase().includes('customer')
+                                );
+
+                                if (customerSection?.content) {
+                                  const genderLine = customerSection.content.find(line =>
+                                    typeof line === 'string' && /^\s*성별\s*:/.test(line)
+                                  );
+                                  if (genderLine) {
+                                    const genderValue = genderLine.split(':')[1]?.trim();
+                                    if (genderValue && genderValue !== '미기재') {
+                                      return genderValue;
+                                    }
+                                  }
+                                }
+
+                                return '';
+                              };
+
+                              const customerGender = extractGenderFromRecord(record);
                               const customerName = record.summaryJson?.customerInfo?.name || 
                                                   record.detail?.customerInfo?.name ||
                                                   customerInfoForOverride?.name || 
@@ -803,6 +874,13 @@ function HistoryScreen({
                                                    record.detail?.customerInfo?.phone ||
                                                    customerInfoForOverride?.phone || 
                                                    displayPhone || '';
+
+                              // 성별 추정 (content/고객정보에 없으면 추정)
+                              const genderGuess = genderFromContent ||
+                                customerGender ||
+                                inferGender(
+                                  `${JSON.stringify(section.content || [])} ${record.detail?.title || record.summaryJson?.title || ''} ${record.detail?.transcript || record.summaryJson?.transcript || ''}`
+                                );
                               
                               formattedContent = [];
                               if (customerName && customerName !== '이름 미입력') {
@@ -811,16 +889,32 @@ function HistoryScreen({
                               if (customerPhone && customerPhone !== '전화번호 미기재') {
                                 formattedContent.push(`전화번호: ${customerPhone}`);
                               }
-                              // 기존 content가 있으면 추가 (이름/전화번호가 아닌 다른 정보)
-                              section.content.forEach(item => {
+                              const genderLabel = genderGuess
+                                ? (genderGuess.startsWith('여') ? '여' : genderGuess.startsWith('남') ? '남' : '미기재')
+                                : '미기재';
+                              formattedContent.push(`성별: ${genderLabel}`);
+                              // 기존 content가 있으면 추가 (이름/전화번호/성별/구분이 아닌 다른 정보)
+                              items.forEach(item => {
                                 const itemStr = typeof item === 'string' ? item : String(item || '');
                                 if (itemStr && 
+                                    !shouldHideLine(itemStr) &&
                                     !itemStr.includes('이름:') && 
                                     !itemStr.includes('전화번호:') &&
                                     !itemStr.includes('name:') &&
                                     !itemStr.includes('phone:')) {
                                   formattedContent.push(itemStr);
                                 }
+                              });
+                              // 최종 정제: 구분/성별삭제/중복 성별 제거
+                              let seenGender = false;
+                              formattedContent = formattedContent.filter(line => {
+                                const str = typeof line === 'string' ? line : String(line);
+                                if (shouldHideLine(str)) return false;
+                                if (/^\s*성별\s*:/.test(str)) {
+                                  if (seenGender) return false;
+                                  seenGender = true;
+                                }
+                                return true;
                               });
                             }
                             

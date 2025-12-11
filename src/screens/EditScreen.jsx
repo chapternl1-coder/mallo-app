@@ -119,8 +119,25 @@ function EditScreen({
       }
 
       if (isCustomerInfoSection) {
-        // 고객 기본 정보 섹션: displayContentIndex >= 2 일 때만 실제 content 삭제
-        if (displayContentIndex >= 2) {
+        // 고객 기본 정보 섹션
+        if (displayContentIndex === 2) {
+          // 성별 삭제: 성별 라인 제거 후 플래그 추가
+          const genderIdx =
+            Array.isArray(displayToOriginalIndexMap) &&
+            typeof displayToOriginalIndexMap[displayContentIndex] === 'number'
+              ? displayToOriginalIndexMap[displayContentIndex]
+              : null;
+          if (genderIdx !== null && genderIdx >= 0 && genderIdx < section.content.length) {
+            section.content.splice(genderIdx, 1);
+          }
+          const hasFlag = section.content.some(
+            (line) => typeof line === 'string' && line.includes('(성별삭제됨)')
+          );
+          if (!hasFlag) {
+            section.content.unshift('(성별삭제됨)');
+          }
+        } else if (displayContentIndex >= 3) {
+          // 고객 특징 등 삭제
           let originalIndex = displayContentIndex - 2;
           if (
             Array.isArray(displayToOriginalIndexMap) &&
@@ -173,6 +190,15 @@ function EditScreen({
     return cleaned;
   };
 
+  // 텍스트에서 성별(여자/남자) 추정 → '여' | '남' | null
+  const inferGender = (text) => {
+    if (!text || typeof text !== 'string') return null;
+    const lower = text.toLowerCase();
+    if (lower.includes('여성') || lower.includes('여자')) return '여';
+    if (lower.includes('남성') || lower.includes('남자')) return '남';
+    return null;
+  };
+
   // 고객 기본 정보 섹션을 이름/전화번호가 분리된 형태로 표시하기 위한 헬퍼
   const buildCustomerInfoDisplay = section => {
     const safeContentArray = Array.isArray(section.content)
@@ -182,6 +208,9 @@ function EditScreen({
     const normalizedStrings = safeContentArray.map(item =>
       typeof item === 'string' ? item : String(item || '')
     );
+
+    // 성별 삭제 플래그 확인
+    const genderDeleted = normalizedStrings.some(str => str && str.includes('(성별삭제됨)'));
 
     // 우선순위: 선택된 프로필 > 입력값(temp) > 편집 중 고객 > 요약 추출
     let name =
@@ -201,6 +230,26 @@ function EditScreen({
       (editingCustomer?.phone && editingCustomer.phone !== '전화번호 미기재'
         ? editingCustomer.phone
         : '');
+
+    // 성별 추정 (삭제되지 않은 경우에만)
+    let genderFromContent = '';
+    let genderIndex = null;
+    if (!genderDeleted) {
+      normalizedStrings.forEach((str, idx) => {
+        if (!str) return;
+        const gMatch = str.match(/성별\s*:\s*([^/]+)/i);
+        if (gMatch?.[1]) {
+          genderFromContent = gMatch[1].trim();
+          genderIndex = idx;
+        }
+      });
+    }
+    const genderGuess =
+      genderDeleted
+        ? null
+        : genderFromContent ||
+          inferGender(`${normalizedStrings.join(' ')} ${tempResultData?.title || ''}`);
+    const genderLabel = genderGuess || '미기재';
 
     // 요약에서 함께 적힌 "이름: ○○○ / 전화번호: 010-0000-0000" 문자열을 분리
     normalizedStrings.forEach(str => {
@@ -224,18 +273,31 @@ function EditScreen({
       `이름: ${name || '미기재'}`,
       `전화번호: ${phone || '미기재'}`
     ];
-    // display -> 원본 content 인덱스 매핑 (이름/전화번호는 synthetic)
+    // display -> 원본 content 인덱스 매핑
     const indexMap = [null, null];
+    if (!genderDeleted) {
+      display.push(`성별: ${genderLabel}`);
+      indexMap.push(genderIndex);
+    }
 
     normalizedStrings.forEach((str, idx) => {
       const lower = (str || '').toLowerCase();
       if (
         (str && str.includes('이름:')) ||
         (str && str.includes('전화번호:')) ||
+        (str && str.includes('성별:')) ||
         lower.includes('name') ||
         lower.includes('phone')
       ) {
-        // 이름/전화번호가 함께 적힌 기존 줄은 스킵 (이미 분리됨)
+        // 이름/전화번호/성별이 함께 적힌 기존 줄은 스킵 (이미 분리됨)
+        return;
+      }
+      // "구분" 라인은 숨김
+      if (str && /^\s*구분\s*[:：]/.test(str)) {
+        return;
+      }
+      // 성별 삭제 플래그 숨김
+      if (str && str.includes('(성별삭제됨)')) {
         return;
       }
       // 비어 있어도 표시하여 새 항목을 편집 가능하도록 함

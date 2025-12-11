@@ -28,7 +28,14 @@ import { extractServiceDateFromSummary } from '../utils/serviceUtils';
 
 import { supabase } from '../lib/supabaseClient'; // ✅ Supabase 클라이언트 임포트 (경로는 프로젝트에 맞게 조정)
 
-
+// 성별 추정 헬퍼
+const inferGender = (text) => {
+  if (!text || typeof text !== 'string') return null;
+  const lower = text.toLowerCase();
+  if (lower.includes('여성') || lower.includes('여자')) return '여';
+  if (lower.includes('남성') || lower.includes('남자')) return '남';
+  return null;
+};
 
 // 스켈레톤 로더 컴포넌트
 
@@ -526,38 +533,54 @@ const VisitHistoryItem = React.memo(({
 
               
 
+              const baseContent = Array.isArray(section.content)
+                ? section.content.filter((line) => line != null && line !== '')
+                : [];
+
+              const genderGuess = inferGender(
+                `${JSON.stringify(section.content || [])} ${normalizedVisit.detail?.title || ''} ${normalizedVisit.detail?.transcript || ''}`
+              );
+
               formattedContent = [];
 
               if (customerName && customerName !== '이름 미입력') {
-
                 formattedContent.push(`이름: ${customerName}`);
-
               }
 
               if (customerPhone && customerPhone !== '전화번호 미기재') {
-
                 formattedContent.push(`전화번호: ${customerPhone}`);
-
               }
 
-              section.content.forEach(item => {
+              const genderLabel = genderGuess
+                ? (genderGuess.startsWith('여') ? '여' : genderGuess.startsWith('남') ? '남' : '미기재')
+                : '미기재';
+              formattedContent.push(`성별: ${genderLabel}`);
 
+              baseContent.forEach(item => {
                 const itemStr = typeof item === 'string' ? item : String(item || '');
 
                 if (itemStr && 
-
                     !itemStr.includes('이름:') && 
-
                     !itemStr.includes('전화번호:') &&
-
                     !itemStr.includes('name:') &&
-
-                    !itemStr.includes('phone:')) {
-
+                    !itemStr.includes('phone:') &&
+                    !/^\s*구분\s*[:：]/.test(itemStr) &&
+                    !/^\s*성별\s*:/.test(itemStr)) {
                   formattedContent.push(itemStr);
-
                 }
 
+              });
+
+              // 최종 정제: 구분/성별삭제/중복 성별 제거
+              let seenGender = false;
+              formattedContent = formattedContent.filter(line => {
+                const str = typeof line === 'string' ? line : String(line);
+                if (/^\s*구분\s*[:：]/.test(str)) return false;
+                if (/^\s*성별\s*:/.test(str)) {
+                  if (seenGender) return false;
+                  seenGender = true;
+                }
+                return true;
               });
 
             }

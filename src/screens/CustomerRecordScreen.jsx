@@ -449,6 +449,15 @@ function CustomerRecordScreen({
     return `${hours}:${minutes}`;
   };
 
+  // 텍스트에서 성별(여자/남자) 추정
+  const inferGender = (text) => {
+    if (!text || typeof text !== 'string') return null;
+    const lower = text.toLowerCase();
+    if (lower.includes('여성') || lower.includes('여자')) return '여';
+    if (lower.includes('남성') || lower.includes('남자')) return '남';
+    return null;
+  };
+
   // 고객 정보 (고객 상세에서는 항상 selectedCustomerForRecord 사용)
   const customerName = selectedCustomerForRecord?.name || '';
   const customerPhone = selectedCustomerForRecord?.phone || '';
@@ -595,6 +604,15 @@ function CustomerRecordScreen({
               let formattedContent = section.content;
               
               if (isCustomerInfoSection && resultData.customerInfo) {
+                const shouldHideLine = (line) => {
+                  if (!line) return false;
+                  const str = typeof line === 'string' ? line : String(line);
+                  if (/^\s*구분\s*[:：]/.test(str)) return true;
+                  if (str.includes('(성별삭제됨)')) return true;
+                  if (/^\s*성별\s*:/.test(str)) return true;
+                  return false;
+                };
+
                 const customerName = resultData.customerInfo.name || selectedCustomerForRecord?.name || tempName || '';
                 const customerPhone = resultData.customerInfo.phone || selectedCustomerForRecord?.phone || tempPhone || '';
                 
@@ -605,10 +623,19 @@ function CustomerRecordScreen({
                 if (customerPhone) {
                   formattedContent.push(`전화번호: ${customerPhone}`);
                 }
-                // 기존 content가 있으면 추가 (이름/전화번호가 아닌 다른 정보)
+                // 성별 삭제 플래그와 무관하게 성별을 표시 (삭제 플래그는 렌더링에서 제거되도록 shouldHideLine에서 처리)
+                const genderGuess = inferGender(
+                  `${JSON.stringify(section.content || [])} ${resultData?.title || ''} ${transcript || ''}`
+                );
+                const genderLabel = genderGuess
+                  ? (genderGuess.startsWith('여') ? '여' : genderGuess.startsWith('남') ? '남' : '미기재')
+                  : '미기재';
+                formattedContent.push(`성별: ${genderLabel}`);
+                // 기존 content가 있으면 추가 (이름/전화번호/성별/구분이 아닌 다른 정보)
                 section.content.forEach(item => {
                   const itemStr = typeof item === 'string' ? item : String(item || '');
                   if (itemStr && 
+                      !shouldHideLine(itemStr) &&
                       !itemStr.includes('이름:') && 
                       !itemStr.includes('전화번호:') &&
                       !itemStr.includes('name:') &&
@@ -928,7 +955,82 @@ function CustomerRecordScreen({
           <button 
             onClick={() => {
               if (resultData) {
-                setTempResultData(JSON.parse(JSON.stringify(resultData)));
+                const dataCopy = JSON.parse(JSON.stringify(resultData));
+
+                // 고객 기본 정보 섹션 정리: 구분 제거, 성별 라인 보강, 순서 (이름 → 전화번호 → 성별)
+                dataCopy.sections = (dataCopy.sections || []).map((sec) => {
+                  if (
+                    !sec ||
+                    !sec.title ||
+                    !(
+                      sec.title.includes('고객 기본 정보') ||
+                      sec.title.includes('고객 정보')
+                    )
+                  ) {
+                    return sec;
+                  }
+
+                  const items = Array.isArray(sec.content) ? sec.content : [];
+                  const cleaned = items
+                    .filter((line) => line != null && line !== '')
+                    .map((line) => (typeof line === 'string' ? line : String(line)));
+
+                  const genderDeleted = cleaned.some((str) => str.includes('(성별삭제됨)'));
+
+                  // 라인 필터: 구분 제거, 기존 성별 제거 (성별삭제 플래그는 유지)
+                  const isHide = (str) => /^\s*구분\s*[:：]/.test(str);
+                  const withoutHidden = cleaned.filter(
+                    (str) => !isHide(str) && !/^\s*성별\s*:/.test(str)
+                  );
+
+                  // 이름/전화번호 기존 라인 추출
+                  const nameLine = withoutHidden.find((s) => s.includes('이름:'));
+                  const phoneLine = withoutHidden.find((s) => s.includes('전화번호:'));
+
+                  // 이름/전화번호/성별 구성
+                  const header = [];
+                  const nameValue =
+                    nameLine ||
+                    (resultData.customerInfo?.name
+                      ? `이름: ${resultData.customerInfo.name}`
+                      : null);
+                  const phoneValue =
+                    phoneLine ||
+                    (resultData.customerInfo?.phone
+                      ? `전화번호: ${resultData.customerInfo.phone}`
+                      : null);
+
+                  if (nameValue) header.push(nameValue);
+                  if (phoneValue) header.push(phoneValue);
+
+                  if (!genderDeleted) {
+                    const genderGuess = inferGender(
+                      `${JSON.stringify(items)} ${resultData?.title || ''} ${transcript || ''}`
+                    );
+                    const genderLabel = genderGuess ? genderGuess : '미기재';
+                    header.push(`성별: ${genderLabel}`);
+                  }
+
+                  // 나머지 라인 (이름/전화번호/성별 제거 후)
+                  const body = withoutHidden.filter(
+                    (s) =>
+                      s !== nameLine &&
+                      s !== phoneLine &&
+                      !/^\s*성별\s*:/.test(s)
+                  );
+
+                  // 성별 삭제 플래그는 남겨서 재편집 시 유지
+                  if (genderDeleted && !body.includes('(성별삭제됨)')) {
+                    body.unshift('(성별삭제됨)');
+                  }
+
+                  return {
+                    ...sec,
+                    content: [...header, ...body],
+                  };
+                });
+
+                setTempResultData(dataCopy);
                 setCurrentScreen(SCREENS.EDIT);
               }
             }}
