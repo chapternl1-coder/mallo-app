@@ -212,7 +212,24 @@ function EditScreen({
     // 성별 삭제 플래그 확인 (정확히 '(성별삭제됨)'만 찾기)
     const genderDeleted = normalizedStrings.some(str => str && str.trim() === '(성별삭제됨)');
 
-    // 우선순위: 선택된 프로필 > 입력값(temp) > 편집 중 고객 > 요약 추출
+    // editingVisit에서 summary_json 정보 추출 (HistoryScreen과 동일한 로직)
+    const visitSummary = editingVisit?.summaryJson || editingVisit?.detail || {};
+    const visitCustomer = visitSummary.customer || visitSummary.customerInfo || {};
+
+    const enhancedVisitCustomer = {
+      name: visitCustomer.name ||
+            visitSummary.customer?.name ||
+            visitSummary.customerInfo?.name ||
+            (visitSummary.customer_name ? visitSummary.customer_name.replace(/^(이름|name)[:：]\s*/i, '') : null) ||
+            null,
+      phone: visitCustomer.phone ||
+             visitSummary.customer?.phone ||
+             visitSummary.customerInfo?.phone ||
+             (visitSummary.customer_phone ? visitSummary.customer_phone.replace(/^(전화번호|phone)[:：]\s*/i, '') : null) ||
+             null
+    };
+
+    // 우선순위: 선택된 프로필 > 입력값(temp) > 편집 중 고객 > 방문 기록 요약 > 요약 추출
     let name =
       (selectedCustomerForRecord?.name && selectedCustomerForRecord.name !== '이름 미입력'
         ? selectedCustomerForRecord.name
@@ -220,6 +237,9 @@ function EditScreen({
       (tempName || '') ||
       (editingCustomer?.name && editingCustomer.name !== '이름 미입력'
         ? editingCustomer.name
+        : '') ||
+      (enhancedVisitCustomer.name && enhancedVisitCustomer.name !== '이름 미입력'
+        ? enhancedVisitCustomer.name
         : '');
 
     let phone =
@@ -229,6 +249,9 @@ function EditScreen({
       (tempPhone || '') ||
       (editingCustomer?.phone && editingCustomer.phone !== '전화번호 미기재'
         ? editingCustomer.phone
+        : '') ||
+      (enhancedVisitCustomer.phone && enhancedVisitCustomer.phone !== '전화번호 미기재'
+        ? enhancedVisitCustomer.phone
         : '');
 
     // 성별 추정 (삭제되지 않은 경우에만)
@@ -246,13 +269,17 @@ function EditScreen({
     }
 
     // customerInfo에서 성별 찾기
-    const customerInfoGender = tempResultData?.customerInfo?.gender || '';
+    const customerInfoGender = tempResultData?.customerInfo?.gender || null;
 
     const genderGuess =
       genderDeleted
         ? null
-        : customerInfoGender || genderFromContent || null;
-    const genderLabel = genderGuess || '미기재';
+        : (customerInfoGender && customerInfoGender.trim()) ||
+          (genderFromContent && genderFromContent.trim()) ||
+          null;
+    const genderLabel = genderGuess
+      ? (genderGuess.startsWith('여') ? '여' : genderGuess.startsWith('남') ? '남' : '미기재')
+      : '미기재';
 
     // 요약에서 함께 적힌 "이름: ○○○ / 전화번호: 010-0000-0000" 문자열을 분리
     normalizedStrings.forEach(str => {

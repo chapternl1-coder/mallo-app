@@ -527,26 +527,26 @@ const VisitHistoryItem = React.memo(({
                   ? (existingGenderLine.split(':')[1] || '').trim()
                   : '';
 
-                // customerInfo에서 성별 찾기
-                const customerInfoGender = normalizedVisit.detail?.customerInfo?.gender ||
-                                          normalizedVisit.detail?.customer?.gender ||
-                                          customer?.gender || '';
+              // customerInfo에서 성별 찾기
+              const customerInfoGender = normalizedVisit.detail?.customerInfo?.gender ||
+                                        normalizedVisit.detail?.customer?.gender ||
+                                        customer?.gender || null;
 
-                // 성별 추정 (customerInfo > 기존 라인 > 없음)
-                genderGuess = customerInfoGender || existingGender || null;
+              // 성별 추정 (customerInfo > 기존 라인 > 없음)
+              genderGuess = (customerInfoGender && customerInfoGender.trim()) ||
+                           (existingGender && existingGender.trim()) ||
+                           null;
               }
 
               formattedContent = [];
 
-              if (customerName && customerName !== '이름 미입력') {
-                formattedContent.push(`이름: ${customerName}`);
-              }
+              // 이름 (없으면 미기재)
+              formattedContent.push(`이름: ${customerName && customerName !== '이름 미입력' ? customerName : '미기재'}`);
 
-              if (customerPhone && customerPhone !== '전화번호 미기재') {
-                formattedContent.push(`전화번호: ${customerPhone}`);
-              }
+              // 전화번호 (없으면 미기재)
+              formattedContent.push(`전화번호: ${customerPhone && customerPhone !== '전화번호 미기재' ? customerPhone : '미기재'}`);
 
-              // 성별 삭제 플래그가 없으면 성별 추가 (정보가 없어도 미기재로 표시)
+              // 성별 (삭제되지 않았으면 항상 표시, 없으면 미기재)
               if (!genderDeleted) {
                 const genderLabel = genderGuess
                   ? (genderGuess.startsWith('여') ? '여' : genderGuess.startsWith('남') ? '남' : '미기재')
@@ -770,6 +770,20 @@ function CustomerDetailScreen({
 
   const summaryCustomer = summary.customer || summary.customerInfo || {};
 
+  // summary_json에서 고객 정보 보정 (HistoryScreen과 동일한 로직 적용)
+  const enhancedSummaryCustomer = {
+    name: summaryCustomer.name ||
+          summary.customer?.name ||
+          summary.customerInfo?.name ||
+          (summary.customer_name ? summary.customer_name.replace(/^(이름|name)[:：]\s*/i, '') : null) ||
+          null,
+    phone: summaryCustomer.phone ||
+           summary.customer?.phone ||
+           summary.customerInfo?.phone ||
+           (summary.customer_phone ? summary.customer_phone.replace(/^(전화번호|phone)[:：]\s*/i, '') : null) ||
+           null
+  };
+
 
 
   // 최종 customer 객체 (실제 customers 에 있으면 그걸 우선 사용,
@@ -782,6 +796,8 @@ function CustomerDetailScreen({
 
     name:
 
+      enhancedSummaryCustomer.name ||
+
       summaryCustomer.name ||
 
       relatedVisit?.customerName ||
@@ -789,6 +805,8 @@ function CustomerDetailScreen({
       '이름 미입력',
 
     phone:
+
+      enhancedSummaryCustomer.phone ||
 
       summaryCustomer.phone ||
 

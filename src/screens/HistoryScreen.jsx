@@ -815,6 +815,12 @@ function HistoryScreen({
                               const items = Array.isArray(section.content)
                                 ? section.content.filter((line) => line != null && line !== '')
                                 : [];
+                              
+                              // 성별 삭제 플래그 확인 (섹션 content에서)
+                              const genderDeleted = items.some(line =>
+                                typeof line === 'string' && line.includes('(성별삭제됨)')
+                              );
+                              
                               // 기존 성별 라인/고객 gender 우선 사용
                               const existingGenderLine = items.find(
                                 (line) => typeof line === 'string' && /^\s*성별\s*:/.test(line)
@@ -824,6 +830,24 @@ function HistoryScreen({
                                 : '';
                               // 요약 결과에서 성별 추출 헬퍼 함수
                               const extractGenderFromRecord = (record) => {
+                                // 고객 기본 정보 섹션 찾기
+                                const customerSection = record.summaryJson?.sections?.find(section =>
+                                  section.title?.includes('고객 기본 정보') ||
+                                  section.title?.includes('고객 정보') ||
+                                  section.title?.toLowerCase().includes('customer')
+                                );
+
+                                // 성별 삭제 플래그 확인 (고객 기본 정보 섹션에서)
+                                const sectionGenderDeleted = customerSection?.content &&
+                                  Array.isArray(customerSection.content) &&
+                                  customerSection.content.some(line =>
+                                    typeof line === 'string' && line.includes('(성별삭제됨)')
+                                  );
+
+                                if (genderDeleted || sectionGenderDeleted) {
+                                  return null; // 삭제되었으면 표시하지 않음
+                                }
+
                                 // 1. customerInfo에서 직접 찾기
                                 if (record.summaryJson?.customerInfo?.gender) {
                                   return record.summaryJson.customerInfo.gender;
@@ -844,14 +868,14 @@ function HistoryScreen({
                                 }
 
                                 // 3. 요약 섹션에서 고객 기본 정보 찾기
-                                const customerSection = record.summaryJson?.sections?.find(section =>
+                                const customerSectionForGender = record.summaryJson?.sections?.find(section =>
                                   section.title?.includes('고객 기본 정보') ||
                                   section.title?.includes('고객 정보') ||
                                   section.title?.toLowerCase().includes('customer')
                                 );
 
-                                if (customerSection?.content) {
-                                  const genderLine = customerSection.content.find(line =>
+                                if (customerSectionForGender?.content) {
+                                  const genderLine = customerSectionForGender.content.find(line =>
                                     typeof line === 'string' && /^\s*성별\s*:/.test(line)
                                   );
                                   if (genderLine) {
@@ -889,10 +913,13 @@ function HistoryScreen({
                               if (customerPhone && customerPhone !== '전화번호 미기재') {
                                 formattedContent.push(`전화번호: ${customerPhone}`);
                               }
-                              const genderLabel = genderGuess
-                                ? (genderGuess.startsWith('여') ? '여' : genderGuess.startsWith('남') ? '남' : '미기재')
-                                : '미기재';
-                              formattedContent.push(`성별: ${genderLabel}`);
+                              // 성별 삭제되지 않았으면 성별 추가
+                              if (!genderDeleted) {
+                                const genderLabel = genderGuess
+                                  ? (genderGuess.startsWith('여') ? '여' : genderGuess.startsWith('남') ? '남' : '미기재')
+                                  : '미기재';
+                                formattedContent.push(`성별: ${genderLabel}`);
+                              }
                               // 기존 content가 있으면 추가 (이름/전화번호/성별/구분이 아닌 다른 정보)
                               items.forEach(item => {
                                 const itemStr = typeof item === 'string' ? item : String(item || '');
@@ -900,6 +927,7 @@ function HistoryScreen({
                                     !shouldHideLine(itemStr) &&
                                     !itemStr.includes('이름:') && 
                                     !itemStr.includes('전화번호:') &&
+                                    !itemStr.includes('성별:') &&
                                     !itemStr.includes('name:') &&
                                     !itemStr.includes('phone:')) {
                                   formattedContent.push(itemStr);
