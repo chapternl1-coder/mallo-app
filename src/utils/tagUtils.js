@@ -195,61 +195,24 @@ export function extractTagsFromContent(content, managedTags = null) {
 export function matchTagsFromSummary(sourceText, tags) {
   if (!sourceText || !tags || tags.length === 0) return [];
 
-  // 빈 텍스트나 공백만 있는 경우 매칭하지 않음
-  const trimmedText = sourceText.trim();
-  if (!trimmedText || trimmedText.length === 0) return [];
-
-  const normSummary = normalize(sourceText);
-
-  // 정규화된 텍스트도 비어있으면 매칭하지 않음
-  if (!normSummary || normSummary.length === 0) return [];
-
-  console.log('[태그 매칭] 정규화된 텍스트:', normSummary.substring(0, 200));
-  console.log('[태그 매칭] 전체 태그 개수:', tags.length);
+  const normSummary = normalize(sourceText || '');
 
   const matched = tags
     .filter((tag) => {
-      // 1) 키워드가 명시적으로 설정된 경우 키워드만 사용
-      const hasExplicitKeywords = tag.keywords && tag.keywords.length > 0;
-      let searchKeys = [];
-      if (hasExplicitKeywords) {
-        searchKeys = tag.keywords;
-      } else {
-        // 키워드가 없는 경우에만 라벨 사용 (기존 호환성 유지)
-        searchKeys = [tag.label];
-      }
+      // 명시적인 키워드가 있으면 그것만 사용, 없으면 label 사용
+      const searchKeys = (tag.keywords && tag.keywords.length > 0)
+        ? tag.keywords
+        : [tag.label];
 
-      // 2) 검색 키들을 정규화
       const normalizedKeys = searchKeys
-        .map((key) => normalize(key))
-        .filter((k) => k.length > 0);
+        .filter(Boolean)
+        .map((key) => normalize(key));
 
-      // 3) 어근 키워드 생성 - 명시적 키워드가 있는 경우 어근 생성 안 함
-      let autoKeys = [];
-      if (!hasExplicitKeywords) {
-        autoKeys = normalizedKeys
-          .filter((nk) => nk.length >= 3)
-          .flatMap((nk) => generateAutoKeywords(nk))
-          .filter((k) => k.length > 0);
-      }
-
-      // 4) 최종적으로 비교에 사용할 모든 키
-      const allKeys = [...normalizedKeys, ...autoKeys];
-
-      // 5) 요약/원본 안에 어느 하나라도 포함되면 매칭
-      const isMatched = allKeys.some((normKey) => {
-        const found = normSummary.includes(normKey);
-        if (found) {
-          console.log('[태그 매칭] 매칭 성공:', tag.label, '-> 키워드:', normKey, hasExplicitKeywords ? '(명시적 키워드)' : '(어근 포함)');
-        }
-        return found;
-      });
-
-      return isMatched;
+      // 바보모드: 우리가 명시한 키워드들 중 "정확히 그 문자열"이 들어갈 때만 매칭
+      return normalizedKeys.some((normKey) => normSummary.includes(normKey));
     })
     .map((tag) => tag.id);
 
-  console.log('[태그 매칭] 최종 매칭된 태그 ID:', matched);
   return matched;
 }
 

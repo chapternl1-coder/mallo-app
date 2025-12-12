@@ -1033,83 +1033,37 @@ export default function useMalloAppState(user, supabaseReservations = null) {
       console.log('[태그 추천 디버깅] resultData:', resultData);
       console.log('[태그 추천 디버깅] resultData?.recommendedTags:', resultData?.recommendedTags);
       
-      // 1️⃣ AI 추천 태그 처리
+      // 1️⃣ AI 추천 태그 처리 (바보모드)
       let aiRecommendedIds = [];
-      if (resultData?.recommendedTags && Array.isArray(resultData.recommendedTags) && resultData.recommendedTags.length > 0) {
+      if (resultData?.recommendedTags && Array.isArray(resultData.recommendedTags)) {
         console.log('[AI 태그 추천] AI가 추천한 태그 (원본):', resultData.recommendedTags);
-        const normalizedSourceText = sourceText.toLowerCase().replace(/\s+/g, '');
-        
-        const verifiedTags = resultData.recommendedTags.filter(tagLabel => {
-          const normalizedTag = tagLabel.toLowerCase().replace(/\s+/g, '');
-          const isExplicitlyMentioned = normalizedSourceText.includes(normalizedTag);
-          console.log(`[AI 태그 검증] "${tagLabel}" → 원본에 명시: ${isExplicitlyMentioned ? '✅' : '❌'}`);
-          return isExplicitlyMentioned;
-        });
-        
-        console.log('[AI 태그 추천] ✅ 검증된 태그:', verifiedTags);
-        
-        aiRecommendedIds = verifiedTags
+
+        // 바보모드: AI가 추천한 태그 중, 우리가 가진 태그(label)가 있는 것만 수용
+        aiRecommendedIds = resultData.recommendedTags
           .map(tagLabel => {
-            const tag = allVisitTags.find(t => t.label === tagLabel || t.label.toLowerCase() === tagLabel.toLowerCase());
-            console.log(`[AI 태그 추천] "${tagLabel}" → ${tag ? tag.label + ' (ID: ' + tag.id + ')' : '매칭 실패'}`);
+            const tag = allVisitTags.find(t => t.label === tagLabel);
             return tag ? tag.id : null;
           })
           .filter(id => id !== null);
-        console.log('[AI 태그 추천] ✅ AI 추천 태그 ID:', aiRecommendedIds);
+      } else {
+        aiRecommendedIds = [];
       }
       
-      // 2️⃣ 키워드 매칭 (AI가 놓친 태그 보완)
-      console.log('[키워드 매칭] 추가 태그 검색 시작');
-      const matched = matchTagsFromSummary(sourceText, allVisitTags);
-      const extractedTagIds = extractedTags
-        .map(tagLabel => {
-          const tag = allVisitTags.find(t => t.label === tagLabel);
-          return tag ? tag.id : null;
-        })
-        .filter(id => id !== null);
-      
-      const keywordMatchedIds = [...new Set([...matched, ...extractedTagIds])];
-      console.log('[키워드 매칭] ✅ 키워드로 찾은 태그 ID:', keywordMatchedIds);
-      
-      // 3️⃣ AI 추천 + 키워드 매칭 합치기
-      allMatchedTagIds = [...new Set([...aiRecommendedIds, ...keywordMatchedIds])];
-      console.log('[태그 선택 최종] ✅ AI + 키워드 합산:', allMatchedTagIds);
-      
-      // 4️⃣ 긴 태그 우선 (중복 제거)
-      // 예: "애쉬브라운", "브라운" → "애쉬브라운"만 선택
-      const tagLabelsMap = new Map();
-      allMatchedTagIds.forEach(id => {
-        const tag = allVisitTags.find(t => t.id === id);
-        if (tag) {
-          tagLabelsMap.set(id, tag.label);
-        }
-      });
-      
-      const filteredTagIds = allMatchedTagIds.filter(id => {
-        const currentLabel = tagLabelsMap.get(id);
-        if (!currentLabel) return true;
-        
-        // 다른 태그 중에 현재 태그를 포함하는 더 긴 태그가 있는지 확인
-        const hasLongerTag = Array.from(tagLabelsMap.entries()).some(([otherId, otherLabel]) => {
-          if (otherId === id) return false; // 자기 자신은 제외
-          const normalizedCurrent = currentLabel.toLowerCase().replace(/\s+/g, '');
-          const normalizedOther = otherLabel.toLowerCase().replace(/\s+/g, '');
-          // 다른 태그가 더 길고, 현재 태그를 포함하면 true
-          return normalizedOther.length > normalizedCurrent.length && normalizedOther.includes(normalizedCurrent);
-        });
-        
-        if (hasLongerTag) {
-          console.log(`[태그 중복 제거] "${currentLabel}" → 더 긴 태그에 포함되어 제외됨`);
-        }
-        
-        return !hasLongerTag;
-      });
-      
-      const matchedTagLabels = filteredTagIds.map(id => {
-        const tag = allVisitTags.find(t => t.id === id);
-        return tag ? tag.label : id;
-      });
-      console.log('[태그 선택 최종] ✅ 중복 제거 후:', matchedTagLabels);
+      // 2️⃣ 키워드 매칭 + 3️⃣ AI 추천 합치기 + 4️⃣ 중복 제거 (바보모드)
+      const keywordMatchedIds = matchTagsFromSummary(sourceText, allVisitTags);
+
+      // AI 추천 + 키워드 매칭 합치기 (중복 제거만)
+      const finalMatchedTagIds = Array.from(
+        new Set([
+          ...(aiRecommendedIds || []),
+          ...(keywordMatchedIds || []),
+        ])
+      );
+
+      // 긴 태그 우선 제거 로직은 잠시 비활성화하고, 단순히 finalMatchedTagIds를 사용
+      const filteredTagIds = finalMatchedTagIds;
+
+      console.log('[태그 선택 최종] ✅ 바보모드 결과:', filteredTagIds);
       setRecommendedTagIds(filteredTagIds);
       setSelectedTagIds(filteredTagIds);
     }
