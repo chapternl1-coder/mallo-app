@@ -1,5 +1,5 @@
-import React from 'react';
-import { ArrowLeft, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, X, GripVertical } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
 
 // 헬퍼 함수들
@@ -78,6 +78,11 @@ function TagSettingsScreen({
   isTagEditing,
   setIsTagEditing
 }) {
+  // 드래그 앤 드롭 상태
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [touchStartY, setTouchStartY] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
   // 대분류 탭 정보
   const mainTabs = {
     visit: { label: '🧴 시술 태그 관리', icon: '🧴' },
@@ -215,6 +220,99 @@ function TagSettingsScreen({
         [tagSettingsSubTab]: prev[tagSettingsSubTab].filter((_, i) => i !== tagIndex)
       }));
     }
+  };
+
+  // 태그 순서 변경 함수
+  const handleReorderTags = (fromIndex, toIndex) => {
+    if (fromIndex === toIndex) return;
+
+    const newTags = [...currentTags];
+    const [movedTag] = newTags.splice(fromIndex, 1);
+    newTags.splice(toIndex, 0, movedTag);
+
+    if (tagSettingsMainTab === 'visit') {
+      setVisitTags(prev => ({
+        ...prev,
+        [tagSettingsSubTab]: newTags
+      }));
+    } else {
+      setCustomerTags(prev => ({
+        ...prev,
+        [tagSettingsSubTab]: newTags
+      }));
+    }
+  };
+
+  // 드래그 앤 드롭 이벤트 핸들러들
+  const handleDragStart = (e, index) => {
+    e.preventDefault();
+    setDraggedIndex(index);
+    setDragOverIndex(null);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragEnd = (e) => {
+    if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== dragOverIndex) {
+      handleReorderTags(draggedIndex, dragOverIndex);
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  // 터치 이벤트 핸들러들 (모바일 지원)
+  const handleTouchStart = (e, index) => {
+    if (!isTagEditing) return;
+
+    // CSS touch-action: none으로 기본 터치 동작 방지 (텍스트 선택, 스크롤 등)
+    const touch = e.touches[0];
+    setTouchStartY(touch.clientY);
+    setDraggedIndex(index);
+    setDragOverIndex(null);
+    setIsDragging(false);
+  };
+
+  const handleTouchMove = (e) => {
+    if (draggedIndex === null || touchStartY === null) return;
+
+    const touch = e.touches[0];
+    const deltaY = Math.abs(touch.clientY - touchStartY);
+
+    // 최소 10px 이동해야 드래그로 인식
+    if (deltaY > 10 && !isDragging) {
+      setIsDragging(true);
+    }
+
+    if (isDragging) {
+      // CSS touch-action: none으로 기본 터치 동작 방지 (텍스트 선택, 스크롤 등)
+      const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
+
+      // 터치 위치의 태그 요소 찾기
+      for (const element of elements) {
+        if (element.hasAttribute('data-tag-index')) {
+          const index = parseInt(element.getAttribute('data-tag-index'));
+          if (index !== draggedIndex) {
+            setDragOverIndex(index);
+            break;
+          }
+        }
+      }
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (isDragging && draggedIndex !== null && dragOverIndex !== null && draggedIndex !== dragOverIndex) {
+      handleReorderTags(draggedIndex, dragOverIndex);
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    setTouchStartY(null);
+    setIsDragging(false);
   };
 
   // 로그인하지 않은 경우 태그 설정 사용 불가
@@ -383,34 +481,70 @@ function TagSettingsScreen({
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
           <h3 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
             {currentSubTab.label} 태그 ({currentTags.length}개)
+            {isTagEditing && (
+              <span className="text-xs font-normal ml-2" style={{ color: '#232323', opacity: 0.6 }}>
+                (드래그하여 순서 변경 가능)
+              </span>
+            )}
           </h3>
           {currentTags.length === 0 ? (
             <p className="text-sm font-light text-center py-8" style={{ color: '#232323', opacity: 0.5 }}>
               등록된 태그가 없습니다.
             </p>
           ) : (
-            <div className="flex flex-wrap gap-2">
+            <div className="space-y-2">
               {currentTags.map((tag, idx) => {
                 // 문자열인 경우와 객체인 경우 모두 처리
                 const tagLabel = typeof tag === 'string' ? tag : (tag.label || tag);
                 const tagKeywords = typeof tag === 'object' && tag.keywords ? tag.keywords : [];
                 const displayLabel = tagLabel.replace(/^#/, '');
                 const isFeatureTab = tagSettingsSubTab === 'feature';
+                const isDragging = draggedIndex === idx;
+                const isDragOver = dragOverIndex === idx;
                 return (
-                  <span
+                  <div
                     key={idx}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium"
-                    style={{ 
+                    data-tag-index={idx}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all select-none ${
+                      (draggedIndex === idx && isDragging) ? 'opacity-50 scale-105 shadow-lg z-10' : 'hover:shadow-sm'
+                    } ${
+                      dragOverIndex === idx ? 'ring-2 ring-[#C9A27A] ring-opacity-50' : ''
+                    }`}
+                    style={{
                       backgroundColor: isCautionTab ? '#FEF2F2' : (isFeatureTab ? '#DBEAFE' : '#F7F5F0'),
                       color: isCautionTab ? '#DC2626' : (isFeatureTab ? '#1E40AF' : '#4A4A4A'),
-                      border: isCautionTab ? '1px solid #FECACA' : (isFeatureTab ? '1px solid #93C5FD' : 'none')
+                      border: isCautionTab ? '1px solid #FECACA' : (isFeatureTab ? '1px solid #93C5FD' : 'none'),
+                      transform: (draggedIndex === idx && isDragging) ? 'rotate(3deg)' : 'none',
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                      MozUserSelect: 'none',
+                      msUserSelect: 'none'
                     }}
                   >
-                    {displayLabel}
+                    {isTagEditing && (
+                      <div
+                        className="cursor-move flex-shrink-0 p-1 rounded hover:bg-black hover:bg-opacity-10 transition-colors"
+                        style={{
+                          color: isCautionTab ? '#DC2626' : (isFeatureTab ? '#1E40AF' : '#B8A08A'),
+                          touchAction: 'none',
+                          userSelect: 'none',
+                          WebkitUserSelect: 'none'
+                        }}
+                        onMouseDown={(e) => handleDragStart(e, idx)}
+                        onMouseOver={(e) => draggedIndex !== null && handleDragOver(e, idx)}
+                        onMouseUp={handleDragEnd}
+                        onTouchStart={(e) => handleTouchStart(e, idx)}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
+                      >
+                        <GripVertical size={16} />
+                      </div>
+                    )}
+                    <span className="flex-1">{displayLabel}</span>
                     {isTagEditing && (
                       <button
                         onClick={() => handleDeleteTag(idx)}
-                        className="ml-1 p-1 rounded-full hover:opacity-80 active:scale-90 transition transform duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#C9A27A]"
+                        className="p-1 rounded-full hover:opacity-80 active:scale-90 transition transform duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#C9A27A] flex-shrink-0"
                         aria-label="태그 삭제"
                         title="태그 삭제"
                         style={{ color: isCautionTab ? '#DC2626' : (isFeatureTab ? '#1E40AF' : '#B8A08A') }}
@@ -418,7 +552,7 @@ function TagSettingsScreen({
                         <X size={14} />
                       </button>
                     )}
-                  </span>
+                  </div>
                 );
               })}
             </div>
