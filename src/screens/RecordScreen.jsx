@@ -944,18 +944,16 @@ function RecordScreen({
             </p>
           </div>
 
-          {/* 추천 태그 칩들 */}
+          {/* 선택된 태그 칩들 */}
           <div className="flex flex-wrap gap-2 mb-4">
-            {(recommendedTagIds.length === 0 && selectedTagIds.length === 0) ? (
+            {selectedTagIds.length === 0 ? (
               <p className="text-sm" style={{ color: '#232323', opacity: 0.5 }}>
-                추천 태그가 없어요. 필요한 경우 아래에서 직접 추가할 수 있어요.
+                선택된 태그가 없어요. 필요한 경우 아래에서 직접 추가할 수 있어요.
               </p>
             ) : (
-              [...new Set([...recommendedTagIds, ...selectedTagIds])].map((tagId) => {
+              selectedTagIds.map((tagId) => {
                 const tag = allVisitTags.find((t) => t.id === tagId);
                 if (!tag) return null;
-
-                const isSelected = selectedTagIds.includes(tag.id);
 
                 return (
                   <button
@@ -963,15 +961,8 @@ function RecordScreen({
                     type="button"
                     onClick={() => {
                       setSelectedTagIds((prev) => prev.filter((id) => id !== tag.id));
-                      if (!isAutoTaggingEnabled) {
-                        setRecommendedTagIds((prev) => prev.filter((id) => id !== tag.id));
-                      }
                     }}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                      isSelected 
-                        ? 'bg-[#C9A27A] text-white shadow-sm' 
-                        : 'bg-gray-100 text-gray-600 border border-gray-200'
-                    }`}
+                    className="px-3 py-1.5 rounded-full text-sm font-medium bg-[#C9A27A] text-white shadow-sm transition-all hover:opacity-80"
                   >
                     {typeof tag === 'object' && tag !== null ? (typeof tag.label === 'string' ? tag.label : String(tag.label || '')) : String(tag || '')}
                   </button>
