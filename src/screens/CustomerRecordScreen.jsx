@@ -677,6 +677,10 @@ function CustomerRecordScreen({
                 });
               }
               
+              // 리스트 앞에 점을 붙일 섹션 (방문예약 정보만 제외)
+              const needsBulletPoints = 
+                !isVisitInfoSection;
+              
               return (
                 <div key={idx} className="animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 100}ms` }}>
                   <h4 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
@@ -736,8 +740,9 @@ function CustomerRecordScreen({
                       }
                       
                       return (
-                        <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: '#232323', borderLeft: '2px solid #E5E7EB' }}>
-                          {safeItem}
+                        <li key={i} className="text-base leading-relaxed pl-4 font-light flex items-start gap-2" style={{ color: '#232323', borderLeft: needsBulletPoints ? 'none' : '2px solid #E5E7EB' }}>
+                          {needsBulletPoints && <span style={{ color: '#C9A27A', fontSize: '1.2em', lineHeight: '1.5rem' }}>•</span>}
+                          <span className="flex-1">{safeItem}</span>
                         </li>
                       );
                     }).filter(item => item !== null)}

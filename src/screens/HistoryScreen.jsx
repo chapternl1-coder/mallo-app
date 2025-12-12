@@ -910,8 +910,9 @@ function HistoryScreen({
                                 </h5>
                                 <ul className="space-y-2">
                                   {formattedContent.map((item, i) => (
-                                    <li key={i} className="text-base leading-relaxed pl-4 font-light" style={{ color: textColor, borderLeft: '2px solid #E5E7EB' }}>
-                                      {isCustomerInfoSection ? item : overrideCustomerInfoLine(item, customerInfoForOverride)}
+                                    <li key={i} className="text-base leading-relaxed pl-4 font-light flex items-start gap-2" style={{ color: textColor }}>
+                                      <span style={{ color: '#C9A27A', fontSize: '1.2em', lineHeight: '1.5rem' }}>•</span>
+                                      <span className="flex-1">{isCustomerInfoSection ? item : overrideCustomerInfoLine(item, customerInfoForOverride)}</span>
                                     </li>
                                   ))}
                                 </ul>
