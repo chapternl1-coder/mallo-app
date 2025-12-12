@@ -45,11 +45,6 @@ function ProfileScreen({
             onClick={() => setCurrentScreen && setCurrentScreen(SCREENS.TAG_SETTINGS)}
           />
           <ToggleRow label="알림 설정" />
-          <ToggleRow 
-            label="AI 태그 자동 추천" 
-            enabled={isAutoTaggingEnabled}
-            onToggle={setIsAutoTaggingEnabled}
-          />
           <SettingRow label="테마 설정" description="현재: 웜톤" />
           <SettingRow
             label="고객 데이터 관리"

@@ -1027,162 +1027,18 @@ export default function useMalloAppState(user, supabaseReservations = null) {
     setServiceTags(extractedTags);
     
     if (allVisitTags.length > 0) {
-      // 🎯 AI 추천 태그가 있으면 우선 사용
-      let allMatchedTagIds = [];
-      
-      console.log('[태그 추천 디버깅] resultData:', resultData);
-      console.log('[태그 추천 디버깅] resultData?.recommendedTags:', resultData?.recommendedTags);
-      
-      // 1️⃣ AI 추천 태그 처리 (바보모드)
-      let aiRecommendedIds = [];
-      if (resultData?.recommendedTags && Array.isArray(resultData.recommendedTags)) {
-        console.log('[AI 태그 추천] AI가 추천한 태그 (원본):', resultData.recommendedTags);
-
-        // 바보모드: AI가 추천한 태그 중, 우리가 가진 태그(label)가 있는 것만 수용
-        aiRecommendedIds = resultData.recommendedTags
-          .map(tagLabel => {
-            const tag = allVisitTags.find(t => t.label === tagLabel);
-            return tag ? tag.id : null;
-          })
-          .filter(id => id !== null);
-      } else {
-        aiRecommendedIds = [];
-      }
-      
-      // 2️⃣ 키워드 매칭 + 3️⃣ AI 추천 합치기 + 4️⃣ 중복 제거 (바보모드)
-      const keywordMatchedIds = matchTagsFromSummary(sourceText, allVisitTags);
-
-      // AI 추천 + 키워드 매칭 합치기 (중복 제거만)
-      const finalMatchedTagIds = Array.from(
-        new Set([
-          ...(aiRecommendedIds || []),
-          ...(keywordMatchedIds || []),
-        ])
-      );
-
-      // 긴 태그 우선 제거 로직은 잠시 비활성화하고, 단순히 finalMatchedTagIds를 사용
-      const filteredTagIds = finalMatchedTagIds;
-
-      console.log('[태그 선택 최종] ✅ 바보모드 결과:', filteredTagIds);
-      setRecommendedTagIds(filteredTagIds);
-      setSelectedTagIds(filteredTagIds);
+      // 🎯 태그 추천 완전 제거 (키워드 매칭도 제거)
+      console.log('[태그 선택 최종] 추천 없음');
+      setRecommendedTagIds([]);
+      setSelectedTagIds([]);
     }
     
     if (allCustomerTags.length > 0) {
-      // console.log('[태그 자동 선택] sourceText 길이:', sourceText?.length);
-      // console.log('[태그 자동 선택] sourceText 처음 200자:', sourceText?.substring(0, 200));
-      // console.log('[태그 자동 선택] allCustomerTags 개수:', allCustomerTags.length);
-      // console.log('[태그 자동 선택] allCustomerTags 샘플 (처음 5개):', allCustomerTags.slice(0, 5).map(t => ({ id: t.id, label: t.label, category: t.category })));
-      
-      let matchedCustomerTags = matchTagsFromSummary(sourceText, allCustomerTags);
-      
-      console.log('[고객 태그 자동 선택] 원본 매칭 결과:', matchedCustomerTags);
-      
-      // 🎯 검증: 원본 텍스트에 유사 표현이 있는지 확인 (고객 태그는 유연하게)
-      const normalizedSourceText = sourceText.toLowerCase().replace(/\s+/g, '');
-      const verifiedCustomerTags = matchedCustomerTags.filter(tagId => {
-        const tag = allCustomerTags.find(t => t.id === tagId);
-        if (!tag) return false;
-        
-        // 고객 태그는 부분 매칭 허용 (예: "모발얇음" → "모발", "얇")
-        const normalizedTag = tag.label.toLowerCase().replace(/\s+/g, '');
-        
-        // 1) 완전 일치
-        if (normalizedSourceText.includes(normalizedTag)) {
-          console.log(`[고객 태그 검증] "${tag.label}" → 완전 일치 ✅`);
-          return true;
-        }
-        
-        // 2) 부분 일치 (태그의 핵심 단어가 포함되어 있는지)
-        // 예: "모발얇음" → "모발", "얇" 모두 포함되어 있으면 매칭
-        let tagWords = [];
-        
-        if (normalizedTag.length >= 4) {
-          // "모발얇음" (4글자) → ["모발", "얇"] (2글자 + 나머지에서 1-2글자)
-          tagWords = [normalizedTag.substring(0, 2), normalizedTag.substring(2, 3)];
-        } else if (normalizedTag.length >= 2) {
-          // 2-3글자면 앞 1-2글자만
-          tagWords = [normalizedTag.substring(0, 2)];
-        } else {
-          tagWords = [normalizedTag];
-        }
-        
-        const hasPartialMatch = tagWords.filter(w => w.length > 0).every(word => normalizedSourceText.includes(word));
-        
-        if (hasPartialMatch && tagWords.length > 0) {
-          console.log(`[고객 태그 검증] "${tag.label}" → 부분 일치 ✅ (${tagWords.join(', ')})`);
-          return true;
-        }
-        
-        console.log(`[고객 태그 검증] "${tag.label}" → 불일치 ❌`);
-        return false;
-      });
-      
-      console.log('[고객 태그 자동 선택] 검증된 태그 ID:', verifiedCustomerTags);
-      
-      // 긴 태그 우선 (중복 제거)
-      const customerTagLabelsMap = new Map();
-      verifiedCustomerTags.forEach(id => {
-        const tag = allCustomerTags.find(t => t.id === id);
-        if (tag) {
-          customerTagLabelsMap.set(id, tag.label);
-        }
-      });
-      
-      const filteredCustomerTagIds = verifiedCustomerTags.filter(id => {
-        const currentLabel = customerTagLabelsMap.get(id);
-        if (!currentLabel) return true;
-        
-        const hasLongerTag = Array.from(customerTagLabelsMap.entries()).some(([otherId, otherLabel]) => {
-          if (otherId === id) return false;
-          const normalizedCurrent = currentLabel.toLowerCase().replace(/\s+/g, '');
-          const normalizedOther = otherLabel.toLowerCase().replace(/\s+/g, '');
-          return normalizedOther.length > normalizedCurrent.length && normalizedOther.includes(normalizedCurrent);
-        });
-        
-        if (hasLongerTag) {
-          console.log(`[고객 태그 중복 제거] "${currentLabel}" → 더 긴 태그에 포함되어 제외됨`);
-        }
-        
-        return !hasLongerTag;
-      });
-      
-      const matchedTagLabels = filteredCustomerTagIds.map(id => {
-        const tag = allCustomerTags.find(t => t.id === id);
-        return tag ? tag.label : id;
-      });
-      console.log('[고객 태그 자동 선택] ✅ 중복 제거 후:', matchedTagLabels);
-      setRecommendedCustomerTagIds(filteredCustomerTagIds);
-      
-      if (filteredCustomerTagIds.length === 0) {
-        setSelectedCustomerTagIds([]);
-        setNewCustomerTagIds([]);
-      } else {
-        if (selectedCustomerForRecord) {
-          const existingCustomerTags = selectedCustomerForRecord.customerTags || {};
-          const existingTagLabels = [];
-          Object.values(existingCustomerTags).forEach(categoryTags => {
-            if (Array.isArray(categoryTags)) {
-              categoryTags.forEach(tag => {
-                const label = typeof tag === 'string' ? tag : tag.label || tag;
-                existingTagLabels.push(label);
-              });
-            }
-          });
-          
-        const existingTagIds = allCustomerTags
-          .filter(tag => existingTagLabels.includes(tag.label))
-          .map(tag => tag.id);
-        
-        const mergedTagIds = [...new Set([...existingTagIds, ...filteredCustomerTagIds])];
-        const newTagIds = filteredCustomerTagIds.filter(id => !existingTagIds.includes(id));
-        setSelectedCustomerTagIds(mergedTagIds);
-        setNewCustomerTagIds(newTagIds);
-        } else {
-          setSelectedCustomerTagIds(filteredCustomerTagIds);
-          setNewCustomerTagIds(filteredCustomerTagIds);
-        }
-      }
+      // 🎯 고객 태그 추천 완전 제거
+      console.log('[고객 태그 자동 선택] 추천 없음');
+      setRecommendedCustomerTagIds([]);
+      setSelectedCustomerTagIds([]);
+      setNewCustomerTagIds([]);
     }
   }, [resultData, rawTranscript, isAutoTaggingEnabled, allVisitTags, allCustomerTags, selectedCustomerForRecord]);
 
