@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, X, GripVertical } from 'lucide-react';
+import { ArrowLeft, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { SCREENS } from '../constants/screens';
 
 // 헬퍼 함수들
@@ -78,11 +78,10 @@ function TagSettingsScreen({
   isTagEditing,
   setIsTagEditing
 }) {
-  // 드래그 앤 드롭 상태
-  const [draggedIndex, setDraggedIndex] = useState(null);
-  const [dragOverIndex, setDragOverIndex] = useState(null);
-  const [touchStartY, setTouchStartY] = useState(null);
-  const [isDragging, setIsDragging] = useState(false);
+  // 삭제를 위해 선택된 태그 인덱스 추적 (두 번 클릭 삭제용)
+  const [selectedTagIndex, setSelectedTagIndex] = useState(null);
+  const [deleteTimer, setDeleteTimer] = useState(null);
+  
   // 대분류 탭 정보
   const mainTabs = {
     visit: { label: '🧴 시술 태그 관리', icon: '🧴' },
@@ -123,6 +122,12 @@ function TagSettingsScreen({
       setTagSettingsSubTab('procedure');
     } else {
       setTagSettingsSubTab('feature');
+    }
+    // 탭 변경 시 선택 상태 초기화
+    setSelectedTagIndex(null);
+    if (deleteTimer) {
+      clearTimeout(deleteTimer);
+      setDeleteTimer(null);
     }
   };
 
@@ -207,18 +212,58 @@ function TagSettingsScreen({
     }
   };
 
-  // 태그 삭제 함수
-  const handleDeleteTag = (tagIndex) => {
-    if (tagSettingsMainTab === 'visit') {
-      setVisitTags(prev => ({
-        ...prev,
-        [tagSettingsSubTab]: prev[tagSettingsSubTab].filter((_, i) => i !== tagIndex)
-      }));
+  // 태그 클릭 핸들러 (두 번 클릭으로 삭제)
+  const handleTagClick = (tagIndex) => {
+    console.log('[태그 클릭]', { tagIndex, selectedTagIndex, isTagEditing });
+    
+    // 순서변경 모드에서는 삭제 불가
+    if (isTagEditing) {
+      console.log('[태그 클릭] 순서변경 모드에서는 삭제 불가');
+      return;
+    }
+    
+    // 이미 선택된 태그를 다시 클릭하면 삭제
+    if (selectedTagIndex === tagIndex) {
+      console.log('[태그 삭제] 인덱스:', tagIndex);
+      
+      // 타이머 제거
+      if (deleteTimer) {
+        clearTimeout(deleteTimer);
+        setDeleteTimer(null);
+      }
+      
+      // 실제 삭제
+      if (tagSettingsMainTab === 'visit') {
+        setVisitTags(prev => ({
+          ...prev,
+          [tagSettingsSubTab]: prev[tagSettingsSubTab].filter((_, i) => i !== tagIndex)
+        }));
+      } else {
+        setCustomerTags(prev => ({
+          ...prev,
+          [tagSettingsSubTab]: prev[tagSettingsSubTab].filter((_, i) => i !== tagIndex)
+        }));
+      }
+      
+      setSelectedTagIndex(null);
     } else {
-      setCustomerTags(prev => ({
-        ...prev,
-        [tagSettingsSubTab]: prev[tagSettingsSubTab].filter((_, i) => i !== tagIndex)
-      }));
+      // 다른 태그 클릭 시 선택 상태 변경
+      console.log('[태그 선택] 인덱스:', tagIndex);
+      
+      if (deleteTimer) {
+        clearTimeout(deleteTimer);
+      }
+      
+      setSelectedTagIndex(tagIndex);
+      
+      // 3초 후 자동으로 선택 해제
+      const timer = setTimeout(() => {
+        console.log('[자동 선택 해제]');
+        setSelectedTagIndex(null);
+        setDeleteTimer(null);
+      }, 3000);
+      
+      setDeleteTimer(timer);
     }
   };
 
@@ -241,78 +286,26 @@ function TagSettingsScreen({
         [tagSettingsSubTab]: newTags
       }));
     }
-  };
-
-  // 드래그 앤 드롭 이벤트 핸들러들
-  const handleDragStart = (e, index) => {
-    e.preventDefault();
-    setDraggedIndex(index);
-    setDragOverIndex(null);
-  };
-
-  const handleDragOver = (e, index) => {
-    e.preventDefault();
-    if (draggedIndex !== null && draggedIndex !== index) {
-      setDragOverIndex(index);
+    
+    // 순서 변경 시 선택 상태 초기화 (인덱스가 바뀌므로)
+    setSelectedTagIndex(null);
+    if (deleteTimer) {
+      clearTimeout(deleteTimer);
+      setDeleteTimer(null);
     }
   };
 
-  const handleDragEnd = (e) => {
-    if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== dragOverIndex) {
-      handleReorderTags(draggedIndex, dragOverIndex);
-    }
-    setDraggedIndex(null);
-    setDragOverIndex(null);
-  };
-
-  // 터치 이벤트 핸들러들 (모바일 지원)
-  const handleTouchStart = (e, index) => {
-    if (!isTagEditing) return;
-
-    // CSS touch-action: none으로 기본 터치 동작 방지 (텍스트 선택, 스크롤 등)
-    const touch = e.touches[0];
-    setTouchStartY(touch.clientY);
-    setDraggedIndex(index);
-    setDragOverIndex(null);
-    setIsDragging(false);
-  };
-
-  const handleTouchMove = (e) => {
-    if (draggedIndex === null || touchStartY === null) return;
-
-    const touch = e.touches[0];
-    const deltaY = Math.abs(touch.clientY - touchStartY);
-
-    // 최소 10px 이동해야 드래그로 인식
-    if (deltaY > 10 && !isDragging) {
-      setIsDragging(true);
-    }
-
-    if (isDragging) {
-      // CSS touch-action: none으로 기본 터치 동작 방지 (텍스트 선택, 스크롤 등)
-      const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
-
-      // 터치 위치의 태그 요소 찾기
-      for (const element of elements) {
-        if (element.hasAttribute('data-tag-index')) {
-          const index = parseInt(element.getAttribute('data-tag-index'));
-          if (index !== draggedIndex) {
-            setDragOverIndex(index);
-            break;
-          }
-        }
-      }
+  // 화살표 버튼으로 순서 변경
+  const handleMoveLeft = (index) => {
+    if (index > 0) {
+      handleReorderTags(index, index - 1);
     }
   };
 
-  const handleTouchEnd = (e) => {
-    if (isDragging && draggedIndex !== null && dragOverIndex !== null && draggedIndex !== dragOverIndex) {
-      handleReorderTags(draggedIndex, dragOverIndex);
+  const handleMoveRight = (index) => {
+    if (index < currentTags.length - 1) {
+      handleReorderTags(index, index + 1);
     }
-    setDraggedIndex(null);
-    setDragOverIndex(null);
-    setTouchStartY(null);
-    setIsDragging(false);
   };
 
   // 로그인하지 않은 경우 태그 설정 사용 불가
@@ -328,7 +321,7 @@ function TagSettingsScreen({
           >
             <span className="text-[32px]">&#x2039;</span>
           </button>
-          <h2 className="font-bold text-base" style={{ color: '#232323' }}>태그/키워드 관리</h2>
+          <h2 className="font-bold text-base" style={{ color: '#232323' }}>태그 관리</h2>
           <div className="w-8"></div> {/* Spacer for centering */}
         </header>
 
@@ -340,7 +333,7 @@ function TagSettingsScreen({
               로그인이 필요합니다
             </h3>
             <p className="text-sm font-light leading-relaxed mb-6" style={{ color: '#232323', opacity: 0.7 }}>
-              태그/키워드 관리를 사용하려면<br/>
+              태그 관리를 사용하려면<br/>
               로그인을 먼저 해주세요.
             </p>
             <button
@@ -367,13 +360,23 @@ function TagSettingsScreen({
         >
           <span className="text-[32px]">&#x2039;</span>
         </button>
-        <h2 className="font-bold text-base" style={{ color: '#232323' }}>태그/키워드 관리</h2>
+        <h2 className="font-bold text-base" style={{ color: '#232323' }}>태그 관리</h2>
         <button
-          onClick={() => setIsTagEditing(!isTagEditing)}
-          className="px-4 h-8 rounded-lg font-semibold text-white text-xs transition-all hover:opacity-90"
+          onClick={() => {
+            setIsTagEditing(!isTagEditing);
+            // 편집 모드 종료 시 선택 상태 초기화
+            if (isTagEditing) {
+              setSelectedTagIndex(null);
+              if (deleteTimer) {
+                clearTimeout(deleteTimer);
+                setDeleteTimer(null);
+              }
+            }
+          }}
+          className="px-3 h-8 rounded-lg font-semibold text-white text-xs transition-all hover:opacity-90 whitespace-nowrap"
           style={{ backgroundColor: '#C9A27A' }}
         >
-          {isTagEditing ? '완료' : '편집'}
+          {isTagEditing ? '완료' : '순서변경'}
         </button>
       </header>
 
@@ -430,7 +433,15 @@ function TagSettingsScreen({
               return (
                 <button
                   key={subTabKey}
-                  onClick={() => setTagSettingsSubTab(subTabKey)}
+                  onClick={() => {
+                    setTagSettingsSubTab(subTabKey);
+                    // 소분류 탭 변경 시 선택 상태 초기화
+                    setSelectedTagIndex(null);
+                    if (deleteTimer) {
+                      clearTimeout(deleteTimer);
+                      setDeleteTimer(null);
+                    }
+                  }}
                   className={`flex-1 px-4 py-4 text-sm font-medium transition-colors ${
                     isActive ? '' : 'hover:bg-gray-50'
                   }`}
@@ -481,75 +492,144 @@ function TagSettingsScreen({
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
           <h3 className="text-base font-bold mb-4" style={{ color: '#232323' }}>
             {currentSubTab.label} 태그 ({currentTags.length}개)
-            {isTagEditing && (
-              <span className="text-xs font-normal ml-2" style={{ color: '#232323', opacity: 0.6 }}>
-                (드래그하여 순서 변경 가능)
-              </span>
-            )}
+            <span className="text-xs font-normal ml-2" style={{ color: '#232323', opacity: 0.6 }}>
+              {isTagEditing ? '(화살표로 순서변경)' : '(태그 두 번 클릭: 삭제)'}
+            </span>
           </h3>
           {currentTags.length === 0 ? (
             <p className="text-sm font-light text-center py-8" style={{ color: '#232323', opacity: 0.5 }}>
               등록된 태그가 없습니다.
             </p>
           ) : (
-            <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
               {currentTags.map((tag, idx) => {
                 // 문자열인 경우와 객체인 경우 모두 처리
                 const tagLabel = typeof tag === 'string' ? tag : (tag.label || tag);
-                const tagKeywords = typeof tag === 'object' && tag.keywords ? tag.keywords : [];
                 const displayLabel = tagLabel.replace(/^#/, '');
-                const isFeatureTab = tagSettingsSubTab === 'feature';
-                const isDragging = draggedIndex === idx;
-                const isDragOver = dragOverIndex === idx;
+                const isFirst = idx === 0;
+                const isLast = idx === currentTags.length - 1;
+                
+                // 카테고리별 색상 정의 (말로 테마)
+                const getChipColors = () => {
+                  if (isCautionTab) {
+                    return {
+                      bg: 'rgba(220, 38, 38, 0.08)',
+                      border: '#FCA5A5',
+                      text: '#DC2626',
+                      hoverBg: 'rgba(220, 38, 38, 0.15)'
+                    };
+                  }
+                  
+                  switch(tagSettingsSubTab) {
+                    case 'feature':
+                      return {
+                        bg: 'rgba(59, 130, 246, 0.1)',
+                        border: '#93C5FD',
+                        text: '#1E40AF',
+                        hoverBg: 'rgba(59, 130, 246, 0.18)'
+                      };
+                    case 'design':
+                      return {
+                        bg: 'rgba(140, 109, 70, 0.08)',
+                        border: '#D4C5B0',
+                        text: '#6B5437',
+                        hoverBg: 'rgba(140, 109, 70, 0.15)'
+                      };
+                    case 'care':
+                      return {
+                        bg: 'rgba(168, 162, 158, 0.1)',
+                        border: '#D6D3D1',
+                        text: '#57534E',
+                        hoverBg: 'rgba(168, 162, 158, 0.18)'
+                      };
+                    case 'trait':
+                      return {
+                        bg: 'rgba(184, 160, 138, 0.1)',
+                        border: '#E0D4C8',
+                        text: '#78614A',
+                        hoverBg: 'rgba(184, 160, 138, 0.18)'
+                      };
+                    case 'pattern':
+                      return {
+                        bg: 'rgba(161, 143, 122, 0.1)',
+                        border: '#D9CFC3',
+                        text: '#6D5F4D',
+                        hoverBg: 'rgba(161, 143, 122, 0.18)'
+                      };
+                    default:
+                      return {
+                        bg: 'rgba(201, 162, 122, 0.1)',
+                        border: '#E6D5C3',
+                        text: '#8C6D46',
+                        hoverBg: 'rgba(201, 162, 122, 0.18)'
+                      };
+                  }
+                };
+                
+                const colors = getChipColors();
+                const isSelected = selectedTagIndex === idx;
+                
                 return (
                   <div
                     key={idx}
-                    data-tag-index={idx}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all select-none ${
-                      (draggedIndex === idx && isDragging) ? 'opacity-50 scale-105 shadow-lg z-10' : 'hover:shadow-sm'
-                    } ${
-                      dragOverIndex === idx ? 'ring-2 ring-[#C9A27A] ring-opacity-50' : ''
+                    className={`flex items-center px-3 py-2 rounded-full text-sm font-medium transition-all duration-300 ease-in-out shadow-sm ${
+                      isSelected ? 'ring-2 ring-red-400 shadow-lg scale-105' : 'hover:shadow-md'
                     }`}
                     style={{
-                      backgroundColor: isCautionTab ? '#FEF2F2' : (isFeatureTab ? '#DBEAFE' : '#F7F5F0'),
-                      color: isCautionTab ? '#DC2626' : (isFeatureTab ? '#1E40AF' : '#4A4A4A'),
-                      border: isCautionTab ? '1px solid #FECACA' : (isFeatureTab ? '1px solid #93C5FD' : 'none'),
-                      transform: (draggedIndex === idx && isDragging) ? 'rotate(3deg)' : 'none',
-                      userSelect: 'none',
-                      WebkitUserSelect: 'none',
-                      MozUserSelect: 'none',
-                      msUserSelect: 'none'
+                      backgroundColor: isSelected ? 'rgba(239, 68, 68, 0.15)' : colors.bg,
+                      border: isSelected ? '1px solid #F87171' : `1px solid ${colors.border}`,
+                      color: isSelected ? '#DC2626' : colors.text,
+                      transform: 'translateY(0)',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                     }}
                   >
-                    {isTagEditing && (
-                      <div
-                        className="cursor-move flex-shrink-0 p-1 rounded hover:bg-black hover:bg-opacity-10 transition-colors"
-                        style={{
-                          color: isCautionTab ? '#DC2626' : (isFeatureTab ? '#1E40AF' : '#B8A08A'),
-                          touchAction: 'none',
-                          userSelect: 'none',
-                          WebkitUserSelect: 'none'
-                        }}
-                        onMouseDown={(e) => handleDragStart(e, idx)}
-                        onMouseOver={(e) => draggedIndex !== null && handleDragOver(e, idx)}
-                        onMouseUp={handleDragEnd}
-                        onTouchStart={(e) => handleTouchStart(e, idx)}
-                        onTouchMove={handleTouchMove}
-                        onTouchEnd={handleTouchEnd}
-                      >
-                        <GripVertical size={16} />
-                      </div>
-                    )}
-                    <span className="flex-1">{displayLabel}</span>
-                    {isTagEditing && (
+                    {/* 왼쪽 화살표 (순서변경 모드일 때만) */}
+                    {isTagEditing && !isFirst && (
                       <button
-                        onClick={() => handleDeleteTag(idx)}
-                        className="p-1 rounded-full hover:opacity-80 active:scale-90 transition transform duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#C9A27A] flex-shrink-0"
-                        aria-label="태그 삭제"
-                        title="태그 삭제"
-                        style={{ color: isCautionTab ? '#DC2626' : (isFeatureTab ? '#1E40AF' : '#B8A08A') }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMoveLeft(idx);
+                        }}
+                        className="flex-shrink-0 p-0.5 rounded-full hover:bg-black hover:bg-opacity-10 active:scale-90 transition-all duration-150"
+                        aria-label="왼쪽으로 이동"
+                        title="왼쪽으로 이동"
+                        style={{ color: isSelected ? '#DC2626' : colors.text }}
                       >
-                        <X size={14} />
+                        <ChevronLeft size={14} strokeWidth={2.5} />
+                      </button>
+                    )}
+                    
+                    {/* 태그 레이블 (기본 모드에서만 클릭 가능) */}
+                    <span 
+                      onClick={() => !isTagEditing && handleTagClick(idx)}
+                      className={`${isTagEditing ? 'mx-1' : 'mx-2'} ${isTagEditing ? 'cursor-default' : 'cursor-pointer'} whitespace-nowrap select-none flex items-center gap-1`}
+                      style={{ 
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        letterSpacing: '-0.01em'
+                      }}
+                    >
+                      {displayLabel}
+                      {isSelected && !isTagEditing && (
+                        <span className="text-xs opacity-75 ml-1">
+                          (다시 클릭)
+                        </span>
+                      )}
+                    </span>
+                    
+                    {/* 오른쪽 화살표 (순서변경 모드일 때만) */}
+                    {isTagEditing && !isLast && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMoveRight(idx);
+                        }}
+                        className="flex-shrink-0 p-0.5 rounded-full hover:bg-black hover:bg-opacity-10 active:scale-90 transition-all duration-150"
+                        aria-label="오른쪽으로 이동"
+                        title="오른쪽으로 이동"
+                        style={{ color: isSelected ? '#DC2626' : colors.text }}
+                      >
+                        <ChevronRight size={14} strokeWidth={2.5} />
                       </button>
                     )}
                   </div>
