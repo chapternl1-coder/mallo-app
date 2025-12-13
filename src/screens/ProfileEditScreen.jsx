@@ -262,7 +262,10 @@ export default function ProfileEditScreen({ setCurrentScreen, refetchProfile }) 
         </form>
 
         {/* 하단 고정 버튼 */}
-        <div className="absolute bottom-0 left-0 right-0 px-6 pb-6 pt-3 bg-gradient-to-t from-[#F2F0E6] to-transparent">
+        <div 
+          className="absolute bottom-0 left-0 right-0 px-6 pt-3 bg-gradient-to-t from-[#F2F0E6] to-transparent"
+          style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))' }}
+        >
           <button
             type="button"
             onClick={handleSubmit}

@@ -115,7 +115,10 @@ function TextRecordScreen({
       </main>
 
       {/* 하단 고정 버튼 */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] px-5 pb-6 pt-3 bg-gradient-to-t from-[#F2F0E6] to-transparent pointer-events-none">
+      <div 
+        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] px-5 pt-3 bg-gradient-to-t from-[#F2F0E6] to-transparent pointer-events-none"
+        style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))' }}
+      >
         <button
           type="button"
           disabled={isDisabled}
