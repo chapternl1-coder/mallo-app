@@ -644,7 +644,7 @@ function RecordScreen({
         <div className="w-8" /> {/* 오른쪽 균형 맞추기용 */}
       </header>
 
-      <main className="flex-1 overflow-y-auto p-8 space-y-5" style={{ backgroundColor: '#F2F0E6', paddingBottom: 'calc(140px + env(safe-area-inset-bottom, 0px))' }}>
+      <main className="flex-1 overflow-y-auto p-8 space-y-5" style={{ backgroundColor: '#F2F0E6', paddingBottom: 'calc(140px + env(safe-area-inset-bottom, 20px))' }}>
          {!selectedCustomerForRecord && (
            <div className="bg-white rounded-xl shadow-sm border border-[#E8DFD3]" style={{ padding: '12px 16px' }}>
              <div className="flex flex-col gap-2">
