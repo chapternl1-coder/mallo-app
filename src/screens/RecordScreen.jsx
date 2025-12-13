@@ -617,7 +617,10 @@ function RecordScreen({
   }
 
   return (
-    <div className="flex flex-col h-dvh" style={{ backgroundColor: '#F2F0E6' }}>
+    <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#F2F0E6' }}>
+      {/* Safe Area Top */}
+      <div style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }} />
+      
       {/* Header */}
       <header className="px-5 pt-4 pb-3 bg-[#F2F0E6] sticky top-0 z-20 flex items-center justify-between">
         <button onClick={resetFlow} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
@@ -1132,7 +1135,7 @@ function RecordScreen({
         style={{ 
           backgroundColor: '#F2F0E6',
           paddingTop: '16px',
-          paddingBottom: 'max(24px, calc(16px + env(safe-area-inset-bottom, 0px)))'
+          paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 20px))'
         }}
       >
         <div className="flex gap-3 max-w-md mx-auto">
