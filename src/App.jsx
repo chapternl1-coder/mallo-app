@@ -86,9 +86,15 @@ export default function MalloApp() {
 
 
   useEffect(() => {
+    // 🚨 데이터 손실 방지: supabaseReservations가 null/undefined인 경우 기존 데이터 유지
     if (!Array.isArray(supabaseReservations)) {
-      setReservations([]);
-      return;
+      console.warn('[App] ⚠️ Supabase 예약 데이터 없음, 기존 데이터 유지');
+      return; // 빈 배열로 설정하지 않고 기존 state 유지
+    }
+
+    // 🚨 빈 배열이 반환된 경우: 로그인 세션 만료 가능성 체크
+    if (supabaseReservations.length === 0 && user) {
+      console.warn('[App] ⚠️ Supabase 빈 배열 반환 (세션 만료 가능성)');
     }
 
     // Supabase 데이터를 우선 적용하되, 아직 Supabase에 반영되지 않은
@@ -114,14 +120,24 @@ export default function MalloApp() {
         }
       });
 
-      return Array.from(merged.values());
+      const result = Array.from(merged.values());
+      
+      // 🚨 Supabase가 빈 배열인데 로컬에 데이터가 있으면 경고
+      if (supabaseReservations.length === 0 && prev.length > 0 && result.length === 0) {
+        console.error('[App] 🚨 데이터 손실 위험 감지! Supabase 빈 배열이 로컬 예약을 덮어쓸 뻔함');
+        // 기존 로컬 데이터 유지
+        return prev;
+      }
+
+      return result;
     });
-  }, [supabaseReservations]);
+  }, [supabaseReservations, user]);
 
   // Supabase customers를 localStorage와 병합하여 실제 사용할 customers 생성
   // 기존 localStorage의 customerTags를 보존하면서 병합
   useEffect(() => {
-    if (customers && customers.length >= 0) {
+    // 🚨 데이터 손실 방지: Supabase가 빈 배열을 반환해도 기존 로컬 데이터 유지
+    if (customers && customers.length > 0) {
       try {
         // 기존 localStorage의 customerTags 보존
         const existingCustomersStr = localStorage.getItem('mallo_customers');
@@ -159,11 +175,27 @@ export default function MalloApp() {
         appLog('[App] Supabase customers를 localStorage와 병합:', merged.length, '명');
       } catch (e) {
         console.error('[App] localStorage 동기화 실패:', e);
-        // 에러 발생 시 Supabase 데이터라도 사용
-        setMergedCustomers(customers);
+        // 에러 발생 시에도 기존 데이터 유지 (빈 배열로 덮어쓰지 않음)
+        const existingCustomersStr = localStorage.getItem('mallo_customers');
+        const existingCustomers = existingCustomersStr ? JSON.parse(existingCustomersStr) : [];
+        if (existingCustomers.length > 0) {
+          console.warn('[App] ⚠️ Supabase 동기화 실패, 기존 로컬 데이터 유지:', existingCustomers.length, '명');
+          setMergedCustomers(existingCustomers);
+        } else {
+          setMergedCustomers(customers);
+        }
       }
-    } else {
-      setMergedCustomers([]);
+    } else if (customers && customers.length === 0) {
+      // 🚨 Supabase가 빈 배열을 반환한 경우: 기존 로컬 데이터 유지
+      const existingCustomersStr = localStorage.getItem('mallo_customers');
+      const existingCustomers = existingCustomersStr ? JSON.parse(existingCustomersStr) : [];
+      if (existingCustomers.length > 0) {
+        console.warn('[App] ⚠️ Supabase 빈 배열 반환, 기존 로컬 데이터 유지:', existingCustomers.length, '명');
+        setMergedCustomers(existingCustomers);
+      } else {
+        // 로컬에도 데이터가 없으면 빈 배열 사용
+        setMergedCustomers([]);
+      }
     }
   }, [customers]);
 

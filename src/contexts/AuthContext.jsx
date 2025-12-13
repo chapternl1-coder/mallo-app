@@ -10,8 +10,9 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);      // { id, email } 형태
   const [loading, setLoading] = useState(true); // 앱 처음 켜질 때만 true
 
-  // ✅ 앱 시작할 때 localStorage에서 유저 정보 불러오기
+  // ✅ 앱 시작할 때 localStorage + Supabase 세션 확인
   useEffect(() => {
+    // 1) 먼저 localStorage에서 유저 정보 불러오기 (빠른 UI 표시)
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
@@ -22,9 +23,64 @@ export function AuthProvider({ children }) {
       }
     } catch (e) {
       console.warn('[Auth] localStorage 파싱 에러', e);
-    } finally {
-      setLoading(false);
     }
+
+    // 2) Supabase 세션 확인 및 자동 갱신
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.warn('[Auth] 세션 확인 실패:', error);
+          setUser(null);
+          saveUserToStorage(null);
+        } else if (session?.user) {
+          // Supabase 세션이 유효하면 user 업데이트
+          const simpleUser = { id: session.user.id, email: session.user.email };
+          setUser(simpleUser);
+          saveUserToStorage(simpleUser);
+        } else {
+          // 세션이 없으면 로그아웃 처리
+          console.warn('[Auth] 세션 만료 - 로그아웃 처리');
+          setUser(null);
+          saveUserToStorage(null);
+        }
+      } catch (e) {
+        console.error('[Auth] 세션 체크 예외:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkSession();
+
+    // 3) Supabase auth 상태 변경 감지 (로그인/로그아웃 자동 처리)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('[Auth] 상태 변경:', event);
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          const simpleUser = { id: session.user.id, email: session.user.email };
+          setUser(simpleUser);
+          saveUserToStorage(simpleUser);
+        } else if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' && !session) {
+          console.warn('[Auth] 로그아웃 감지');
+          setUser(null);
+          saveUserToStorage(null);
+          // 데이터 손실 방지: localStorage 데이터는 유지 (백업용)
+          alert('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          console.log('[Auth] 토큰 자동 갱신 완료');
+          const simpleUser = { id: session.user.id, email: session.user.email };
+          setUser(simpleUser);
+          saveUserToStorage(simpleUser);
+        }
+      }
+    );
+
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
   // localStorage에 저장/삭제 헬퍼
