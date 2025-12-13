@@ -617,7 +617,7 @@ function RecordScreen({
   }
 
   return (
-    <div className="flex flex-col h-full relative" style={{ backgroundColor: '#F2F0E6' }}>
+    <div className="flex flex-col min-h-screen relative" style={{ backgroundColor: '#F2F0E6' }}>
       {/* Header */}
       <header className="px-5 pt-4 pb-3 bg-[#F2F0E6] sticky top-0 z-20 flex items-center justify-between">
         <button onClick={resetFlow} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
@@ -641,7 +641,7 @@ function RecordScreen({
         <div className="w-8" /> {/* 오른쪽 균형 맞추기용 */}
       </header>
 
-      <main className="flex-1 overflow-y-auto p-8 space-y-5 pb-32" style={{ backgroundColor: '#F2F0E6' }}>
+      <main className="flex-1 overflow-y-auto p-8 space-y-5" style={{ backgroundColor: '#F2F0E6', paddingBottom: 'calc(140px + env(safe-area-inset-bottom, 0px))' }}>
          {!selectedCustomerForRecord && (
            <div className="bg-white rounded-xl shadow-sm border border-[#E8DFD3]" style={{ padding: '12px 16px' }}>
              <div className="flex flex-col gap-2">
@@ -1127,8 +1127,15 @@ function RecordScreen({
       </main>
 
       {/* Fixed Action Bar - 2개 버튼 나란히 배치 (화면 하단 고정) */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 px-8 py-4 shadow-lg" style={{ backgroundColor: '#F2F0E6' }}>
-        <div className="flex gap-3">
+      <div 
+        className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 px-8 shadow-lg"
+        style={{ 
+          backgroundColor: '#F2F0E6',
+          paddingTop: '16px',
+          paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))'
+        }}
+      >
+        <div className="flex gap-3 max-w-md mx-auto">
           {/* 편집 버튼 */}
           <button 
             onClick={() => {
