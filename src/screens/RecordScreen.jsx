@@ -1132,7 +1132,7 @@ function RecordScreen({
         style={{ 
           backgroundColor: '#F2F0E6',
           paddingTop: '16px',
-          paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))'
+          paddingBottom: 'max(24px, calc(16px + env(safe-area-inset-bottom, 0px)))'
         }}
       >
         <div className="flex gap-3 max-w-md mx-auto">
