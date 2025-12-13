@@ -617,12 +617,9 @@ function RecordScreen({
   }
 
   return (
-    <div className="flex flex-col min-h-screen" style={{ backgroundColor: '#F2F0E6' }}>
-      {/* Safe Area Top */}
-      <div style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }} />
-      
+    <div className="flex flex-col h-screen overflow-hidden" style={{ backgroundColor: '#F2F0E6' }}>
       {/* Header */}
-      <header className="px-5 pt-4 pb-3 bg-[#F2F0E6] sticky top-0 z-20 flex items-center justify-between">
+      <header className="flex-shrink-0 px-5 pt-4 pb-3 bg-[#F2F0E6] z-20 flex items-center justify-between">
         <button onClick={resetFlow} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
           <span className="text-[32px]">&#x2039;</span>
         </button>
@@ -644,7 +641,7 @@ function RecordScreen({
         <div className="w-8" /> {/* 오른쪽 균형 맞추기용 */}
       </header>
 
-      <main className="flex-1 overflow-y-auto p-8 space-y-5" style={{ backgroundColor: '#F2F0E6', paddingBottom: 'calc(140px + env(safe-area-inset-bottom, 20px))' }}>
+      <main className="flex-1 overflow-y-auto p-8 space-y-5" style={{ backgroundColor: '#F2F0E6', paddingBottom: 'calc(160px + env(safe-area-inset-bottom, 20px))', WebkitOverflowScrolling: 'touch' }}>
          {!selectedCustomerForRecord && (
            <div className="bg-white rounded-xl shadow-sm border border-[#E8DFD3]" style={{ padding: '12px 16px' }}>
              <div className="flex flex-col gap-2">
