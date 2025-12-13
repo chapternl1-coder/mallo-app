@@ -617,12 +617,22 @@ function RecordScreen({
   }
 
   return (
-    <div className="flex flex-col h-screen" style={{ backgroundColor: '#F2F0E6' }}>
-      {/* Safe Area Top */}
-      <div className="pt-[env(safe-area-inset-top)]" />
-
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      height: '100vh',
+      backgroundColor: '#F2F0E6',
+      overflow: 'hidden'
+    }}>
       {/* Header */}
-      <header className="flex-shrink-0 px-5 pt-4 pb-3 bg-[#F2F0E6] z-20 flex items-center justify-between">
+      <header style={{ 
+        flexShrink: 0,
+        padding: '16px 20px 12px 20px',
+        backgroundColor: '#F2F0E6',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
         <button onClick={resetFlow} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
           <span className="text-[32px]">&#x2039;</span>
         </button>
@@ -644,7 +654,16 @@ function RecordScreen({
         <div className="w-8" /> {/* 오른쪽 균형 맞추기용 */}
       </header>
 
-      <main className="flex-1 overflow-y-auto p-8 space-y-5" style={{ backgroundColor: '#F2F0E6', paddingBottom: 'calc(200px + env(safe-area-inset-bottom, 0px))' }}>
+      <main className="space-y-5" style={{ 
+        flex: '1 1 0',
+        minHeight: 0,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        WebkitOverflowScrolling: 'touch',
+        padding: '32px',
+        paddingBottom: '200px',
+        backgroundColor: '#F2F0E6'
+      }}>
          {!selectedCustomerForRecord && (
            <div className="bg-white rounded-xl shadow-sm border border-[#E8DFD3]" style={{ padding: '12px 16px' }}>
              <div className="flex flex-col gap-2">
