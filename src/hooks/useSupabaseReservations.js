@@ -218,7 +218,61 @@ export default function useSupabaseReservations() {
     };
   }, [user, refreshTrigger]);
 
-  // 15초 주기로 폴링하여 고객/예약을 자동 새로고침
+  // 실시간 구독으로 reservations 테이블 변경 감지
+  useEffect(() => {
+    if (!user || !user.id) return undefined;
+
+    const channel = supabase
+      .channel('reservations_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE 모두 감지
+          schema: 'public',
+          table: 'reservations',
+          filter: `owner_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('[실시간 구독] reservations 변경 감지:', payload);
+          // 데이터 변경 시 즉시 새로고침
+          setRefreshTrigger((prev) => prev + 1);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
+  // customers 테이블 실시간 구독도 추가
+  useEffect(() => {
+    if (!user || !user.id) return undefined;
+
+    const channel = supabase
+      .channel('customers_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE 모두 감지
+          schema: 'public',
+          table: 'customers',
+          filter: `owner_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('[실시간 구독] customers 변경 감지:', payload);
+          // 데이터 변경 시 즉시 새로고침
+          setRefreshTrigger((prev) => prev + 1);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
+  // 기존 15초 폴링은 백업으로 유지 (실시간 구독 실패 시 대비)
   useEffect(() => {
     if (!user || !user.id) return undefined;
 
