@@ -617,7 +617,7 @@ function RecordScreen({
   }
 
   return (
-    <div className="flex flex-col min-h-screen relative" style={{ backgroundColor: '#F2F0E6' }}>
+    <div className="flex flex-col h-dvh" style={{ backgroundColor: '#F2F0E6' }}>
       {/* Header */}
       <header className="px-5 pt-4 pb-3 bg-[#F2F0E6] sticky top-0 z-20 flex items-center justify-between">
         <button onClick={resetFlow} className="p-2 hover:bg-gray-100 rounded-2xl transition-colors" style={{ color: '#232323' }}>
@@ -1128,7 +1128,7 @@ function RecordScreen({
 
       {/* Fixed Action Bar - 2개 버튼 나란히 배치 (화면 하단 고정) */}
       <div 
-        className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 px-8 shadow-lg"
+        className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 px-8 shadow-lg"
         style={{ 
           backgroundColor: '#F2F0E6',
           paddingTop: '16px',
