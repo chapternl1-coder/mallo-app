@@ -117,6 +117,13 @@ export function AuthProvider({ children }) {
       throw new Error('로그인에 실패했습니다. 다시 시도해주세요.');
     }
 
+    // 🚨 로그인 성공 시 이전 계정의 모든 데이터 삭제 (계정 간 데이터 혼선 방지)
+    console.log('[Auth] 로그인 성공 - 이전 계정 데이터 삭제');
+    localStorage.removeItem('mallo_customers');
+    localStorage.removeItem('mallo_visits');
+    localStorage.removeItem('mallo_reservations');
+    localStorage.removeItem('mallo_profile');
+
     const simpleUser = { id: supaUser.id, email: supaUser.email };
     setUser(simpleUser);
     saveUserToStorage(simpleUser);
@@ -126,6 +133,13 @@ export function AuthProvider({ children }) {
 
   // ✅ 회원가입: 계정 만들고 곧바로 로그인된 상태로 취급
   const signUp = async ({ email, password, name, shopName, phone }) => {
+    // 🚨 회원가입 시 이전 계정의 모든 데이터 삭제 (계정 간 데이터 혼선 방지)
+    console.log('[Auth] 회원가입 - 이전 계정 데이터 삭제');
+    localStorage.removeItem('mallo_customers');
+    localStorage.removeItem('mallo_visits');
+    localStorage.removeItem('mallo_reservations');
+    localStorage.removeItem('mallo_profile');
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
