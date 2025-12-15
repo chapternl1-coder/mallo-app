@@ -27,6 +27,15 @@ export default function useProfile() {
       return;
     }
 
+    // 세션 확인 (로그아웃 직후 방지)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      // 로그아웃 상태에서는 프로필 요청하지 않음 (정상 동작)
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -80,13 +89,21 @@ export default function useProfile() {
 
   // 15초마다, 그리고 포커스/가시성 변경 시 최신 프로필을 다시 가져와 기기 간 동기화
   useEffect(() => {
-    if (!user) return undefined;
+    // user가 없으면 아무것도 하지 않음
+    if (!user) {
+      // cleanup 함수는 항상 반환 (이전 이벤트 정리용)
+      return () => {};
+    }
 
     const handleFocus = () => {
+      // 호출 시점에 다시 user 확인 (로그아웃 직후 방지)
+      if (!user) return;
       fetchProfile();
     };
 
     const intervalId = setInterval(() => {
+      // 호출 시점에 다시 user 확인 (로그아웃 직후 방지)
+      if (!user) return;
       fetchProfile();
     }, 15000); // 15초 폴링
 

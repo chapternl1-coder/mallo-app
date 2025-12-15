@@ -67,8 +67,14 @@ export function AuthProvider({ children }) {
           console.warn('[Auth] 로그아웃 감지');
           setUser(null);
           saveUserToStorage(null);
-          // 데이터 손실 방지: localStorage 데이터는 유지 (백업용)
-          alert('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
+          
+          // 로그아웃 시 모든 로컬 데이터 삭제 (보안 및 데이터 분리)
+          localStorage.removeItem('mallo_customers');
+          localStorage.removeItem('mallo_visits');
+          localStorage.removeItem('mallo_reservations');
+          localStorage.removeItem('mallo_profile');
+          
+          // alert 제거: 자연스럽게 로그인 화면으로 이동
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
           console.log('[Auth] 토큰 자동 갱신 완료');
           const simpleUser = { id: session.user.id, email: session.user.email };

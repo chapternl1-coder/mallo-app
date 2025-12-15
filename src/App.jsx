@@ -122,8 +122,8 @@ export default function MalloApp() {
 
       const result = Array.from(merged.values());
       
-      // 🚨 Supabase가 빈 배열인데 로컬에 데이터가 있으면 경고
-      if (supabaseReservations.length === 0 && prev.length > 0 && result.length === 0) {
+      // 🚨 Supabase가 빈 배열인데 로컬에 데이터가 있으면 경고 (로그인 상태에서만)
+      if (user && supabaseReservations.length === 0 && prev.length > 0 && result.length === 0) {
         console.error('[App] 🚨 데이터 손실 위험 감지! Supabase 빈 배열이 로컬 예약을 덮어쓸 뻔함');
         // 기존 로컬 데이터 유지
         return prev;
@@ -186,14 +186,14 @@ export default function MalloApp() {
         }
       }
     } else if (customers && customers.length === 0) {
-      // 🚨 Supabase가 빈 배열을 반환한 경우: 기존 로컬 데이터 유지
+      // 🚨 Supabase가 빈 배열을 반환한 경우: 기존 로컬 데이터 유지 (로그인 상태에서만)
       const existingCustomersStr = localStorage.getItem('mallo_customers');
       const existingCustomers = existingCustomersStr ? JSON.parse(existingCustomersStr) : [];
-      if (existingCustomers.length > 0) {
+      if (user && existingCustomers.length > 0) {
         console.warn('[App] ⚠️ Supabase 빈 배열 반환, 기존 로컬 데이터 유지:', existingCustomers.length, '명');
         setMergedCustomers(existingCustomers);
       } else {
-        // 로컬에도 데이터가 없으면 빈 배열 사용
+        // 로컬에도 데이터가 없거나 로그아웃 상태면 빈 배열 사용
         setMergedCustomers([]);
       }
     }

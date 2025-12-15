@@ -89,7 +89,8 @@ export default function useMalloAppState(user, supabaseReservations = null) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // 프로필 정보 가져오기 및 캐싱 (Stale-while-revalidate 패턴)
-  // 로그인된 상태에서만 프로필 정보 가져오기
+  // useProfile 훅은 항상 호출되어야 함 (React Rules of Hooks)
+  // 내부에서 user 상태에 따라 처리됨
   const { profile, loading: profileLoading, refetch: refetchProfile } = useProfile();
   const [cachedProfile, setCachedProfile] = useState(null);
   const [isProfileInitialized, setIsProfileInitialized] = useState(false);

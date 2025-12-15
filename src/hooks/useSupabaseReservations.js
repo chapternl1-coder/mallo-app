@@ -73,6 +73,16 @@ export default function useSupabaseReservations() {
     let cancelled = false;
 
     async function fetchData() {
+      // 세션 확인 (로그아웃 직후 방지)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || !user) {
+        // 로그아웃 상태에서는 데이터 요청하지 않음 (정상 동작)
+        setCustomers([]);
+        setReservations([]);
+        setLoading(false);
+        return;
+      }
+
       // 🔹 Stale-while-revalidate: 데이터가 이미 있으면 로딩 상태를 유지하지 않음
       const hasExistingData = customers.length > 0 || reservations.length > 0;
       const shouldShowLoading = !hasLoadedOnce && !hasExistingData;
