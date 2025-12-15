@@ -88,13 +88,13 @@ export default function MalloApp() {
   useEffect(() => {
     // 🚨 데이터 손실 방지: supabaseReservations가 null/undefined인 경우 기존 데이터 유지
     if (!Array.isArray(supabaseReservations)) {
-      console.warn('[App] ⚠️ Supabase 예약 데이터 없음, 기존 데이터 유지');
+      appLog('[App] Supabase 예약 데이터 없음, 기존 데이터 유지');
       return; // 빈 배열로 설정하지 않고 기존 state 유지
     }
 
-    // 🚨 빈 배열이 반환된 경우: 로그인 세션 만료 가능성 체크
+    // Debug: 예약 데이터 상태 (새 계정이거나 실제로 예약이 없으면 정상)
     if (supabaseReservations.length === 0 && user) {
-      console.warn('[App] ⚠️ Supabase 빈 배열 반환 (세션 만료 가능성)');
+      appLog('[App] Supabase 예약 0개 (새 계정이거나 예약 없음)');
     }
 
     // Supabase 데이터를 우선 적용하되, 아직 Supabase에 반영되지 않은
