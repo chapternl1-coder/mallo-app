@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
 // 과도한 콘솔 로그를 막기 위한 토글
-const ENABLE_RESERVATION_DEBUG = false;
+const ENABLE_RESERVATION_DEBUG = true; // 디버깅 활성화
 const resLog = (...args) => {
   if (ENABLE_RESERVATION_DEBUG) console.log(...args);
 };
@@ -84,11 +84,14 @@ export default function useSupabaseReservations() {
 
       try {
         // customer_tags 컬럼이 있을 수도 있으므로 시도해보고, 없으면 기본 필드만 사용
+        console.log('[DEBUG] 현재 사용자 ID:', user.id);
         let customersRes = await supabase
           .from('customers')
-          .select('id, name, phone, created_at, memo, customer_tags')
+          .select('id, name, phone, created_at, memo, customer_tags, owner_id')
           .eq('owner_id', user.id)
           .order('created_at', { ascending: true });
+
+        console.log('[DEBUG] Customers 쿼리 결과:', customersRes);
 
         // customer_tags 컬럼이 없으면 기본 필드만 다시 조회
         if (customersRes.error && customersRes.error.message && customersRes.error.message.includes('customer_tags')) {
@@ -103,15 +106,28 @@ export default function useSupabaseReservations() {
         // reservations는 별도로 가져오기
         const reservationsRes = await supabase
           .from('reservations')
-          .select('id, customer_id, reserved_at, memo, status')
+          .select('id, customer_id, reserved_at, memo, status, owner_id')
           .eq('owner_id', user.id)
           .order('reserved_at', { ascending: true });
+
+        console.log('[DEBUG] Reservations 쿼리 결과:', reservationsRes);
 
         if (cancelled) return;
 
         // customers와 reservations를 각각 독립적으로 처리
         const customerRows = customersRes.error ? [] : (customersRes.data ?? []);
         const reservationRows = reservationsRes.error ? [] : (reservationsRes.data ?? []);
+
+        // 🚨 RLS 정책 확인: 다른 사용자의 데이터가 포함되어 있는지 체크
+        const invalidCustomers = customerRows.filter(c => c.owner_id !== user.id);
+        const invalidReservations = reservationRows.filter(r => r.owner_id !== user.id);
+
+        if (invalidCustomers.length > 0) {
+          console.error('🚨 보안 위험: 다른 사용자의 고객 데이터가 포함됨!', invalidCustomers);
+        }
+        if (invalidReservations.length > 0) {
+          console.error('🚨 보안 위험: 다른 사용자의 예약 데이터가 포함됨!', invalidReservations);
+        }
 
         // 에러가 있으면 로그만 남기고 계속 진행
         if (customersRes.error) {
