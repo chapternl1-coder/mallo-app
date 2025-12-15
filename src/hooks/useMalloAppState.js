@@ -14,6 +14,7 @@ import TagPickerModal from '../components/TagPickerModal';
 import CustomerTagPickerModal from '../components/CustomerTagPickerModal';
 import { supabase } from '../lib/supabaseClient';
 import useProfile from './useProfile';
+import { useAuth } from '../contexts/AuthContext';
 
 // 🚨 긴급: 로컬 데이터 클리어 함수
 export const clearLocalData = () => {
@@ -80,11 +81,15 @@ function getLocalTodayKey() {
 }
 
 export default function useMalloAppState(user, supabaseReservations = null) {
+  const { user: authUser } = useAuth();
+  const currentUser = user || authUser;
+
   const [currentScreen, setCurrentScreenState] = useState(SCREENS.LOGIN);
   const [previousScreen, setPreviousScreen] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  
+
   // 프로필 정보 가져오기 및 캐싱 (Stale-while-revalidate 패턴)
+  // 로그인된 상태에서만 프로필 정보 가져오기
   const { profile, loading: profileLoading, refetch: refetchProfile } = useProfile();
   const [cachedProfile, setCachedProfile] = useState(null);
   const [isProfileInitialized, setIsProfileInitialized] = useState(false);
@@ -101,14 +106,15 @@ export default function useMalloAppState(user, supabaseReservations = null) {
   }, [profile, profileLoading]);
 
   // 프로필 탭 진입 시 백그라운드에서 최신 정보 갱신 (Stale-while-revalidate)
+  // 로그인된 상태에서만 실행
   useEffect(() => {
-    if (currentScreen === SCREENS.PROFILE && isProfileInitialized) {
+    if (currentUser && currentScreen === SCREENS.PROFILE && isProfileInitialized) {
       // 캐시된 데이터는 즉시 표시하고, 백그라운드에서 최신 정보 가져오기
       refetchProfile().catch((e) => {
         console.warn('[프로필] 백그라운드 갱신 실패, 캐시된 데이터 사용:', e);
       });
     }
-  }, [currentScreen, isProfileInitialized, refetchProfile]);
+  }, [currentUser, currentScreen, isProfileInitialized, refetchProfile]);
 
   // Auth 도입 후에는 내부 SCREENS.LOGIN을 더 이상 쓰지 않으므로, Login이면 자동으로 Home으로 교정
   useEffect(() => {
