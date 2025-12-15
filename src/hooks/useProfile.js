@@ -69,8 +69,14 @@ export default function useProfile() {
   }, [user]);
 
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+    if (user) {
+      fetchProfile();
+    } else {
+      setProfile(null);
+      setLoading(false);
+      setError(null);
+    }
+  }, [fetchProfile, user]);
 
   // 15초마다, 그리고 포커스/가시성 변경 시 최신 프로필을 다시 가져와 기기 간 동기화
   useEffect(() => {

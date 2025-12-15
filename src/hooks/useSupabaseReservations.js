@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 
 // 과도한 콘솔 로그를 막기 위한 토글
-const ENABLE_RESERVATION_DEBUG = true; // 디버깅 활성화
+const ENABLE_RESERVATION_DEBUG = false; // 디버깅 비활성화 (문제 해결 후)
 const resLog = (...args) => {
   if (ENABLE_RESERVATION_DEBUG) console.log(...args);
 };
@@ -85,13 +85,23 @@ export default function useSupabaseReservations() {
       try {
         // customer_tags 컬럼이 있을 수도 있으므로 시도해보고, 없으면 기본 필드만 사용
         console.log('[DEBUG] 현재 사용자 ID:', user.id);
+        console.log('[DEBUG] RLS 정책 확인을 위한 쿼리 실행...');
+
+        // RLS 정책 테스트: 다른 사용자의 데이터가 있는지 확인
+        const allCustomersRes = await supabase
+          .from('customers')
+          .select('id, name, phone, owner_id')
+          .limit(100); // 최대 100개만 확인
+
+        console.log('[DEBUG] 전체 customers 조회 결과 (RLS 정책 테스트):', allCustomersRes);
+
         let customersRes = await supabase
           .from('customers')
           .select('id, name, phone, created_at, memo, customer_tags, owner_id')
           .eq('owner_id', user.id)
           .order('created_at', { ascending: true });
 
-        console.log('[DEBUG] Customers 쿼리 결과:', customersRes);
+        console.log('[DEBUG] 필터링된 Customers 쿼리 결과:', customersRes);
 
         // customer_tags 컬럼이 없으면 기본 필드만 다시 조회
         if (customersRes.error && customersRes.error.message && customersRes.error.message.includes('customer_tags')) {

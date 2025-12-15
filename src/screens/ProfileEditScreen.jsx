@@ -8,6 +8,12 @@ export default function ProfileEditScreen({ setCurrentScreen, refetchProfile }) 
   const { user } = useAuth();
   const { profile, loading, saving, updateProfile } = useProfile();
 
+  // 로그아웃 상태에서는 프로필 편집 화면에 접근할 수 없음
+  if (!user) {
+    setCurrentScreen(SCREENS.LOGIN);
+    return null;
+  }
+
   const DRAFT_KEY = 'mallo_profile_edit_draft';
   const loadDraft = () => {
     try {

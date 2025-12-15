@@ -15,6 +15,25 @@ import CustomerTagPickerModal from '../components/CustomerTagPickerModal';
 import { supabase } from '../lib/supabaseClient';
 import useProfile from './useProfile';
 
+// 🚨 긴급: 로컬 데이터 클리어 함수
+export const clearLocalData = () => {
+  try {
+    localStorage.removeItem('mallo_customers');
+    localStorage.removeItem('mallo_visits');
+    localStorage.removeItem('mallo_reservations');
+    localStorage.removeItem('mallo_profile');
+    console.log('🧹 로컬 데이터가 모두 삭제되었습니다.');
+    window.location.reload(); // 페이지 새로고침
+  } catch (error) {
+    console.error('로컬 데이터 삭제 실패:', error);
+  }
+};
+
+// 브라우저 콘솔에서 사용할 수 있도록 전역에 노출
+if (typeof window !== 'undefined') {
+  window.clearLocalData = clearLocalData;
+}
+
 // 녹음 시간 제한 상수
 const MAX_RECORD_SECONDS = 120; // 2분
 
